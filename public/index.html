@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimulatorX - CS:GO 5v5 Tactical Minimap Simulator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="theme-cs">
+
+  <!-- TOP HEADER HUD -->
+  <header class="hud-top">
+    <!-- CT Alive Avatars -->
+    <div class="team-avatars ct-avatars" id="ctAvatars">
+      <!-- Injected by HUD -->
+    </div>
+
+    <!-- Match Center Scoreboard -->
+    <div class="match-center-board">
+      <div class="team-badge ct-badge">
+        <span class="team-name">CT</span>
+        <span class="team-score" id="scoreCT">0</span>
+      </div>
+
+      <div class="timer-container">
+        <div class="round-label" id="roundLabel">ROUND 1 / 24</div>
+        <div class="round-timer" id="roundTimer">01:55</div>
+        <div class="phase-tag" id="phaseTag">LIVE</div>
+      </div>
+
+      <div class="team-badge t-badge">
+        <span class="team-score" id="scoreT">0</span>
+        <span class="team-name">T</span>
+      </div>
+    </div>
+
+    <!-- T Alive Avatars -->
+    <div class="team-avatars t-avatars" id="tAvatars">
+      <!-- Injected by HUD -->
+    </div>
+  </header>
+
+  <!-- MAIN SIMULATOR LAYOUT -->
+  <main class="sim-container">
+    <!-- LEFT PANEL: TEAMS & STRATEGIES -->
+    <aside class="panel side-panel left-panel">
+      <!-- TEAM PICKER -->
+      <section class="panel-section">
+        <h3 class="section-title">TAKIM SEÇİMİ</h3>
+        <div class="team-select-buttons">
+          <button class="btn btn-team btn-ct" id="btnJoinCT">
+            <span class="icon">🛡️</span> COUNTER-TERRORIST
+          </button>
+          <button class="btn btn-team btn-t" id="btnJoinT">
+            <span class="icon">💣</span> TERRORIST
+          </button>
+          <button class="btn btn-team btn-spec" id="btnJoinSpec">
+            <span class="icon">👁️</span> İZLEYİCİ (SPECTATOR)
+          </button>
+        </div>
+
+        <!-- SLOT PICKER -->
+        <div class="slot-picker-wrap" id="slotPickerWrap" style="display:none;">
+          <div class="slot-title">Oyuncu Slotu Seç (1 - 5):</div>
+          <div class="slot-buttons" id="slotButtons">
+            <!-- 1 to 5 buttons -->
+          </div>
+        </div>
+      </section>
+
+      <!-- STRATEGY SELECTOR -->
+      <section class="panel-section">
+        <div class="strat-header">
+          <h3 class="section-title">TAKIM STRATEJİSİ</h3>
+          <span class="badge" id="myTeamBadge">SPECTATOR</span>
+        </div>
+        <div class="strat-list" id="stratList">
+          <!-- Dynamically populated based on chosen team -->
+        </div>
+      </section>
+
+      <!-- BUY MENU (Freeze time) -->
+      <section class="panel-section buy-section" id="buySection">
+        <h3 class="section-title">SİLAH SATIN AL (FREEZE TIME)</h3>
+        <div class="player-money-badge">Bakiye: <span id="playerMoneyDisplay">$800</span></div>
+        <div class="buy-grid" id="buyGrid">
+          <button class="buy-item" data-weapon="ak47">
+            <div class="buy-name">AK-47</div>
+            <div class="buy-cost">$2700</div>
+          </button>
+          <button class="buy-item" data-weapon="m4a1">
+            <div class="buy-name">M4A1-S</div>
+            <div class="buy-cost">$2900</div>
+          </button>
+          <button class="buy-item" data-weapon="awp">
+            <div class="buy-name">AWP</div>
+            <div class="buy-cost">$4750</div>
+          </button>
+          <button class="buy-item" data-weapon="deagle">
+            <div class="buy-name">Desert Eagle</div>
+            <div class="buy-cost">$700</div>
+          </button>
+        </div>
+      </section>
+    </aside>
+
+    <!-- CENTER: LARGE MINIMAP CANVAS -->
+    <section class="radar-wrapper">
+      <div class="radar-box">
+        <canvas id="radarCanvas" width="1024" height="1024"></canvas>
+
+        <!-- KILLFEED OVERLAY (Top-Right of Radar) -->
+        <div class="killfeed-container" id="killfeedContainer"></div>
+
+        <!-- BOMB STATUS BANNER (If planted) -->
+        <div class="bomb-alert-banner" id="bombAlertBanner" style="display:none;">
+          <span class="bomb-icon">⚠️</span>
+          <span class="bomb-text">BOMBA KURULDU: <span id="bombSiteText">SITE A</span> (<span id="bombCountdown">40</span>s)</span>
+        </div>
+
+        <!-- RADAR CONTROLS OVERLAY -->
+        <div class="radar-footer-controls">
+          <button class="btn btn-ctrl" id="btnToggleScoreboard">TAB (Skor Tablosu)</button>
+          <button class="btn btn-ctrl" id="btnSoundToggle">🔊 Ses: Açık</button>
+          <div class="speed-btns">
+            <span class="speed-label">Hız:</span>
+            <button class="btn btn-speed active" data-speed="1.0">1x</button>
+            <button class="btn btn-speed" data-speed="2.0">2x</button>
+            <button class="btn btn-speed" data-speed="3.0">3x</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: PLAYER DASHBOARD & CHAT -->
+    <aside class="panel side-panel right-panel">
+      <!-- ACTIVE OPERATIVE STATUS -->
+      <section class="panel-section active-player-panel">
+        <h3 class="section-title">KONTROL PANELİ</h3>
+        <div class="player-hud-card">
+          <div class="p-card-header">
+            <span class="p-role-badge" id="playerRoleBadge">SPECTATOR</span>
+            <span class="p-name" id="playerNameDisplay">Serbest İzleyici</span>
+          </div>
+
+          <div class="stat-bar-group">
+            <div class="stat-bar-label">
+              <span>CAN (HP)</span>
+              <span id="playerHpText">100 / 100</span>
+            </div>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill hp-fill" id="playerHpFill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <div class="stat-bar-group">
+            <div class="stat-bar-label">
+              <span>ÇELİK YELEK (AP)</span>
+              <span id="playerArmorText">100 / 100</span>
+            </div>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill armor-fill" id="playerArmorFill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <div class="weapon-display">
+            <div class="weapon-label">KUŞANILAN SİLAH:</div>
+            <div class="weapon-value" id="playerWeaponDisplay">USP-S</div>
+          </div>
+
+          <!-- UTILITY ACTIONS -->
+          <div class="utility-actions">
+            <button class="btn btn-util" id="btnThrowFlash">
+              <span class="key">[F]</span> ⚡ Flashbang At
+            </button>
+            <button class="btn btn-util" id="btnThrowSmoke">
+              <span class="key">[S]</span> 💨 Smoke Grenade At
+            </button>
+          </div>
+          <div class="tactical-hint">
+            💡 <strong>İpucu:</strong> Haritada herhangi bir noktaya tıklayarak botunuza doğrudan hareket emri verebilir veya bomba kurma/çözme bölgesine gönderebilirsiniz!
+          </div>
+        </div>
+      </section>
+
+      <!-- MATCH RADIO & CHAT -->
+      <section class="panel-section chat-section">
+        <h3 class="section-title">TELSİZ & MAÇ SOHBETİ</h3>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg system">
+            <span class="chat-time">00:00</span>
+            <span class="chat-body">SimulatorX CS:GO 5v5 Taktik Simülatörüne Hoş Geldiniz!</span>
+          </div>
+        </div>
+        <form class="chat-input-wrap" id="chatForm">
+          <input type="text" id="chatInput" placeholder="Telsiz mesajı yaz..." autocomplete="off">
+          <button type="submit" class="btn btn-send">Gönder</button>
+        </form>
+      </section>
+    </aside>
+  </main>
+
+  <!-- CS:GO FULL SCOREBOARD OVERLAY (TAB) -->
+  <div class="scoreboard-modal" id="scoreboardModal" style="display:none;">
+    <div class="scoreboard-card">
+      <div class="scoreboard-header">
+        <h2 class="scoreboard-title">CS:GO RESMİ SKOR TABLOSU</h2>
+        <button class="close-btn" id="btnCloseScoreboard">✕</button>
+      </div>
+
+      <!-- CT TEAM TABLE -->
+      <div class="table-wrap ct-table-wrap">
+        <div class="table-team-head ct-head">
+          <span>COUNTER-TERRORISTS</span>
+          <span class="head-score" id="sbScoreCT">0</span>
+        </div>
+        <table class="sb-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>OYUNCU</th>
+              <th>SİLAH</th>
+              <th>PARA</th>
+              <th>K</th>
+              <th>D</th>
+              <th>A</th>
+              <th>MVP</th>
+              <th>PING</th>
+            </tr>
+          </thead>
+          <tbody id="ctTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- T TEAM TABLE -->
+      <div class="table-wrap t-table-wrap">
+        <div class="table-team-head t-head">
+          <span>TERRORISTS</span>
+          <span class="head-score" id="sbScoreT">0</span>
+        </div>
+        <table class="sb-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>OYUNCU</th>
+              <th>SİLAH</th>
+              <th>PARA</th>
+              <th>K</th>
+              <th>D</th>
+              <th>A</th>
+              <th>MVP</th>
+              <th>PING</th>
+            </tr>
+          </thead>
+          <tbody id="tTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROUND END MVP BANNER -->
+  <div class="round-end-overlay" id="roundEndOverlay" style="display:none;">
+    <div class="round-end-card" id="roundEndCard">
+      <div class="round-winner-tag" id="roundWinnerTag">COUNTER-TERRORISTS WIN</div>
+      <div class="round-reason-text" id="roundReasonText">Bomba başarıyla imha edildi!</div>
+      <div class="mvp-box">
+        <span class="mvp-star">⭐</span>
+        <span class="mvp-text">RAUNDUN EN DEĞERLİ OYUNCUSU (MVP): <strong id="roundMvpName">s1mple</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/mapData.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/radar.js"></script>
+  <script src="js/hud.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
