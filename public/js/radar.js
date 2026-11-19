@@ -219,18 +219,43 @@ class RadarRenderer {
         ctx.fillText('DEFUSING', bomb.x, bomb.y + 24);
       }
     } else if (bomb.dropped && !bomb.carried) {
-      // Dropped C4 on ground
-      const pulse = Math.sin(time * 4) * 0.3 + 0.7;
-      ctx.fillStyle = `rgba(231, 76, 60, ${pulse})`;
-      ctx.fillRect(bomb.x - 8, bomb.y - 6, 16, 12);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(bomb.x - 8, bomb.y - 6, 16, 12);
+      // Prominent Dropped C4 on ground with pulsing beacon & alert ring
+      const pulse = Math.sin(time * 5) * 0.4 + 0.6;
+      const beaconRadius = 16 + ((time * 24) % 20);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 9px Arial';
+      // Warning ring
+      ctx.beginPath();
+      ctx.arc(bomb.x, bomb.y, beaconRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 140, 0, ${pulse * 0.8})`;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // C4 Box
+      ctx.fillStyle = '#ff7700';
+      ctx.fillRect(bomb.x - 12, bomb.y - 8, 24, 16);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bomb.x - 12, bomb.y - 8, 24, 16);
+
+      // Black digital timer panel
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(bomb.x - 9, bomb.y - 5, 18, 10);
+
+      ctx.fillStyle = '#ffea00';
+      ctx.font = 'bold 10px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('C4', bomb.x, bomb.y + 3);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('C4', bomb.x, bomb.y);
+
+      // Label above
+      ctx.fillStyle = '#ff9900';
+      ctx.font = 'bold 10px "Segoe UI", Arial, sans-serif';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 4;
+      ctx.fillText('💣 DÜŞEN BOMBA', bomb.x, bomb.y - 14);
+      ctx.shadowBlur = 0;
     }
     ctx.restore();
   }
@@ -310,17 +335,28 @@ class RadarRenderer {
 
     // 3. Planting / Defusing radial indicator
     if (player.state === 'planting') {
+      const pProg = player.plantProgress || 0;
       ctx.beginPath();
-      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pProg);
       ctx.strokeStyle = '#e74c3c';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3.5;
       ctx.stroke();
+
+      ctx.fillStyle = '#ff4d4d';
+      ctx.font = 'bold 9px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('KURUYOR...', 0, -22);
     } else if (player.state === 'defusing') {
       ctx.beginPath();
-      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
       ctx.strokeStyle = '#3498db';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3.5;
       ctx.stroke();
+
+      ctx.fillStyle = '#3498db';
+      ctx.font = 'bold 9px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('ÇÖZÜYOR...', 0, -22);
     }
 
     // 4. Main Player Dot Body
@@ -352,22 +388,43 @@ class RadarRenderer {
 
     // 7. Badges (C4 Carrier / Defuse Kit)
     if (player.hasBomb) {
-      ctx.fillStyle = '#e74c3c';
-      ctx.fillRect(8, -10, 6, 6);
+      const time = Date.now() / 200;
+      const pulse = 16 + Math.sin(time) * 3;
+
+      // Glowing C4 carrier ring
+      ctx.beginPath();
+      ctx.arc(0, 0, pulse, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 140, 0, 0.75)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // C4 backpack badge
+      ctx.fillStyle = '#ff8800';
+      ctx.fillRect(9, -14, 15, 11);
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(8, -10, 6, 6);
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(9, -14, 15, 11);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 8px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('C4', 16, -8);
     }
     if (player.hasKit) {
       ctx.fillStyle = '#3498db';
-      ctx.fillRect(-14, -10, 6, 6);
+      ctx.fillRect(-15, -12, 7, 7);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-15, -12, 7, 7);
     }
 
     // 8. Name Tag & Weapon Label
     ctx.fillStyle = '#ffffff';
     ctx.font = '10px "Segoe UI", Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(player.name, 0, 20);
+    const tag = player.hasBomb ? `💣 ${player.name} [C4]` : player.name;
+    ctx.fillText(tag, 0, 20);
 
     ctx.fillStyle = '#bdc3c7';
     ctx.font = '9px Arial';

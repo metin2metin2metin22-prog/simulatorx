@@ -123,6 +123,17 @@ body.theme-cs {
   filter: grayscale(1);
 }
 
+.avatar-pill.has-bomb {
+  border-color: #ff8800;
+  box-shadow: 0 0 10px rgba(255, 136, 0, 0.7);
+  animation: pulse-bomb-pill 1.2s infinite alternate;
+}
+
+@keyframes pulse-bomb-pill {
+  0% { border-color: #ff8800; box-shadow: 0 0 6px rgba(255, 136, 0, 0.4); }
+  100% { border-color: #ff3300; box-shadow: 0 0 14px rgba(255, 68, 0, 0.85); }
+}
+
 .avatar-num {
   font-family: 'Chakra Petch', monospace;
   font-size: 10px;

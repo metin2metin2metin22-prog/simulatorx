@@ -154,8 +154,8 @@ class HUDManager {
 
     const tList = playerList.filter(p => p.team === 't').sort((a, b) => a.slot - b.slot);
     this.tAvatars.innerHTML = tList.map(p => `
-      <div class="avatar-pill ${p.alive ? '' : 'dead'}">
-        <span class="avatar-num">${p.name.slice(0, 6)}</span>
+      <div class="avatar-pill ${p.alive ? '' : 'dead'} ${p.hasBomb ? 'has-bomb' : ''}">
+        <span class="avatar-num">${p.hasBomb ? '💣 ' : ''}${p.name.slice(0, 6)}</span>
         <div class="avatar-hp-bar">
           <div class="avatar-hp-fill" style="width: ${Math.max(0, p.hp)}%; background: ${p.hp > 50 ? '#2ecc71' : (p.hp > 25 ? '#f1c40f' : '#e74c3c')}"></div>
         </div>

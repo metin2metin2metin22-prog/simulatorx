@@ -341,8 +341,22 @@ class PureCoachMatch {
     this.bomb.defuserId = null;
     this.bomb.defuseProgress = 0;
 
-    // Slot 1 (NiKo / Planter) carries the bomb safely in pack formation
-    this.bomb.carrierId = 't_1';
+    // C4 Bomb is ALWAYS assigned to a living Terrorist every single round!
+    // Rotates between core pack riflers: t_1 (NiKo / Planter), t_2 (m0NESY), or t_3 (electronic)
+    const eligibleSlots = [1, 2, 3];
+    const carrierSlot = eligibleSlots[Math.floor(Math.random() * eligibleSlots.length)];
+    this.bomb.carrierId = `t_${carrierSlot}`;
+    this.bomb.carried = true;
+    this.bomb.dropped = false;
+    this.bomb.planted = false;
+    this.bomb.timer = 40;
+    this.bomb.site = null;
+    this.bomb.planterId = null;
+    this.bomb.plantProgress = 0;
+    this.bomb.defusing = false;
+    this.bomb.defuserId = null;
+    this.bomb.defuseProgress = 0;
+    this.clutchAnnounced = false;
 
     // AUTONOMOUS STRATEGY SELECTION BY IGLs
     if (this.round === 1 || this.round === 13) {
@@ -372,6 +386,7 @@ class PureCoachMatch {
       p.soundAlert = null;
       p.holdTimer = 0;
       p.sprintTimer = 3.5;
+      p.droppedBombSmoked = false;
 
       const spawnList = p.team === 'ct' ? this.mapData.spawns.CT : this.mapData.spawns.T;
       const spawn = spawnList[p.slot];
@@ -396,10 +411,17 @@ class PureCoachMatch {
       }
       p.angle = p.team === 'ct' ? Math.PI / 2 : -Math.PI / 2;
       p.targetAngle = p.angle;
-      p.hasBomb = (p.id === 't_1');
+      p.hasBomb = (p.id === this.bomb.carrierId);
 
       this.autonomousPlayerBuy(p);
     });
+
+    // Sync bomb starting coordinates to carrier
+    const initialCarrier = this.players[this.bomb.carrierId];
+    if (initialCarrier) {
+      this.bomb.x = initialCarrier.x;
+      this.bomb.y = initialCarrier.y;
+    }
 
     this.assignStrategyPaths();
 
@@ -407,6 +429,9 @@ class PureCoachMatch {
     const ctStrat = this.mapData.strategies.CT[this.activeStrategies.ct];
     this.addRadioMessage('ct', 'Twistzz (IGL)', `Savunma planı: ${ctStrat ? ctStrat.name : 'Standart 2-1-2'}. Açıları tutun.`);
     this.addRadioMessage('t', 'electronic (IGL)', `Saldırı planı: ${tStrat ? tStrat.name : 'Rush B'}. Takım halinde toplu giriyoruz!`);
+    if (initialCarrier) {
+      this.addRadioMessage('t', initialCarrier.name, `Bomba bende! Takım beni korusun, ${this.tTargetSite} Site'a gidiyoruz.`);
+    }
   }
 
   // Players buy completely on their own based on money & professional CS:GO meta
@@ -473,6 +498,15 @@ class PureCoachMatch {
         p.holdTimer = 0;
       }
     });
+
+    // Ensure the designated bomb carrier always marches straight into the bombsite
+    const carrier = this.players[this.bomb.carrierId];
+    if (carrier) {
+      const targetNode = this.tTargetSite === 'B' ? 'b_site' : 'a_site';
+      if (!carrier.path || carrier.path.length === 0 || carrier.path[carrier.path.length - 1] !== targetNode) {
+        carrier.path.push(targetNode);
+      }
+    }
 
     ctStrat.assignments.forEach(asg => {
       const p = this.players[`ct_${asg.slot}`];
@@ -598,6 +632,9 @@ class PureCoachMatch {
 
     // Bomb Objectives
     this.updateBombObjectives(dt);
+
+    // Check Clutch moments
+    this.checkClutchSituation();
 
     // Check Alive Counts
     const ctAlive = Object.values(this.players).filter(p => p.team === 'ct' && p.alive).length;
@@ -729,20 +766,32 @@ class PureCoachMatch {
     if (p.team === 't') {
       if (nodeKey === 'long_doors_t' && Math.random() < 0.75) {
         this.throwGrenade(p, 'flash', 760, 700);
+      } else if (nodeKey === 'long_doors_exit' && Math.random() < 0.7) {
+        this.throwGrenade(p, 'flash', 870, 550);
       } else if (nodeKey === 'long_street' && Math.random() < 0.7) {
-        this.throwSmoke(p, 830, 240);
+        this.throwSmoke(p, 830, 240); // Smoke Long Cross
+      } else if (nodeKey === 'catwalk_stairs' && Math.random() < 0.75) {
+        this.throwGrenade(p, 'flash', 800, 200); // Flash A Site
+      } else if (nodeKey === 'a_short' && Math.random() < 0.7) {
+        this.throwSmoke(p, 760, 200); // Smoke CT Elevator
       } else if (nodeKey === 'upper_tunnels_stairs' && Math.random() < 0.8) {
         this.throwGrenade(p, 'flash', 210, 260);
-      } else if (nodeKey === 'b_tunnels_exit' && Math.random() < 0.6) {
-        this.throwSmoke(p, 320, 200);
+      } else if (nodeKey === 'upper_tunnels_north' && Math.random() < 0.75) {
+        this.throwGrenade(p, 'flash', 180, 200); // Flash B Platform
+      } else if (nodeKey === 'b_tunnels_exit' && Math.random() < 0.7) {
+        this.throwSmoke(p, 310, 180); // Smoke B Doors
       } else if (nodeKey === 'top_mid' && Math.random() < 0.6) {
-        this.throwSmoke(p, 530, 520);
+        this.throwSmoke(p, 490, 390); // Smoke Mid Doors
       }
     } else if (p.team === 'ct') {
-      if (nodeKey === 'long_cross' && Math.random() < 0.5) {
-        this.throwSmoke(p, 880, 640);
-      } else if (nodeKey === 'b_doors' && Math.random() < 0.5) {
-        this.throwGrenade(p, 'flash', 210, 330);
+      if (nodeKey === 'ct_elevator' && Math.random() < 0.55) {
+        this.throwSmoke(p, 830, 240); // Smoke Long Cross
+      } else if (nodeKey === 'ct_short_stairs' && Math.random() < 0.55) {
+        this.throwGrenade(p, 'flash', 670, 370); // Flash Catwalk Stairs
+      } else if (nodeKey === 'b_doors_outside' && Math.random() < 0.6) {
+        this.throwSmoke(p, 150, 300); // Smoke Tunnels Exit
+      } else if (nodeKey === 'b_doors' && Math.random() < 0.55) {
+        this.throwGrenade(p, 'flash', 180, 260); // Flash Tunnels
       }
     }
   }
@@ -870,7 +919,14 @@ class PureCoachMatch {
 
     const distFactor = Math.max(0.4, 1.0 - (dist / weapon.maxRange) * 0.45);
     const moraleBonus = (shooter.morale - 50) * 0.002;
-    const totalHitChance = weapon.accuracy * distFactor * burstAccuracy + moraleBonus;
+    const movingPenalty = (shooter.state === 'moving' && weapon.type !== 'pistol') ? -0.16 : 0;
+    const holdBonus = (shooter.state === 'holding') ? 0.06 : 0;
+    const stationaryTargetBonus = (target.state === 'planting' || target.state === 'defusing') ? 0.12 : 0;
+
+    let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy) + moraleBonus + movingPenalty + holdBonus + stationaryTargetBonus;
+    if (shooter.flashDuration > 0.3) {
+      totalHitChance *= 0.25; // Blind panic-spray penalty
+    }
 
     const isHit = Math.random() < totalHitChance;
     let isHeadshot = false;
@@ -1175,6 +1231,18 @@ class PureCoachMatch {
           this.setPlayerPath(closestT, bombNode);
         }
       }
+
+      // If another T is nearby, throw protective smoke onto the dropped bomb
+      if (aliveTs.length > 1 && this.smokes.length < 3) {
+        const coverT = aliveTs.find(t => t.id !== (closestT && closestT.id));
+        if (coverT && Math.hypot(coverT.x - this.bomb.x, coverT.y - this.bomb.y) < 280) {
+          if (!coverT.droppedBombSmoked) {
+            coverT.droppedBombSmoked = true;
+            this.throwSmoke(coverT, this.bomb.x, this.bomb.y);
+            this.addRadioMessage('t', coverT.name, "Düşen bombaya smoke attım, güvenle al!");
+          }
+        }
+      }
     }
 
     // 2. Coordinated Team Execute Call after 10-12 seconds of round start:
@@ -1202,6 +1270,26 @@ class PureCoachMatch {
     });
   }
 
+  checkClutchSituation() {
+    if (this.clutchAnnounced || this.phase !== 'live') return;
+    const aliveCTs = Object.values(this.players).filter(p => p.team === 'ct' && p.alive);
+    const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
+
+    if (aliveCTs.length === 1 && aliveTs.length >= 2) {
+      this.clutchAnnounced = true;
+      const clutcher = aliveCTs[0];
+      clutcher.morale = Math.min(100, clutcher.morale + 10);
+      this.addRadioMessage('ct', clutcher.name, `[CLUTCH] 1v${aliveTs.length} durumunda tek kaldım, sakin oynuyorum!`);
+      this.events.push({ type: 'clutch', team: 'ct', player: clutcher.name, count: aliveTs.length });
+    } else if (aliveTs.length === 1 && aliveCTs.length >= 2) {
+      this.clutchAnnounced = true;
+      const clutcher = aliveTs[0];
+      clutcher.morale = Math.min(100, clutcher.morale + 10);
+      this.addRadioMessage('t', clutcher.name, `[CLUTCH] 1v${aliveCTs.length} durumunda tek kaldım, site'a sızıyorum!`);
+      this.events.push({ type: 'clutch', team: 't', player: clutcher.name, count: aliveCTs.length });
+    }
+  }
+
   updateBombObjectives(dt) {
     if (this.bomb.dropped && !this.bomb.carried && !this.bomb.planted) {
       const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
@@ -1212,6 +1300,8 @@ class PureCoachMatch {
           this.bomb.carried = true;
           this.bomb.carrierId = t.id;
           t.hasBomb = true;
+          this.bomb.x = t.x;
+          this.bomb.y = t.y;
           this.events.push({ type: 'bomb_pickup', playerId: t.id });
           const targetNode = this.tTargetSite === 'B' ? 'b_site' : 'a_site';
           this.addRadioMessage('t', 'electronic (IGL)', `Bombayı aldık! ${this.tTargetSite} Site'a topluca hücum ediyoruz!`);
@@ -1226,6 +1316,10 @@ class PureCoachMatch {
     if (!this.bomb.planted && this.bomb.carrierId) {
       const carrier = this.players[this.bomb.carrierId];
       if (carrier && carrier.alive) {
+        // Keep bomb coordinates synchronized with the carrier at all times
+        this.bomb.x = carrier.x;
+        this.bomb.y = carrier.y;
+
         const distA = Math.hypot(carrier.x - this.mapData.sites.A.x, carrier.y - this.mapData.sites.A.y);
         const distB = Math.hypot(carrier.x - this.mapData.sites.B.x, carrier.y - this.mapData.sites.B.y);
         const onSite = distA <= this.mapData.sites.A.radius ? 'A' : (distB <= this.mapData.sites.B.radius ? 'B' : null);
@@ -1234,14 +1328,18 @@ class PureCoachMatch {
           carrier.state = 'planting';
           this.bomb.planterId = carrier.id;
           this.bomb.plantProgress += dt / 3.5;
+          carrier.plantProgress = this.bomb.plantProgress;
 
           if (this.bomb.plantProgress >= 1.0) {
             this.bomb.planted = true;
+            this.bomb.carried = false;
+            this.bomb.dropped = false;
             this.bomb.site = onSite;
             this.bomb.x = carrier.x;
             this.bomb.y = carrier.y;
             carrier.hasBomb = false;
             carrier.state = 'idle';
+            carrier.plantProgress = 0;
             this.events.push({ type: 'bomb_planted', site: onSite, x: this.bomb.x, y: this.bomb.y });
 
             Object.values(this.players).filter(p => p.team === 't').forEach(p => p.money += 800);
@@ -1251,6 +1349,7 @@ class PureCoachMatch {
           if (carrier.state === 'planting') {
             carrier.state = 'idle';
             this.bomb.plantProgress = 0;
+            carrier.plantProgress = 0;
           }
         }
       }

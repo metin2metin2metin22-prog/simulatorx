@@ -57,6 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
         window.soundEngine.playBombPlanted();
         hud.addChatMessage('SİSTEM', `Bomba ${evt.site} bölgesine kuruldu!`, 't');
         break;
+      case 'bomb_dropped':
+        window.soundEngine.playBombDropped();
+        hud.addChatMessage('C4', 'BOMBA YERE DÜŞTÜ!', 't');
+        break;
+      case 'bomb_pickup':
+        window.soundEngine.playBombPickup();
+        hud.addChatMessage('C4', 'Bomba geri alındı!', 't');
+        break;
       case 'bomb_defused':
         window.soundEngine.playBombDefused();
         break;
