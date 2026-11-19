@@ -82,7 +82,7 @@ const ROSTERS = {
   ]
 };
 
-const T_STRATS = ['rush_b', 'long_a_execute', 'a_split', 'mid_to_b', 'default_pick'];
+const T_STRATS = ['rush_b', 'a_short_rush', 'long_a_execute', 'a_split', 'mid_to_b'];
 const CT_STRATS = ['standard_212', 'aggressive_long', 'b_stack', 'cat_control', 'retake_defense'];
 
 class PureCoachMatch {
@@ -97,6 +97,8 @@ class PureCoachMatch {
     this.isPaused = false;
     this.simSpeed = 1.0;
     this.lossStreak = { ct: 0, t: 0 };
+    this.tExecuteCalled = false;
+    this.tTargetSite = 'B';
 
     // Coach accounts (User only has timeout authority)
     this.coaches = {
@@ -339,17 +341,21 @@ class PureCoachMatch {
     this.bomb.defuserId = null;
     this.bomb.defuseProgress = 0;
 
-    const tSlots = [0, 1, 2, 3, 4];
-    this.bomb.carrierId = `t_${tSlots[Math.floor(Math.random() * tSlots.length)]}`;
+    // Slot 1 (NiKo / Planter) carries the bomb safely in pack formation
+    this.bomb.carrierId = 't_1';
 
     // AUTONOMOUS STRATEGY SELECTION BY IGLs
     if (this.round === 1 || this.round === 13) {
-      this.activeStrategies.t = Math.random() < 0.6 ? 'rush_b' : 'default_pick';
+      this.activeStrategies.t = Math.random() < 0.5 ? 'rush_b' : 'a_short_rush';
       this.activeStrategies.ct = 'standard_212';
     } else {
       this.activeStrategies.t = T_STRATS[Math.floor(Math.random() * T_STRATS.length)];
       this.activeStrategies.ct = CT_STRATS[Math.floor(Math.random() * CT_STRATS.length)];
     }
+
+    const tStrat = this.mapData.strategies.T[this.activeStrategies.t];
+    this.tTargetSite = (tStrat && tStrat.targetSite) ? tStrat.targetSite : (this.activeStrategies.t === 'rush_b' || this.activeStrategies.t === 'mid_to_b' ? 'B' : 'A');
+    this.tExecuteCalled = false;
 
     // Reset Players & Autonomous Pro CS:GO Buys
     Object.values(this.players).forEach(p => {
@@ -390,7 +396,7 @@ class PureCoachMatch {
       }
       p.angle = p.team === 'ct' ? Math.PI / 2 : -Math.PI / 2;
       p.targetAngle = p.angle;
-      p.hasBomb = (p.id === this.bomb.carrierId);
+      p.hasBomb = (p.id === 't_1');
 
       this.autonomousPlayerBuy(p);
     });
@@ -399,9 +405,8 @@ class PureCoachMatch {
 
     // Strategy radio announcements
     const ctStrat = this.mapData.strategies.CT[this.activeStrategies.ct];
-    const tStrat = this.mapData.strategies.T[this.activeStrategies.t];
     this.addRadioMessage('ct', 'Twistzz (IGL)', `Savunma planı: ${ctStrat ? ctStrat.name : 'Standart 2-1-2'}. Açıları tutun.`);
-    this.addRadioMessage('t', 'electronic (IGL)', `Saldırı planı: ${tStrat ? tStrat.name : 'Rush B'}. Takım koordine ilerlesin.`);
+    this.addRadioMessage('t', 'electronic (IGL)', `Saldırı planı: ${tStrat ? tStrat.name : 'Rush B'}. Takım halinde toplu giriyoruz!`);
   }
 
   // Players buy completely on their own based on money & professional CS:GO meta
@@ -587,6 +592,9 @@ class PureCoachMatch {
 
     // Resolve Combat with Line of Sight checks
     this.updateCombat(dt);
+
+    // Terrorist Autonomous Grouped Tactics & Objective Executions
+    this.updateTerroristTactics(dt);
 
     // Bomb Objectives
     this.updateBombObjectives(dt);
@@ -989,6 +997,16 @@ class PureCoachMatch {
               this.addRadioMessage('ct', bCT.name, "B'den A'ya rotasyon yapıyorum, site'a tutunun!");
             }
           }
+
+          // Terrorists exploit opening at A
+          if (this.tTargetSite !== 'A') {
+            this.tTargetSite = 'A';
+            this.addRadioMessage('t', 'electronic (IGL)', "A savunması kırıldı! A Site açık, tüm takım A'ya yüklenin!");
+            const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
+            aliveTs.forEach(t => {
+              if (!t.targetEnemyId) this.setPlayerPath(t, 'a_site');
+            });
+          }
         } else if (zone === 'B Site') {
           // Mid CT rotates to B
           const midCT = aliveCTs.find(p => p.slot === 2);
@@ -1006,10 +1024,27 @@ class PureCoachMatch {
               this.addRadioMessage('ct', aCT.name, "A'dan B'ye CT Spawn üzerinden intikal ediyorum!");
             }
           }
+
+          // Terrorists exploit opening at B
+          if (this.tTargetSite !== 'B') {
+            this.tTargetSite = 'B';
+            this.addRadioMessage('t', 'electronic (IGL)', "B savunması kırıldı! B Site açık, toplu hücum!");
+            const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
+            aliveTs.forEach(t => {
+              if (!t.targetEnemyId) this.setPlayerPath(t, 'b_site');
+            });
+          }
         }
       }
     } else {
       // Terrorist killed
+      const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
+      aliveTs.forEach(mate => {
+        mate.tradeTargetId = killer.id;
+        mate.soundAlert = { x: killer.x, y: killer.y, time: Date.now() };
+        mate.holdTimer = 0;
+      });
+
       if (victim.hasBomb && !this.bomb.planted) {
         victim.hasBomb = false;
         this.bomb.dropped = true;
@@ -1021,7 +1056,6 @@ class PureCoachMatch {
         this.addRadioMessage('t', 'electronic (IGL)', "BOMBA DÜŞTÜ! C4'ü geri alın, site'a ilerleyin!");
 
         // Closest alive T retrieves bomb
-        const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
         if (aliveTs.length > 0) {
           let closestT = aliveTs[0];
           let minDist = Infinity;
@@ -1114,6 +1148,60 @@ class PureCoachMatch {
     return angle;
   }
 
+  // Active Terrorist Team Execution & Group Cohesion AI:
+  // Ensures Terrorists execute together onto A, B, or Short without idling
+  updateTerroristTactics(dt) {
+    if (this.bomb.planted) return; // In post-plant defense, handled in alertCTRetake
+
+    const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
+    if (aliveTs.length === 0) return;
+
+    const targetNode = this.tTargetSite === 'B' ? 'b_site' : 'a_site';
+
+    // 1. If Bomb is Dropped on the ground, closest T rushes to retrieve it
+    if (this.bomb.dropped && !this.bomb.carried) {
+      let closestT = null;
+      let minDist = Infinity;
+      for (const t of aliveTs) {
+        const d = Math.hypot(t.x - this.bomb.x, t.y - this.bomb.y);
+        if (d < minDist) {
+          minDist = d;
+          closestT = t;
+        }
+      }
+      if (closestT && !closestT.targetEnemyId) {
+        const bombNode = getClosestNode(this.bomb.x, this.bomb.y, this.mapData.nodes);
+        if (!closestT.path || closestT.path.length === 0 || closestT.path[closestT.path.length - 1] !== bombNode) {
+          this.setPlayerPath(closestT, bombNode);
+        }
+      }
+    }
+
+    // 2. Coordinated Team Execute Call after 10-12 seconds of round start:
+    // IGL issues all-out push command and all alive Ts flood the bombsite together
+    if (this.timer <= 88 && !this.tExecuteCalled) {
+      this.tExecuteCalled = true;
+      this.addRadioMessage('t', 'electronic (IGL)', `${this.tTargetSite} Site'a TOPLU GİRİYORUZ! Giriş yapın ve bombayı kurun!`);
+      aliveTs.forEach(t => {
+        if (!t.targetEnemyId) {
+          this.setPlayerPath(t, targetNode);
+        }
+      });
+    }
+
+    // 3. Strict Anti-Idle Protection:
+    // If any T has completed their path or sits idle before plant, direct them into the bombsite!
+    aliveTs.forEach(t => {
+      if (!t.targetEnemyId && (t.state === 'idle' || !t.path || t.pathIndex >= t.path.length)) {
+        const sitePos = this.mapData.sites[this.tTargetSite];
+        const distToSite = Math.hypot(t.x - sitePos.x, t.y - sitePos.y);
+        if (distToSite > sitePos.radius + 15) {
+          this.setPlayerPath(t, targetNode);
+        }
+      }
+    });
+  }
+
   updateBombObjectives(dt) {
     if (this.bomb.dropped && !this.bomb.carried && !this.bomb.planted) {
       const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
@@ -1125,6 +1213,11 @@ class PureCoachMatch {
           this.bomb.carrierId = t.id;
           t.hasBomb = true;
           this.events.push({ type: 'bomb_pickup', playerId: t.id });
+          const targetNode = this.tTargetSite === 'B' ? 'b_site' : 'a_site';
+          this.addRadioMessage('t', 'electronic (IGL)', `Bombayı aldık! ${this.tTargetSite} Site'a topluca hücum ediyoruz!`);
+          aliveTs.forEach(mate => {
+            if (!mate.targetEnemyId) this.setPlayerPath(mate, targetNode);
+          });
           break;
         }
       }

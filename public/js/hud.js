@@ -1,6 +1,7 @@
 // HUD and Coach Management UI for CS:GO Pure Coach Simulator
 const STRAT_NAMES = {
   rush_b: "Rush B Don't Stop",
+  a_short_rush: "Toplu Short / Catwalk Baskını",
   long_a_execute: "Long A Execute",
   a_split: "A Split (Short & Long)",
   mid_to_b: "Mid to B Split",
