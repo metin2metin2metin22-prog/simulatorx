@@ -13,6 +13,44 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
+// BFS Graph Pathfinding on Map Waypoints
+function findPath(startKey, targetKey, nodes) {
+  if (!nodes[startKey] || !nodes[targetKey]) return [targetKey];
+  if (startKey === targetKey) return [targetKey];
+  const queue = [[startKey]];
+  const visited = new Set([startKey]);
+
+  while (queue.length > 0) {
+    const currentPath = queue.shift();
+    const curr = currentPath[currentPath.length - 1];
+
+    const neighbors = (nodes[curr] && nodes[curr].neighbors) || [];
+    for (const neighbor of neighbors) {
+      if (neighbor === targetKey) {
+        return currentPath.concat([neighbor]);
+      }
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push(currentPath.concat([neighbor]));
+      }
+    }
+  }
+  return [targetKey];
+}
+
+function getClosestNode(x, y, nodes) {
+  let bestKey = 'ct_spawn';
+  let minDist = Infinity;
+  for (const [key, node] of Object.entries(nodes)) {
+    const d = Math.hypot(node.x - x, node.y - y);
+    if (d < minDist) {
+      minDist = d;
+      bestKey = key;
+    }
+  }
+  return bestKey;
+}
+
 // WEAPONS DATABASE
 const WEAPONS = {
   ak47: { name: 'AK-47', type: 'rifle', damage: 36, hsMult: 4.0, fireRate: 0.11, accuracy: 0.90, maxRange: 420, cost: 2700, team: 't', silenced: false },
@@ -96,6 +134,7 @@ class PureCoachMatch {
     this.grenades = [];
     this.killfeed = [];
     this.events = [];
+    this.radioMessages = [];
 
     this.players = {};
     this.connectedSockets = {};
@@ -103,6 +142,32 @@ class PureCoachMatch {
     this.initPlayers();
     this.lastTick = Date.now();
     this.tickInterval = setInterval(() => this.tick(), 1000 / 30);
+  }
+
+  setPlayerPath(p, targetNodeKey) {
+    if (!p || !p.alive) return;
+    const startKey = getClosestNode(p.x, p.y, this.mapData.nodes);
+    const path = findPath(startKey, targetNodeKey, this.mapData.nodes);
+    p.path = path;
+    p.pathIndex = 0;
+    const startNode = this.mapData.nodes[startKey];
+    if (startNode && Math.hypot(p.x - startNode.x, p.y - startNode.y) < 22 && path.length > 1) {
+      p.pathIndex = 1;
+    }
+    p.holdTimer = 0;
+    p.state = 'moving';
+  }
+
+  addRadioMessage(team, sender, text) {
+    const msg = {
+      team,
+      sender,
+      text,
+      time: Date.now()
+    };
+    this.radioMessages.unshift(msg);
+    if (this.radioMessages.length > 10) this.radioMessages.pop();
+    this.events.push({ type: 'radio_call', ...msg });
   }
 
   initPlayers() {
@@ -149,7 +214,9 @@ class PureCoachMatch {
         strafeTimer: 0,
         strafeDirection: 1,
         tradeTargetId: null,
-        soundAlert: null
+        soundAlert: null,
+        holdTimer: 0,
+        sprintTimer: 0
       };
     }
 
@@ -195,7 +262,9 @@ class PureCoachMatch {
         strafeTimer: 0,
         strafeDirection: 1,
         tradeTargetId: null,
-        soundAlert: null
+        soundAlert: null,
+        holdTimer: 0,
+        sprintTimer: 0
       };
     }
     this.bomb.carrierId = 't_1';
@@ -256,6 +325,8 @@ class PureCoachMatch {
       p.burstPauseTimer = 0;
       p.tradeTargetId = null;
       p.soundAlert = null;
+      p.holdTimer = 0;
+      p.sprintTimer = 3.5;
 
       const spawnList = p.team === 'ct' ? this.mapData.spawns.CT : this.mapData.spawns.T;
       const spawn = spawnList[p.slot];
@@ -269,6 +340,12 @@ class PureCoachMatch {
     });
 
     this.assignStrategyPaths();
+
+    // Strategy radio announcements
+    const ctStrat = this.mapData.strategies.CT[this.activeStrategies.ct];
+    const tStrat = this.mapData.strategies.T[this.activeStrategies.t];
+    this.addRadioMessage('ct', 'Twistzz (IGL)', `Savunma planı: ${ctStrat ? ctStrat.name : 'Standart 2-1-2'}. Açıları tutun.`);
+    this.addRadioMessage('t', 'electronic (IGL)', `Saldırı planı: ${tStrat ? tStrat.name : 'Rush B'}. Takım koordine ilerlesin.`);
   }
 
   // Players buy completely on their own based on money & professional CS:GO meta
@@ -332,6 +409,7 @@ class PureCoachMatch {
       if (p) {
         p.path = [...asg.path];
         p.pathIndex = 0;
+        p.holdTimer = 0;
       }
     });
 
@@ -340,6 +418,7 @@ class PureCoachMatch {
       if (p) {
         p.path = [...asg.path];
         p.pathIndex = 0;
+        p.holdTimer = 0;
       }
     });
   }
@@ -372,8 +451,10 @@ class PureCoachMatch {
       this.timer -= dt;
       if (this.timer <= 0) {
         this.phase = 'live';
-        this.timer = 115;
+        this.timer = 100;
         this.events.push({ type: 'round_start' });
+        this.addRadioMessage('ct', 'Twistzz (IGL)', 'Raund başladı! Pozisyonları koruyun.');
+        this.addRadioMessage('t', 'electronic (IGL)', 'Çıkıyoruz! Plan doğrultusunda execute başlatın.');
       }
     } else if (this.phase === 'live') {
       this.updateLiveRound(dt);
@@ -484,6 +565,8 @@ class PureCoachMatch {
   }
 
   updatePlayerMovement(p, dt) {
+    if (p.sprintTimer > 0) p.sprintTimer -= dt;
+
     if (p.targetEnemyId) {
       const enemy = this.players[p.targetEnemyId];
       if (enemy && enemy.alive) {
@@ -491,14 +574,18 @@ class PureCoachMatch {
         p.strafeTimer -= dt;
         if (p.strafeTimer <= 0) {
           p.strafeDirection = -p.strafeDirection;
-          p.strafeTimer = 0.22;
+          p.strafeTimer = 0.24;
         }
 
         if (p.weapon !== 'awp' && p.burstPauseTimer > 0) {
           const perpAngle = p.angle + (Math.PI / 2) * p.strafeDirection;
-          const strafeSpeed = 45;
-          p.x += Math.cos(perpAngle) * strafeSpeed * dt;
-          p.y += Math.sin(perpAngle) * strafeSpeed * dt;
+          const strafeSpeed = 38;
+          const sx = p.x + Math.cos(perpAngle) * strafeSpeed * dt;
+          const sy = p.y + Math.sin(perpAngle) * strafeSpeed * dt;
+          if (!this.isLineBlockedByWall(p.x, p.y, sx, sy)) {
+            p.x = sx;
+            p.y = sy;
+          }
         }
         p.state = 'engaging';
         return;
@@ -512,7 +599,12 @@ class PureCoachMatch {
     }
 
     if (!p.path || p.path.length === 0 || p.pathIndex >= p.path.length) {
-      p.state = 'idle';
+      if (p.holdTimer > 0) {
+        p.holdTimer -= dt;
+        p.state = 'holding';
+      } else {
+        p.state = 'idle';
+      }
       return;
     }
 
@@ -527,18 +619,36 @@ class PureCoachMatch {
     const dy = targetNode.y - p.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist < 18) {
+    if (dist < 20) {
       p.pathIndex++;
+      if (p.pathIndex >= p.path.length && p.team === 'ct' && !this.bomb.planted) {
+        p.holdTimer = 16.0 + Math.random() * 8.0;
+        p.state = 'holding';
+      }
       this.tacticalBotUtility(p, targetNodeKey);
     } else {
       p.targetAngle = Math.atan2(dy, dx);
       p.angle = p.targetAngle;
 
-      let baseSpeed = 130;
-      if (p.weapon === 'awp') baseSpeed *= 0.85;
+      let baseSpeed = 75; // Pro realistic movement speed for 1:30+ min round duration
+      if (p.weapon === 'awp') baseSpeed = 62;
+      if (p.sprintTimer > 0) baseSpeed = 95;
 
-      p.x += Math.cos(p.angle) * baseSpeed * dt;
-      p.y += Math.sin(p.angle) * baseSpeed * dt;
+      const nextX = p.x + Math.cos(p.angle) * baseSpeed * dt;
+      const nextY = p.y + Math.sin(p.angle) * baseSpeed * dt;
+
+      // Solid obstacle wall collision check
+      if (!this.isLineBlockedByWall(p.x, p.y, nextX, nextY)) {
+        p.x = nextX;
+        p.y = nextY;
+      } else {
+        // Wall sliding
+        if (!this.isLineBlockedByWall(p.x, p.y, nextX, p.y)) {
+          p.x = nextX;
+        } else if (!this.isLineBlockedByWall(p.x, p.y, p.x, nextY)) {
+          p.y = nextY;
+        }
+      }
       p.state = 'moving';
     }
   }
@@ -769,20 +879,98 @@ class PureCoachMatch {
 
     Object.values(this.players).filter(p => p.team === victim.team && p.alive).forEach(mate => {
       const dist = Math.hypot(mate.x - victim.x, mate.y - victim.y);
-      if (dist < 300) {
+      if (dist < 320) {
         mate.tradeTargetId = killer.id;
         mate.soundAlert = { x: killer.x, y: killer.y, time: Date.now() };
+        mate.holdTimer = 0;
       }
     });
 
-    if (victim.hasBomb && !this.bomb.planted) {
-      victim.hasBomb = false;
-      this.bomb.dropped = true;
-      this.bomb.carried = false;
-      this.bomb.carrierId = null;
-      this.bomb.x = victim.x;
-      this.bomb.y = victim.y;
-      this.events.push({ type: 'bomb_dropped', x: victim.x, y: victim.y });
+    // Determine zone of casualty
+    let zone = 'Mid';
+    const distA = Math.hypot(victim.x - this.mapData.sites.A.x, victim.y - this.mapData.sites.A.y);
+    const distB = Math.hypot(victim.x - this.mapData.sites.B.x, victim.y - this.mapData.sites.B.y);
+    if (distA <= 260 || (victim.x > 720 && victim.y < 340)) {
+      zone = 'A Site';
+    } else if (distB <= 240 || (victim.x < 330 && victim.y < 340)) {
+      zone = 'B Site';
+    } else if (victim.x > 700 && victim.y >= 340) {
+      zone = 'Long A';
+    } else {
+      zone = 'Mid';
+    }
+
+    if (victim.team === 'ct') {
+      this.addRadioMessage('ct', victim.name, `${victim.name} düştü! [${zone}] bölgesinde düşman var!`);
+
+      // Dynamic rotation response if bomb is NOT yet planted
+      if (!this.bomb.planted) {
+        const aliveCTs = Object.values(this.players).filter(p => p.team === 'ct' && p.alive);
+
+        if (zone === 'A Site' || zone === 'Long A') {
+          // Mid CT rotates to A
+          const midCT = aliveCTs.find(p => p.slot === 2);
+          if (midCT) {
+            this.setPlayerPath(midCT, 'a_short_site');
+            this.addRadioMessage('ct', midCT.name, "A'ya desteğe geçiyorum!");
+          }
+
+          // If only 1 or 0 CTs left defending A, 1 B CT rotates through CT Spawn
+          const ctAtA = aliveCTs.filter(p => p.x > 680 && p.y < 350).length;
+          if (ctAtA <= 1) {
+            const bCT = aliveCTs.find(p => p.x < 460);
+            if (bCT) {
+              this.setPlayerPath(bCT, 'a_site');
+              this.addRadioMessage('ct', bCT.name, "B'den A'ya rotasyon yapıyorum, site'a tutunun!");
+            }
+          }
+        } else if (zone === 'B Site') {
+          // Mid CT rotates to B
+          const midCT = aliveCTs.find(p => p.slot === 2);
+          if (midCT) {
+            this.setPlayerPath(midCT, 'b_doors_outside');
+            this.addRadioMessage('ct', midCT.name, "B'ye desteğe geliyorum!");
+          }
+
+          // If B is in danger, 1 A CT rotates to B
+          const ctAtB = aliveCTs.filter(p => p.x < 400).length;
+          if (ctAtB <= 1) {
+            const aCT = aliveCTs.find(p => p.x > 650);
+            if (aCT) {
+              this.setPlayerPath(aCT, 'b_site');
+              this.addRadioMessage('ct', aCT.name, "A'dan B'ye CT Spawn üzerinden intikal ediyorum!");
+            }
+          }
+        }
+      }
+    } else {
+      // Terrorist killed
+      if (victim.hasBomb && !this.bomb.planted) {
+        victim.hasBomb = false;
+        this.bomb.dropped = true;
+        this.bomb.carried = false;
+        this.bomb.carrierId = null;
+        this.bomb.x = victim.x;
+        this.bomb.y = victim.y;
+        this.events.push({ type: 'bomb_dropped', x: victim.x, y: victim.y });
+        this.addRadioMessage('t', 'electronic (IGL)', "BOMBA DÜŞTÜ! C4'ü geri alın, site'a ilerleyin!");
+
+        // Closest alive T retrieves bomb
+        const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
+        if (aliveTs.length > 0) {
+          let closestT = aliveTs[0];
+          let minDist = Infinity;
+          for (const t of aliveTs) {
+            const d = Math.hypot(t.x - victim.x, t.y - victim.y);
+            if (d < minDist) {
+              minDist = d;
+              closestT = t;
+            }
+          }
+          const bombNode = getClosestNode(victim.x, victim.y, this.mapData.nodes);
+          this.setPlayerPath(closestT, bombNode);
+        }
+      }
     }
 
     this.killfeed.unshift({
@@ -923,6 +1111,10 @@ class PureCoachMatch {
       }
 
       if (activeDefuser) {
+        if (!activeDefuser.defusingAnnounced) {
+          activeDefuser.defusingAnnounced = true;
+          this.addRadioMessage('ct', activeDefuser.name, 'Bombayı çözüyorum! Açıları tutun, beni koruyun!');
+        }
         activeDefuser.state = 'defusing';
         this.bomb.defusing = true;
         this.bomb.defuserId = activeDefuser.id;
@@ -933,6 +1125,7 @@ class PureCoachMatch {
           this.bomb.planted = false;
           activeDefuser.state = 'idle';
           activeDefuser.mvps++;
+          activeDefuser.defusingAnnounced = false;
           this.endRound('ct', 'Counter-Terrorists bombayı imha etti!');
         }
       } else {
@@ -940,17 +1133,51 @@ class PureCoachMatch {
           this.bomb.defusing = false;
           this.bomb.defuserId = null;
           this.bomb.defuseProgress = 0;
+          Object.values(this.players).forEach(p => p.defusingAnnounced = false);
         }
       }
     }
   }
 
   alertCTRetake(site) {
-    const targetNode = site === 'A' ? 'a_site' : 'b_site';
-    Object.values(this.players).filter(p => p.team === 'ct' && p.alive).forEach(p => {
-      p.path = [targetNode];
-      p.pathIndex = 0;
-    });
+    this.addRadioMessage('ct', 'Twistzz (IGL)', `Bomba ${site} bölgesine kuruldu! Tüm takım Retake intikaline geçiyor!`);
+
+    const aliveCTs = Object.values(this.players).filter(p => p.team === 'ct' && p.alive);
+
+    if (site === 'A') {
+      aliveCTs.forEach((ct, idx) => {
+        let targetNode = 'a_site';
+        if (idx === 0) targetNode = 'ct_elevator';
+        else if (idx === 1) targetNode = 'a_short_site';
+        else if (idx === 2) targetNode = 'long_cross';
+        else targetNode = 'a_site';
+
+        this.setPlayerPath(ct, targetNode);
+      });
+    } else {
+      aliveCTs.forEach((ct, idx) => {
+        const targetNode = idx % 2 === 0 ? 'b_doors' : 'b_window';
+        this.setPlayerPath(ct, targetNode);
+      });
+    }
+
+    // Terrorist Post-Plant Positioning
+    const aliveTs = Object.values(this.players).filter(p => p.team === 't' && p.alive);
+    this.addRadioMessage('t', 'electronic (IGL)', 'Bomba kuruldu! Crossfire açın ve açıları koruyun!');
+
+    if (site === 'A') {
+      const aSpots = ['long_pit', 'goose', 'a_ramp', 'a_short', 'a_site'];
+      aliveTs.forEach((t, idx) => {
+        const spot = aSpots[idx % aSpots.length];
+        this.setPlayerPath(t, spot);
+      });
+    } else {
+      const bSpots = ['b_platform', 'b_car', 'b_window', 'upper_tunnels_stairs', 'b_site'];
+      aliveTs.forEach((t, idx) => {
+        const spot = bSpots[idx % bSpots.length];
+        this.setPlayerPath(t, spot);
+      });
+    }
   }
 
   bombExploded() {
@@ -1049,6 +1276,7 @@ class PureCoachMatch {
       smokes: this.smokes,
       grenades: this.grenades,
       killfeed: this.killfeed,
+      radioMessages: this.radioMessages,
       events: this.events
     };
 

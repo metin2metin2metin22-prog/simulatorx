@@ -71,6 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'round_start':
         hud.addChatMessage('MAÇ', `Raund başladı!`, 'system');
         break;
+      case 'radio_call':
+        hud.addChatMessage(evt.sender, evt.text, evt.team);
+        break;
       case 'timeout_end':
         hud.addChatMessage('HAKEM', `Taktiksel mola sona erdi!`, 'system');
         break;
