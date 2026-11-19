@@ -1,6 +1,8 @@
-// HUD and UI Management for CS:GO Simulator
+// HUD and Coach Management UI for CS:GO Manager Simulator
 class HUDManager {
   constructor() {
+    this.ctCoachName = document.getElementById('ctCoachName');
+    this.tCoachName = document.getElementById('tCoachName');
     this.ctAvatars = document.getElementById('ctAvatars');
     this.tAvatars = document.getElementById('tAvatars');
     this.scoreCT = document.getElementById('scoreCT');
@@ -14,25 +16,21 @@ class HUDManager {
     this.bombSiteText = document.getElementById('bombSiteText');
     this.bombCountdown = document.getElementById('bombCountdown');
 
-    this.playerHpText = document.getElementById('playerHpText');
-    this.playerHpFill = document.getElementById('playerHpFill');
-    this.playerArmorText = document.getElementById('playerArmorText');
-    this.playerArmorFill = document.getElementById('playerArmorFill');
-    this.playerWeaponDisplay = document.getElementById('playerWeaponDisplay');
-    this.playerRoleBadge = document.getElementById('playerRoleBadge');
-    this.playerNameDisplay = document.getElementById('playerNameDisplay');
-    this.playerMoneyDisplay = document.getElementById('playerMoneyDisplay');
+    this.timeoutBanner = document.getElementById('timeoutBanner');
+    this.timeoutSeconds = document.getElementById('timeoutSeconds');
+    this.timeoutsLeftDisplay = document.getElementById('timeoutsLeftDisplay');
 
+    this.activeCoachRole = document.getElementById('activeCoachRole');
     this.stratList = document.getElementById('stratList');
-    this.myTeamBadge = document.getElementById('myTeamBadge');
-    this.slotPickerWrap = document.getElementById('slotPickerWrap');
-    this.slotButtons = document.getElementById('slotButtons');
+    this.rosterList = document.getElementById('rosterList');
 
     this.scoreboardModal = document.getElementById('scoreboardModal');
     this.ctTableBody = document.getElementById('ctTableBody');
     this.tTableBody = document.getElementById('tTableBody');
     this.sbScoreCT = document.getElementById('sbScoreCT');
     this.sbScoreT = document.getElementById('sbScoreT');
+    this.sbCTCoach = document.getElementById('sbCTCoach');
+    this.sbTCoach = document.getElementById('sbTCoach');
 
     this.roundEndOverlay = document.getElementById('roundEndOverlay');
     this.roundWinnerTag = document.getElementById('roundWinnerTag');
@@ -40,30 +38,9 @@ class HUDManager {
     this.roundMvpName = document.getElementById('roundMvpName');
 
     this.chatMessages = document.getElementById('chatMessages');
-
-    this.cachedStrategies = null;
-    this.initSlotButtons();
   }
 
-  initSlotButtons() {
-    this.slotButtons.innerHTML = '';
-    for (let i = 0; i < 5; i++) {
-      const btn = document.createElement('button');
-      btn.className = 'btn-slot';
-      btn.dataset.slot = i;
-      btn.innerText = `Slot ${i + 1}`;
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.btn-slot').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if (window.onSlotSelected) {
-          window.onSlotSelected(i);
-        }
-      });
-      this.slotButtons.appendChild(btn);
-    }
-  }
-
-  updateHUD(state, localPlayerId, localTeam) {
+  updateHUD(state, localTeam) {
     if (!state) return;
 
     // 1. Scores & Round Info
@@ -74,17 +51,41 @@ class HUDManager {
 
     this.roundLabel.innerText = `RAUND ${state.round} / 24`;
 
-    // Timer formatting
+    // 2. Coach Names
+    if (state.coaches) {
+      this.ctCoachName.innerText = state.coaches.ct.name;
+      this.tCoachName.innerText = state.coaches.t.name;
+      this.sbCTCoach.innerText = state.coaches.ct.name;
+      this.sbTCoach.innerText = state.coaches.t.name;
+
+      if (localTeam && state.coaches[localTeam]) {
+        this.timeoutsLeftDisplay.innerText = state.coaches[localTeam].timeoutsLeft;
+      }
+    }
+
+    // 3. Round Timers & Phase
     const totalSecs = Math.max(0, Math.ceil(state.timer));
     const mins = Math.floor(totalSecs / 60);
     const secs = totalSecs % 60;
     this.roundTimer.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-    // Phase tag
-    this.phaseTag.innerText = state.phase.toUpperCase();
+    let phaseName = 'CANLI';
+    if (state.phase === 'freeze') phaseName = 'HAZIRLIK (FREEZE)';
+    else if (state.phase === 'timeout') phaseName = 'MOLA';
+    else if (state.phase === 'round_end') phaseName = 'RAUND SONU';
+
+    this.phaseTag.innerText = phaseName;
     this.phaseTag.className = `phase-tag ${state.phase}`;
 
-    // 2. Bomb Alert Banner
+    // 4. Timeout Banner
+    if (state.timeoutState && state.timeoutState.active) {
+      this.timeoutBanner.style.display = 'flex';
+      this.timeoutSeconds.innerText = Math.ceil(state.timeoutState.timer);
+    } else {
+      this.timeoutBanner.style.display = 'none';
+    }
+
+    // 5. Bomb Alert Banner
     if (state.bomb && state.bomb.planted) {
       this.bombAlertBanner.style.display = 'flex';
       this.bombSiteText.innerText = `BÖLGE ${state.bomb.site}`;
@@ -96,36 +97,45 @@ class HUDManager {
       this.roundTimer.classList.remove('bomb-ticking');
     }
 
-    // 3. Top Avatars
+    // 6. Top Avatars
     this.renderAvatars(state.players);
 
-    // 4. Local Player Dashboard
-    this.renderLocalPlayerDashboard(state.players, localPlayerId, localTeam);
+    // 7. Roster & Morale Cards
+    this.renderRoster(state.players, localTeam);
 
-    // 5. Scoreboard Data
+    // 8. Full Scoreboard
     this.renderScoreboardTables(state.players);
+
+    // 9. Sync Active Coach Directives UI
+    if (localTeam && state.coachDirectives && state.coachDirectives[localTeam]) {
+      const dir = state.coachDirectives[localTeam];
+      document.querySelectorAll('.directive-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.pacing === dir.pacing);
+      });
+      document.querySelectorAll('.eco-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.eco === dir.economyCall);
+      });
+    }
   }
 
   renderAvatars(players) {
     if (!players) return;
     const playerList = Object.values(players);
 
-    // CT Avatars (0 to 4)
     const ctList = playerList.filter(p => p.team === 'ct').sort((a, b) => a.slot - b.slot);
     this.ctAvatars.innerHTML = ctList.map(p => `
       <div class="avatar-pill ${p.alive ? '' : 'dead'}">
-        <span class="avatar-num">${p.slot + 1}. ${p.name.slice(0, 7)}</span>
+        <span class="avatar-num">${p.name.slice(0, 6)}</span>
         <div class="avatar-hp-bar">
           <div class="avatar-hp-fill" style="width: ${Math.max(0, p.hp)}%; background: ${p.hp > 50 ? '#2ecc71' : (p.hp > 25 ? '#f1c40f' : '#e74c3c')}"></div>
         </div>
       </div>
     `).join('');
 
-    // T Avatars (0 to 4)
     const tList = playerList.filter(p => p.team === 't').sort((a, b) => a.slot - b.slot);
     this.tAvatars.innerHTML = tList.map(p => `
       <div class="avatar-pill ${p.alive ? '' : 'dead'}">
-        <span class="avatar-num">${p.slot + 1}. ${p.name.slice(0, 7)}</span>
+        <span class="avatar-num">${p.name.slice(0, 6)}</span>
         <div class="avatar-hp-bar">
           <div class="avatar-hp-fill" style="width: ${Math.max(0, p.hp)}%; background: ${p.hp > 50 ? '#2ecc71' : (p.hp > 25 ? '#f1c40f' : '#e74c3c')}"></div>
         </div>
@@ -133,33 +143,37 @@ class HUDManager {
     `).join('');
   }
 
-  renderLocalPlayerDashboard(players, localPlayerId, localTeam) {
-    if (!players || !localPlayerId || !players[localPlayerId]) {
-      this.playerRoleBadge.innerText = 'SPECTATOR';
-      this.playerRoleBadge.className = 'p-role-badge';
-      this.playerNameDisplay.innerText = 'Serbest İzleyici Modu';
-      this.playerHpText.innerText = '- / -';
-      this.playerHpFill.style.width = '100%';
-      this.playerArmorText.innerText = '- / -';
-      this.playerArmorFill.style.width = '100%';
-      this.playerWeaponDisplay.innerText = 'Kamera Serbest';
-      this.playerMoneyDisplay.innerText = '$---';
-      return;
-    }
+  renderRoster(players, localTeam) {
+    if (!players) return;
+    const teamToRender = localTeam || 'ct';
+    const roster = Object.values(players).filter(p => p.team === teamToRender).sort((a, b) => a.slot - b.slot);
 
-    const p = players[localPlayerId];
-    this.playerRoleBadge.innerText = p.team.toUpperCase();
-    this.playerRoleBadge.className = `p-role-badge ${p.team}`;
-    this.playerNameDisplay.innerText = `${p.name} (Slot ${p.slot + 1})`;
-
-    this.playerHpText.innerText = `${Math.max(0, p.hp)} / 100`;
-    this.playerHpFill.style.width = `${Math.max(0, p.hp)}%`;
-
-    this.playerArmorText.innerText = `${Math.max(0, p.armor)} / 100`;
-    this.playerArmorFill.style.width = `${Math.max(0, p.armor)}%`;
-
-    this.playerWeaponDisplay.innerText = (p.weapon || 'usp').toUpperCase();
-    this.playerMoneyDisplay.innerText = `$${p.money}`;
+    this.rosterList.innerHTML = roster.map(p => `
+      <div class="roster-card ${p.alive ? '' : 'dead'}">
+        <div class="r-head">
+          <span class="r-name">${p.name} ${p.hasBomb ? '💣' : ''} ${p.hasKit ? '✂️' : ''}</span>
+          <span class="r-role">${p.role}</span>
+        </div>
+        <div class="r-bars">
+          <div class="r-bar-item">
+            <span>Moral: ${p.morale}%</span>
+            <div class="r-bar-track">
+              <div class="r-morale-fill" style="width: ${p.morale}%;"></div>
+            </div>
+          </div>
+          <div class="r-bar-item">
+            <span>Tilt: ${p.tilt}%</span>
+            <div class="r-bar-track">
+              <div class="r-tilt-fill" style="width: ${p.tilt}%;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="r-weapon-money">
+          <span>HP: ${Math.max(0, p.hp)} | ${p.weapon ? p.weapon.toUpperCase() : 'USP'}</span>
+          <span>Bakiye: <strong>$${p.money}</strong></span>
+        </div>
+      </div>
+    `).join('');
   }
 
   renderScoreboardTables(players) {
@@ -172,14 +186,16 @@ class HUDManager {
     const renderRow = (p) => `
       <tr style="opacity: ${p.alive ? '1' : '0.5'}">
         <td>${p.slot + 1}</td>
-        <td><strong>${p.name}</strong> ${p.isBot ? '' : '👤'} ${p.hasBomb ? '💣' : ''} ${p.hasKit ? '✂️' : ''}</td>
+        <td><strong>${p.name}</strong> ${p.hasBomb ? '💣' : ''} ${p.hasKit ? '✂️' : ''}</td>
+        <td style="color:#f1c40f">${p.role}</td>
         <td>${(p.weapon || '').toUpperCase()}</td>
         <td style="color:#2ecc71">$${p.money}</td>
         <td>${p.kills}</td>
         <td>${p.deaths}</td>
         <td>${p.assists}</td>
+        <td style="color:#9b59b6">${p.morale}%</td>
+        <td style="color:#e74c3c">${p.tilt}%</td>
         <td style="color:#f1c40f">${p.mvps > 0 ? '★ ' + p.mvps : '-'}</td>
-        <td style="color:#95a5a6">${p.ping}ms</td>
       </tr>
     `;
 
@@ -188,20 +204,13 @@ class HUDManager {
   }
 
   renderStrategies(strategies, team, activeStratKey) {
-    this.cachedStrategies = strategies;
     this.stratList.innerHTML = '';
-
-    if (!team || team === 'spec') {
-      this.myTeamBadge.innerText = 'SPECTATOR';
-      this.myTeamBadge.className = 'badge';
-      this.stratList.innerHTML = '<div style="font-size:11px;color:#95a5a6;padding:8px;">Takım stratejisi seçmek için CT veya T takımına katılın.</div>';
+    if (!team) {
+      this.stratList.innerHTML = '<div style="font-size:10px;color:#95a5a6;padding:6px;">Taktik seçmek için önce bir takıma koçluk yapın.</div>';
       return;
     }
 
     const teamKey = team.toUpperCase();
-    this.myTeamBadge.innerText = teamKey;
-    this.myTeamBadge.className = `badge ${team}`;
-
     const teamStrats = strategies[teamKey];
     if (!teamStrats) return;
 

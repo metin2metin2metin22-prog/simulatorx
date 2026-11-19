@@ -1,22 +1,18 @@
-// Main Game Client Controller for SimulatorX
+// CS:GO Team Manager & Coach Simulator - Client Controller
 document.addEventListener('DOMContentLoaded', () => {
   const socket = io();
 
-  // Elements
   const canvas = document.getElementById('radarCanvas');
   const radar = new RadarRenderer(canvas);
   const hud = new HUDManager();
 
-  // Local State
-  let localPlayerId = null;
+  // Local Coach State
   let localTeam = null; // 'ct', 't', or null (spec)
-  let localSlot = 0;
-  let playerName = `Player_${Math.floor(Math.random() * 899 + 100)}`;
+  let coachName = 'Menajer';
   let serverStrats = null;
   let currentGameState = null;
   let audioInitialized = false;
 
-  // Sound initialization on first user interaction
   const initAudio = () => {
     if (!audioInitialized) {
       window.soundEngine.init();
@@ -36,25 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('game_update', (state) => {
     currentGameState = state;
 
-    // Process Events (Audio & Visual Triggers)
     if (state.events && state.events.length > 0) {
-      state.events.forEach(evt => {
-        handleGameEvent(evt);
-      });
+      state.events.forEach(evt => handleGameEvent(evt));
     }
 
-    // Update Killfeed
     if (state.killfeed) {
       hud.updateKillfeed(state.killfeed);
     }
 
-    // Update HUD
-    hud.updateHUD(state, localPlayerId, localTeam);
-
-    // If strategy updated on server
-    if (localTeam && state.strats && state.strats[localTeam]) {
-      // Re-highlight if needed
-    }
+    hud.updateHUD(state, localTeam);
   });
 
   function handleGameEvent(evt) {
@@ -91,160 +77,123 @@ document.addEventListener('DOMContentLoaded', () => {
         hud.addChatMessage('MAÇ', `${evt.winner.toUpperCase()} RAUNDU KAZANDI: ${evt.reason}`, evt.winner);
         break;
       case 'round_start':
-        hud.addChatMessage('MAÇ', `Raund başladı!`, 'system');
+        hud.addChatMessage('MAÇ', `Raund başladı! Koç talimatları devrede.`, 'system');
+        break;
+      case 'timeout_end':
+        hud.addChatMessage('HAKEM', `Taktiksel mola sona erdi! Maç devam ediyor.`, 'system');
         break;
     }
   }
 
-  // 3. CONTINUOUS RADAR ANIMATION LOOP (60 FPS)
+  // 3. CONTINUOUS RADAR RENDERING (60 FPS)
   function renderLoop() {
-    radar.render(currentGameState, localPlayerId);
+    radar.render(currentGameState, null);
     requestAnimationFrame(renderLoop);
   }
   requestAnimationFrame(renderLoop);
 
-  // 4. TEAM SELECTION
-  const slotPickerWrap = document.getElementById('slotPickerWrap');
-
-  document.getElementById('btnJoinCT').addEventListener('click', () => {
+  // 4. BECOME COACH
+  document.getElementById('btnCoachCT').addEventListener('click', () => {
     initAudio();
     localTeam = 'ct';
-    slotPickerWrap.style.display = 'block';
-    selectSlot(0);
-    hud.renderStrategies(serverStrats, 'ct', currentGameState ? currentGameState.strats.ct : 'standard_212');
+    coachName = prompt("CT Takımı Baş Koçu İsminiz:", "B1ad3") || "B1ad3";
+    socket.emit('join_coach', { team: 'ct', coachName });
+    document.getElementById('activeCoachRole').innerText = `CT Baş Koçu (${coachName})`;
+    hud.renderStrategies(serverStrats, 'ct', currentGameState ? currentGameState.coachDirectives.ct.strategy : 'standard_212');
   });
 
-  document.getElementById('btnJoinT').addEventListener('click', () => {
+  document.getElementById('btnCoachT').addEventListener('click', () => {
     initAudio();
     localTeam = 't';
-    slotPickerWrap.style.display = 'block';
-    selectSlot(0);
-    hud.renderStrategies(serverStrats, 't', currentGameState ? currentGameState.strats.t : 'rush_b');
+    coachName = prompt("T Takımı Baş Koçu İsminiz:", "zonic") || "zonic";
+    socket.emit('join_coach', { team: 't', coachName });
+    document.getElementById('activeCoachRole').innerText = `T Baş Koçu (${coachName})`;
+    hud.renderStrategies(serverStrats, 't', currentGameState ? currentGameState.coachDirectives.t.strategy : 'rush_b');
   });
 
-  document.getElementById('btnJoinSpec').addEventListener('click', () => {
+  document.getElementById('btnCoachSpec').addEventListener('click', () => {
     initAudio();
     localTeam = null;
-    localPlayerId = null;
-    slotPickerWrap.style.display = 'none';
+    document.getElementById('activeCoachRole').innerText = 'Gözlemci / Analist';
     hud.renderStrategies(serverStrats, null, null);
-    hud.addChatMessage('SİSTEM', 'İzleyici moduna geçildi.');
   });
 
-  function selectSlot(slot) {
-    localSlot = slot;
-    if (localTeam) {
-      localPlayerId = `${localTeam}_${slot}`;
-      socket.emit('join_team', {
-        team: localTeam,
-        slot: localSlot,
-        name: playerName
-      });
-      hud.addChatMessage('SİSTEM', `${localTeam.toUpperCase()} Takımı Slot ${slot + 1} olarak katıldınız!`, localTeam);
-    }
-  }
-
-  window.onSlotSelected = (slot) => {
-    selectSlot(slot);
-  };
-
-  // 5. STRATEGY CALLER
-  window.onStrategySelect = (team, stratKey) => {
-    socket.emit('set_strategy', { team, strategy: stratKey });
-    hud.addChatMessage('TAKTİK', `${team.toUpperCase()} Takım Lideri stratejiyi değiştirdi: ${stratKey}`, team);
-  };
-
-  // 6. INTERACTIVE RADAR CLICK (Direct Player Movement / Waypoints)
-  canvas.addEventListener('click', (e) => {
-    initAudio();
-    if (!localPlayerId || !currentGameState) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
-
-    // Send direct movement order
-    socket.emit('order_move', { targetX: clickX, targetY: clickY });
-
-    // Client-side ripple / waypoint marker
-    radar.particles.push({
-      x: clickX,
-      y: clickY,
-      text: '📍 MOVE',
-      color: '#00ffcc',
-      alpha: 1.0,
-      dy: -1.0
-    });
-  });
-
-  // 7. BUY MENU
-  document.querySelectorAll('.buy-item').forEach(btn => {
+  // 5. COACH DIRECTIVES: PACING (Aggressive / Passive / High Risk / Default)
+  document.querySelectorAll('.directive-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       initAudio();
-      const weapon = btn.dataset.weapon;
-      if (localPlayerId) {
-        socket.emit('buy_weapon', { weaponKey: weapon });
+      if (!localTeam) {
+        alert("Lütfen önce bir takımın koçu olun (CT veya T)!");
+        return;
       }
+      document.querySelectorAll('.directive-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const pacing = btn.dataset.pacing;
+      socket.emit('set_coach_pacing', { team: localTeam, pacing });
     });
   });
 
-  socket.on('buy_success', ({ weaponKey, money }) => {
-    hud.addChatMessage('SATIN ALMA', `${weaponKey.toUpperCase()} satın alındı. Kalan: $${money}`);
+  // 6. COACH DIRECTIVES: ECONOMY (Auto / Full Buy / Force Buy / Eco)
+  document.querySelectorAll('.eco-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      initAudio();
+      if (!localTeam) {
+        alert("Lütfen önce bir takımın koçu olun (CT veya T)!");
+        return;
+      }
+      document.querySelectorAll('.eco-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const economyCall = btn.dataset.eco;
+      socket.emit('set_coach_economy', { team: localTeam, economyCall });
+    });
   });
 
-  // 8. UTILITY BUTTONS
-  document.getElementById('btnThrowFlash').addEventListener('click', () => {
-    if (!localPlayerId || !currentGameState) return;
-    const p = currentGameState.players[localPlayerId];
-    if (p && p.alive) {
-      socket.emit('throw_utility', {
-        type: 'flash',
-        targetX: p.x + Math.cos(p.angle) * 120,
-        targetY: p.y + Math.sin(p.angle) * 120
-      });
+  // 7. COACH DIRECTIVES: STRATEGY
+  window.onStrategySelect = (team, stratKey) => {
+    socket.emit('set_coach_strategy', { team, strategy: stratKey });
+  };
+
+  // 8. TACTICAL TIMEOUT (Mola Al)
+  document.getElementById('btnCallTimeout').addEventListener('click', () => {
+    initAudio();
+    if (!localTeam) {
+      alert("Lütfen önce bir takımın koçu olun (CT veya T)!");
+      return;
     }
+    socket.emit('call_timeout', { team: localTeam });
   });
 
-  document.getElementById('btnThrowSmoke').addEventListener('click', () => {
-    if (!localPlayerId || !currentGameState) return;
-    const p = currentGameState.players[localPlayerId];
-    if (p && p.alive) {
-      socket.emit('throw_utility', {
-        type: 'smoke',
-        targetX: p.x + Math.cos(p.angle) * 100,
-        targetY: p.y + Math.sin(p.angle) * 100
-      });
-    }
+  // 9. COACH CHEER & MOTIVATION
+  document.getElementById('btnMotivate').addEventListener('click', () => {
+    initAudio();
+    if (!localTeam) return;
+    socket.emit('coach_cheer', { team: localTeam, speechType: 'motivate' });
   });
 
-  // 9. HOTKEYS (TAB = Scoreboard, 1/2/3/4/5)
+  document.getElementById('btnCalm').addEventListener('click', () => {
+    initAudio();
+    if (!localTeam) return;
+    socket.emit('coach_cheer', { team: localTeam, speechType: 'calm' });
+  });
+
+  // 10. SCOREBOARD TOGGLE
   const scoreboardModal = document.getElementById('scoreboardModal');
-
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
-
     if (e.key === 'Tab') {
       e.preventDefault();
       scoreboardModal.style.display = scoreboardModal.style.display === 'none' ? 'flex' : 'none';
-    } else if (e.key === 'f' || e.key === 'F') {
-      document.getElementById('btnThrowFlash').click();
-    } else if (e.key === 's' || e.key === 'S') {
-      document.getElementById('btnThrowSmoke').click();
     }
   });
 
   document.getElementById('btnToggleScoreboard').addEventListener('click', () => {
     scoreboardModal.style.display = scoreboardModal.style.display === 'none' ? 'flex' : 'none';
   });
-
   document.getElementById('btnCloseScoreboard').addEventListener('click', () => {
     scoreboardModal.style.display = 'none';
   });
 
-  // 10. SPEED CONTROLS
+  // 11. SPEED CONTROLS
   document.querySelectorAll('.btn-speed').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
@@ -254,27 +203,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 11. SOUND TOGGLE
+  // 12. SOUND TOGGLE
   const btnSound = document.getElementById('btnSoundToggle');
   btnSound.addEventListener('click', () => {
     window.soundEngine.enabled = !window.soundEngine.enabled;
     btnSound.innerText = window.soundEngine.enabled ? '🔊 Ses: Açık' : '🔇 Ses: Kapalı';
   });
 
-  // 12. CHAT FORM
+  // 13. CHAT FORM
   const chatForm = document.getElementById('chatForm');
   const chatInput = document.getElementById('chatInput');
-
   chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const text = chatInput.value.trim();
     if (text) {
-      socket.emit('send_chat', { text, sender: playerName });
+      socket.emit('send_chat', { text, sender: `${coachName} (${localTeam ? localTeam.toUpperCase() : 'Gözlemci'})` });
       chatInput.value = '';
     }
   });
 
-  socket.on('chat_message', ({ sender, text }) => {
-    hud.addChatMessage(sender, text);
+  socket.on('chat_message', ({ sender, text, team }) => {
+    hud.addChatMessage(sender, text, team);
   });
 });

@@ -1,4 +1,4 @@
-/* CS:GO Tactical SimulatorX Theme */
+/* CS:GO Tactical SimulatorX - Esports Team Manager & Coach Theme */
 :root {
   --bg-main: #0c1016;
   --bg-panel: #131a23;
@@ -18,6 +18,8 @@
   --armor-blue: #3498db;
   --danger-red: #e74c3c;
   --gold-star: #f1c40f;
+  --morale-purple: #9b59b6;
+  --tilt-red: #e74c3c;
 
   --text-primary: #ecf0f1;
   --text-secondary: #95a5a6;
@@ -42,7 +44,7 @@ body.theme-cs {
 }
 
 /* =========================================
-   TOP HEADER HUD
+   TOP HEADER HUD & COACH BANNERS
 ========================================= */
 .hud-top {
   display: flex;
@@ -50,24 +52,58 @@ body.theme-cs {
   align-items: center;
   background: linear-gradient(180deg, #16202c 0%, #0d131a 100%);
   border-bottom: 2px solid var(--border-color);
-  padding: 8px 24px;
-  height: 64px;
+  padding: 8px 20px;
+  height: 68px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
   z-index: 10;
 }
 
-.team-avatars {
+.team-header-side {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
   flex: 1;
 }
 
-.ct-avatars {
-  justify-content: flex-start;
+.ct-side { justify-content: flex-start; }
+.t-side { justify-content: flex-end; }
+
+.coach-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: #111722;
+  border: 1px solid var(--border-color);
+}
+.ct-coach-banner { border-left: 3px solid var(--ct-blue); }
+.t-coach-banner { border-right: 3px solid var(--t-orange); }
+
+.coach-icon { font-size: 16px; }
+
+.coach-info {
+  display: flex;
+  flex-direction: column;
 }
 
-.t-avatars {
-  justify-content: flex-end;
+.coach-role {
+  font-size: 8px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.coach-name {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.team-avatars {
+  display: flex;
+  gap: 6px;
 }
 
 .avatar-pill {
@@ -77,8 +113,8 @@ body.theme-cs {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 3px 6px;
-  min-width: 58px;
+  padding: 2px 5px;
+  min-width: 52px;
   transition: all 0.2s;
 }
 
@@ -89,7 +125,7 @@ body.theme-cs {
 
 .avatar-num {
   font-family: 'Chakra Petch', monospace;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -100,7 +136,7 @@ body.theme-cs {
   width: 100%;
   height: 3px;
   background: #333;
-  margin-top: 3px;
+  margin-top: 2px;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -108,24 +144,22 @@ body.theme-cs {
 .avatar-hp-fill {
   height: 100%;
   background: var(--hp-green);
-  transition: width 0.2s;
 }
 
 .match-center-board {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .team-badge {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 16px;
+  gap: 8px;
+  padding: 4px 14px;
   border-radius: 4px;
   font-family: 'Chakra Petch', sans-serif;
   font-weight: 700;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .ct-badge {
@@ -140,15 +174,8 @@ body.theme-cs {
   color: #fff;
 }
 
-.team-name {
-  font-size: 14px;
-  letter-spacing: 1px;
-}
-
-.team-score {
-  font-size: 26px;
-  font-weight: 800;
-}
+.team-name { font-size: 13px; }
+.team-score { font-size: 24px; font-weight: 800; }
 
 .timer-container {
   display: flex;
@@ -157,26 +184,25 @@ body.theme-cs {
   background: #090e14;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 4px 18px;
+  padding: 3px 14px;
 }
 
 .round-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-secondary);
-  letter-spacing: 1px;
 }
 
 .round-timer {
   font-family: 'Chakra Petch', monospace;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #ffffff;
 }
 
 .round-timer.bomb-ticking {
   color: var(--danger-red);
-  animation: pulse-danger 1s infinite alternate;
+  animation: pulse-danger 0.8s infinite alternate;
 }
 
 @keyframes pulse-danger {
@@ -185,28 +211,27 @@ body.theme-cs {
 }
 
 .phase-tag {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   background: #27ae60;
   color: #fff;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 3px;
-  letter-spacing: 0.5px;
 }
-
 .phase-tag.freeze { background: #3498db; }
-.phase-tag.round_end { background: #e67e22; }
+.phase-tag.timeout { background: #e67e22; }
+.phase-tag.round_end { background: #9b59b6; }
 
 /* =========================================
    SIMULATOR LAYOUT
 ========================================= */
 .sim-container {
   display: grid;
-  grid-template-columns: 290px 1fr 310px;
+  grid-template-columns: 310px 1fr 310px;
   gap: 16px;
-  padding: 16px;
+  padding: 14px;
   flex: 1;
-  max-width: 1780px;
+  max-width: 1800px;
   margin: 0 auto;
   width: 100%;
 }
@@ -215,12 +240,12 @@ body.theme-cs {
   background: var(--bg-panel);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-  max-height: calc(100vh - 100px);
+  max-height: calc(100vh - 96px);
   overflow-y: auto;
 }
 
@@ -228,26 +253,26 @@ body.theme-cs {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 12px;
+  padding: 10px;
 }
 
 .section-title {
   font-family: 'Chakra Petch', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.8px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
-  padding-bottom: 6px;
-  margin-bottom: 10px;
+  padding-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 /* BUTTONS */
 .btn {
   font-family: 'Inter', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border-radius: 4px;
   border: none;
   cursor: pointer;
@@ -260,11 +285,10 @@ body.theme-cs {
 
 .btn-team {
   width: 100%;
-  margin-bottom: 6px;
-  padding: 10px;
-  font-size: 13px;
+  margin-bottom: 5px;
+  padding: 8px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
 .btn-ct {
@@ -272,14 +296,14 @@ body.theme-cs {
   color: #fff;
   border: 1px solid var(--ct-blue);
 }
-.btn-ct:hover { background: #258bf5; box-shadow: 0 0 12px var(--ct-glow); }
+.btn-ct:hover { background: #258bf5; }
 
 .btn-t {
   background: linear-gradient(135deg, #7c4004 0%, #b3630f 100%);
   color: #fff;
   border: 1px solid var(--t-orange);
 }
-.btn-t:hover { background: #ff9f1a; box-shadow: 0 0 12px var(--t-glow); }
+.btn-t:hover { background: #ff9f1a; }
 
 .btn-spec {
   background: #243245;
@@ -288,64 +312,91 @@ body.theme-cs {
 }
 .btn-spec:hover { background: #34495e; color: #fff; }
 
-.slot-picker-wrap {
-  margin-top: 10px;
-  background: #111722;
-  padding: 8px;
-  border-radius: 4px;
-}
-
-.slot-title {
+.current-role-badge {
   font-size: 11px;
   color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-
-.slot-buttons {
-  display: flex;
-  gap: 4px;
-}
-
-.btn-slot {
-  flex: 1;
-  background: #1d2736;
-  border: 1px solid var(--border-color);
-  color: #fff;
-  padding: 6px;
-  font-size: 12px;
-  font-weight: 700;
+  margin-top: 6px;
+  padding: 4px;
+  background: #111722;
   border-radius: 3px;
+  text-align: center;
+}
+.current-role-badge strong { color: var(--gold-star); }
+
+/* DIRECTIVES: PACING */
+.directive-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.directive-btn {
+  background: #121924;
+  border: 1px solid var(--border-color);
+  padding: 7px;
+  border-radius: 4px;
+  color: #fff;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  transition: all 0.2s;
 }
-.btn-slot.active {
-  background: var(--ct-blue);
-  border-color: #fff;
+
+.directive-btn:hover {
+  background: #1a2536;
+  border-color: var(--border-highlight);
 }
+
+.directive-btn.active {
+  border-color: var(--gold-star);
+  background: #202d40;
+  box-shadow: inset 0 0 6px rgba(241, 196, 15, 0.3);
+}
+
+.d-icon { font-size: 14px; }
+.d-body strong { display: block; font-size: 11px; }
+.d-body small { display: block; font-size: 9px; color: var(--text-secondary); }
+
+/* ECONOMY DIRECTIVES */
+.economy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.eco-btn {
+  background: #121924;
+  border: 1px solid var(--border-color);
+  padding: 7px;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.eco-btn:hover {
+  background: #1a2536;
+  border-color: var(--border-highlight);
+}
+
+.eco-btn.active {
+  border-color: var(--hp-green);
+  background: #172a24;
+}
+
+.eco-title { display: block; font-size: 11px; font-weight: 700; }
+.eco-desc { display: block; font-size: 9px; color: var(--text-secondary); }
 
 /* STRATEGY LIST */
-.strat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.badge {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-weight: 700;
-  background: #34495e;
-}
-.badge.ct { background: var(--ct-blue); color: #fff; }
-.badge.t { background: var(--t-orange); color: #fff; }
-
 .strat-card {
   background: #121924;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 8px;
-  margin-bottom: 6px;
+  padding: 7px;
+  margin-bottom: 5px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -360,60 +411,25 @@ body.theme-cs {
   background: #1c2738;
 }
 
-.strat-name {
+.strat-name { font-size: 11px; font-weight: 700; color: #fff; }
+.strat-desc { font-size: 9px; color: var(--text-secondary); margin-top: 2px; }
+
+/* TIMEOUT */
+.btn-timeout {
+  width: 100%;
+  background: linear-gradient(135deg, #c0392b 0%, #e67e22 100%);
+  color: #fff;
+  padding: 9px;
   font-size: 12px;
   font-weight: 700;
-  color: #fff;
 }
+.btn-timeout:hover { filter: brightness(1.15); }
 
-.strat-desc {
-  font-size: 10px;
+.timeout-note {
+  font-size: 9px;
   color: var(--text-secondary);
-  margin-top: 3px;
+  margin-top: 6px;
   line-height: 1.3;
-}
-
-/* BUY GRID */
-.player-money-badge {
-  font-family: 'Chakra Petch', monospace;
-  font-size: 14px;
-  color: var(--hp-green);
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.buy-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.buy-item {
-  background: #121924;
-  border: 1px solid var(--border-color);
-  padding: 8px;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s;
-}
-
-.buy-item:hover {
-  border-color: var(--hp-green);
-  background: #192433;
-}
-
-.buy-name {
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.buy-cost {
-  font-family: 'Chakra Petch', monospace;
-  font-size: 11px;
-  color: var(--hp-green);
-  margin-top: 2px;
 }
 
 /* =========================================
@@ -441,17 +457,16 @@ body.theme-cs {
   width: 100%;
   height: 100%;
   display: block;
-  cursor: crosshair;
 }
 
 /* KILLFEED */
 .killfeed-container {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   pointer-events: none;
   z-index: 5;
 }
@@ -462,12 +477,11 @@ body.theme-cs {
   gap: 6px;
   background: rgba(14, 20, 28, 0.88);
   border: 1px solid var(--border-color);
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  animation: slide-in 0.25s ease-out;
+  animation: slide-in 0.2s ease-out;
 }
 
 @keyframes slide-in {
@@ -477,52 +491,62 @@ body.theme-cs {
 
 .kf-killer.ct, .kf-victim.ct { color: var(--ct-blue); }
 .kf-killer.t, .kf-victim.t { color: var(--t-orange); }
-
-.kf-weapon {
-  color: #bdc3c7;
-  font-size: 10px;
-  background: #1c2738;
-  padding: 1px 4px;
-  border-radius: 2px;
-}
-
-.kf-hs {
-  color: var(--danger-red);
-  font-size: 11px;
-}
+.kf-weapon { color: #bdc3c7; background: #1c2738; padding: 1px 4px; border-radius: 2px; }
+.kf-hs { color: var(--danger-red); }
 
 /* BOMB ALERT BANNER */
 .bomb-alert-banner {
   position: absolute;
-  top: 14px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(231, 76, 60, 0.92);
   color: #fff;
-  padding: 6px 18px;
+  padding: 5px 16px;
   border-radius: 4px;
   font-family: 'Chakra Petch', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  box-shadow: 0 0 15px rgba(231, 76, 60, 0.6);
+  gap: 6px;
   z-index: 5;
   animation: pulse-danger 0.8s infinite alternate;
 }
 
-/* RADAR CONTROLS FOOTER */
+/* TIMEOUT BANNER OVERLAY */
+.timeout-banner {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(230, 126, 34, 0.95);
+  border: 2px solid #fff;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 0 25px rgba(230, 126, 34, 0.8);
+  z-index: 20;
+}
+
+.to-icon { font-size: 26px; }
+.to-title { font-family: 'Chakra Petch', sans-serif; font-size: 13px; font-weight: 700; }
+.to-timer { font-family: 'Chakra Petch', monospace; font-size: 22px; font-weight: 800; text-align: center; }
+
+/* RADAR FOOTER CONTROLS */
 .radar-footer-controls {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: rgba(12, 16, 22, 0.85);
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 4px;
   border: 1px solid var(--border-color);
   backdrop-filter: blur(4px);
@@ -532,153 +556,106 @@ body.theme-cs {
   background: #1b2636;
   border: 1px solid var(--border-highlight);
   color: #ecf0f1;
-  padding: 5px 10px;
-  font-size: 11px;
-}
-.btn-ctrl:hover { background: #24354a; }
-
-.speed-btns {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
 }
 
-.speed-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-right: 4px;
-}
-
+.speed-btns { display: flex; align-items: center; gap: 4px; }
+.speed-label { font-size: 10px; color: var(--text-secondary); margin-right: 4px; }
 .btn-speed {
   background: #1b2636;
   border: 1px solid var(--border-color);
   color: #fff;
-  padding: 4px 8px;
-  font-size: 11px;
-  cursor: pointer;
+  padding: 3px 6px;
+  font-size: 10px;
   border-radius: 3px;
+  cursor: pointer;
 }
-.btn-speed.active {
-  background: var(--gold-star);
-  color: #000;
-  font-weight: 700;
-}
+.btn-speed.active { background: var(--gold-star); color: #000; font-weight: 700; }
 
 /* =========================================
-   RIGHT PANEL: STATS & CHAT
+   RIGHT PANEL: ROSTER & MORALE
 ========================================= */
-.player-hud-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.roster-card {
+  background: #111722;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
 }
+.roster-card.dead { opacity: 0.4; }
 
-.p-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 6px;
-}
-
-.p-role-badge {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: #34495e;
-}
-.p-role-badge.ct { background: var(--ct-blue); }
-.p-role-badge.t { background: var(--t-orange); }
-
-.p-name {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.stat-bar-group {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.stat-bar-label {
+.r-head {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-secondary);
+  align-items: center;
 }
 
-.stat-bar-track {
-  width: 100%;
-  height: 8px;
-  background: #111722;
-  border-radius: 3px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-}
+.r-name { font-size: 12px; font-weight: 700; color: #fff; }
+.r-role { font-size: 9px; color: var(--gold-star); }
 
-.hp-fill { background: linear-gradient(90deg, #27ae60, #2ecc71); }
-.armor-fill { background: linear-gradient(90deg, #2980b9, #3498db); }
-
-.weapon-display {
-  background: #101620;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-}
-
-.weapon-label {
-  font-size: 9px;
-  color: var(--text-muted);
-  font-weight: 700;
-}
-
-.weapon-value {
-  font-family: 'Chakra Petch', monospace;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--gold-star);
-  margin-top: 2px;
-}
-
-.utility-actions {
-  display: flex;
+.r-bars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
+  margin-top: 4px;
 }
 
-.btn-util {
-  flex: 1;
-  background: #1a2433;
-  border: 1px solid var(--border-highlight);
-  color: #fff;
-  padding: 8px 4px;
+.r-bar-item { font-size: 8px; color: var(--text-secondary); }
+.r-bar-track {
+  width: 100%;
+  height: 4px;
+  background: #222;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 1px;
+}
+
+.r-morale-fill { background: var(--morale-purple); height: 100%; }
+.r-tilt-fill { background: var(--tilt-red); height: 100%; }
+
+.r-weapon-money {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  margin-top: 3px;
+  color: var(--text-muted);
+}
+.r-weapon-money strong { color: var(--hp-green); }
+
+/* COACH CHEER BUTTONS */
+.cheer-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.btn-cheer {
+  width: 100%;
   font-size: 11px;
-}
-.btn-util:hover { background: #253449; }
-
-.key {
-  color: var(--gold-star);
-  font-weight: 800;
-}
-
-.tactical-hint {
-  font-size: 10px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  background: #101620;
-  padding: 8px;
+  padding: 7px;
   border-radius: 4px;
-  border-left: 3px solid var(--gold-star);
+  font-weight: 600;
 }
+
+.btn-motivate {
+  background: linear-gradient(135deg, #8e44ad, #9b59b6);
+  color: #fff;
+}
+.btn-motivate:hover { filter: brightness(1.2); }
+
+.btn-calm {
+  background: linear-gradient(135deg, #16a085, #1abc9c);
+  color: #fff;
+}
+.btn-calm:hover { filter: brightness(1.2); }
 
 /* CHAT */
 .chat-section {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 220px;
+  min-height: 180px;
 }
 
 .chat-messages {
@@ -686,65 +663,35 @@ body.theme-cs {
   background: #0f151e;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 8px;
+  padding: 6px;
   overflow-y: auto;
-  max-height: 180px;
+  max-height: 150px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
-.chat-msg {
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.chat-time {
-  color: var(--text-muted);
-  font-size: 9px;
-  margin-right: 4px;
-}
-
-.chat-sender {
-  font-weight: 700;
-  margin-right: 4px;
-}
+.chat-msg { font-size: 10px; line-height: 1.3; }
+.chat-time { color: var(--text-muted); font-size: 8px; margin-right: 3px; }
+.chat-sender { font-weight: 700; margin-right: 3px; }
 .chat-sender.ct { color: var(--ct-blue); }
 .chat-sender.t { color: var(--t-orange); }
+.chat-msg.system { color: var(--gold-star); font-style: italic; }
 
-.chat-msg.system {
-  color: var(--gold-star);
-  font-style: italic;
-}
-
-.chat-input-wrap {
-  display: flex;
-  gap: 4px;
-  margin-top: 8px;
-}
-
+.chat-input-wrap { display: flex; gap: 4px; margin-top: 6px; }
 #chatInput {
   flex: 1;
   background: #111722;
   border: 1px solid var(--border-color);
   color: #fff;
-  padding: 7px 10px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-size: 10px;
   outline: none;
 }
-#chatInput:focus { border-color: var(--ct-blue); }
+.btn-send { background: #24354a; color: #fff; padding: 5px 10px; font-size: 10px; }
 
-.btn-send {
-  background: #24354a;
-  border: 1px solid var(--border-highlight);
-  color: #fff;
-  padding: 6px 12px;
-}
-
-/* =========================================
-   SCOREBOARD MODAL (TAB)
-========================================= */
+/* SCOREBOARD MODAL */
 .scoreboard-modal {
   position: fixed;
   inset: 0;
@@ -761,8 +708,8 @@ body.theme-cs {
   border: 2px solid var(--border-highlight);
   border-radius: 8px;
   width: 90%;
-  max-width: 920px;
-  padding: 20px;
+  max-width: 960px;
+  padding: 18px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
 }
 
@@ -771,92 +718,42 @@ body.theme-cs {
   justify-content: space-between;
   align-items: center;
   border-bottom: 2px solid var(--border-color);
-  padding-bottom: 10px;
-  margin-bottom: 16px;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .scoreboard-title {
   font-family: 'Chakra Petch', sans-serif;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 1px;
   color: #fff;
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 18px;
-  cursor: pointer;
-}
-.close-btn:hover { color: #fff; }
+.close-btn { background: none; border: none; color: var(--text-secondary); font-size: 16px; cursor: pointer; }
 
-.table-wrap {
-  margin-bottom: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.table-team-head {
-  padding: 8px 14px;
-  font-family: 'Chakra Petch', sans-serif;
-  font-weight: 700;
-  font-size: 14px;
-  display: flex;
-  justify-content: space-between;
-}
-
+.table-wrap { margin-bottom: 14px; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+.table-team-head { padding: 6px 12px; font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; }
 .ct-head { background: #0f3b6d; color: #fff; }
 .t-head { background: #6e3e07; color: #fff; }
 
-.sb-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #16202e;
-}
+.sb-table { width: 100%; border-collapse: collapse; background: #16202e; }
+.sb-table th, .sb-table td { padding: 6px 10px; text-align: left; font-size: 11px; border-bottom: 1px solid var(--border-color); }
+.sb-table th { color: var(--text-secondary); font-size: 9px; text-transform: uppercase; }
 
-.sb-table th, .sb-table td {
-  padding: 8px 12px;
-  text-align: left;
-  font-size: 12px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.sb-table th {
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 10px;
-  text-transform: uppercase;
-}
-
-.sb-table tr:hover {
-  background: #1e2c3e;
-}
-
-/* =========================================
-   ROUND END MVP BANNER
-========================================= */
+/* ROUND END OVERLAY */
 .round-end-overlay {
   position: fixed;
-  top: 100px;
+  top: 90px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 90;
   pointer-events: none;
-  animation: banner-drop 0.4s ease-out;
-}
-
-@keyframes banner-drop {
-  from { transform: translate(-50%, -40px); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
 }
 
 .round-end-card {
   background: linear-gradient(135deg, rgba(16, 24, 34, 0.96) 0%, rgba(22, 33, 48, 0.96) 100%);
   border: 2px solid var(--gold-star);
-  padding: 16px 36px;
+  padding: 14px 30px;
   border-radius: 8px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.9);
   text-align: center;
@@ -864,47 +761,30 @@ body.theme-cs {
 
 .round-winner-tag {
   font-family: 'Chakra Petch', sans-serif;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: 1.5px;
   color: #fff;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-.round-reason-text {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
+.round-reason-text { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
 .mvp-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 8px;
   background: rgba(241, 196, 15, 0.15);
   border: 1px solid var(--gold-star);
-  padding: 6px 14px;
+  padding: 4px 12px;
   border-radius: 4px;
+  font-size: 11px;
 }
+.mvp-box strong { color: var(--gold-star); }
 
-.mvp-star { font-size: 16px; }
-.mvp-text { font-size: 12px; color: #fff; }
-.mvp-text strong { color: var(--gold-star); }
-
-/* RESPONSIVE */
 @media (max-width: 1280px) {
-  .sim-container {
-    grid-template-columns: 260px 1fr 280px;
-  }
+  .sim-container { grid-template-columns: 280px 1fr 280px; }
 }
-
 @media (max-width: 1024px) {
-  .sim-container {
-    grid-template-columns: 1fr;
-  }
-  .radar-box {
-    max-width: 600px;
-  }
+  .sim-container { grid-template-columns: 1fr; }
+  .radar-box { max-width: 600px; }
 }
