@@ -2,6 +2,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
+const { PNG } = require('pngjs');
 const { DUST2_DATA } = require('./public/js/mapData');
 
 const app = express();
@@ -139,9 +141,46 @@ class PureCoachMatch {
     this.players = {};
     this.connectedSockets = {};
 
+    // Load authentic radar PNG and generate exact 1024x1024 pixel walkability grid
+    // Every black/transparent pixel (alpha <= 100) is physically blocked!
+    try {
+      const mapPath = path.join(__dirname, 'public', 'assets', 'de_dust2.png');
+      const pngData = PNG.sync.read(fs.readFileSync(mapPath));
+      this.collisionGrid = new Uint8Array(1024 * 1024);
+      for (let i = 0; i < 1024 * 1024; i++) {
+        this.collisionGrid[i] = pngData.data[(i << 2) + 3] > 100 ? 1 : 0;
+      }
+      console.log('Successfully loaded de_dust2.png collision grid (1024x1024)');
+    } catch (err) {
+      console.error('Failed to load collision grid from PNG:', err);
+      this.collisionGrid = new Uint8Array(1024 * 1024).fill(1);
+    }
+
     this.initPlayers();
     this.lastTick = Date.now();
     this.tickInterval = setInterval(() => this.tick(), 1000 / 30);
+  }
+
+  ensureWalkable(p) {
+    if (this.isWalkable(p.x, p.y)) return;
+    for (let r = 1; r < 50; r += 2) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+        const tx = p.x + Math.cos(a) * r;
+        const ty = p.y + Math.sin(a) * r;
+        if (this.isWalkable(tx, ty)) {
+          p.x = tx;
+          p.y = ty;
+          return;
+        }
+      }
+    }
+  }
+
+  isWalkable(x, y) {
+    const ix = Math.round(x);
+    const iy = Math.round(y);
+    if (ix < 0 || ix >= 1024 || iy < 0 || iy >= 1024) return false;
+    return this.collisionGrid[iy * 1024 + ix] === 1;
   }
 
   setPlayerPath(p, targetNodeKey) {
@@ -332,6 +371,23 @@ class PureCoachMatch {
       const spawn = spawnList[p.slot];
       p.x = spawn.x;
       p.y = spawn.y;
+      if (!this.isWalkable(p.x, p.y)) {
+        for (let r = 1; r < 40; r++) {
+          let found = false;
+          for (let dy = -r; dy <= r; dy++) {
+            for (let dx = -r; dx <= r; dx++) {
+              if (this.isWalkable(p.x + dx, p.y + dy)) {
+                p.x += dx;
+                p.y += dy;
+                found = true;
+                break;
+              }
+            }
+            if (found) break;
+          }
+          if (found) break;
+        }
+      }
       p.angle = p.team === 'ct' ? Math.PI / 2 : -Math.PI / 2;
       p.targetAngle = p.angle;
       p.hasBomb = (p.id === this.bomb.carrierId);
@@ -565,6 +621,7 @@ class PureCoachMatch {
   }
 
   updatePlayerMovement(p, dt) {
+    this.ensureWalkable(p);
     if (p.sprintTimer > 0) p.sprintTimer -= dt;
 
     if (p.targetEnemyId) {
@@ -637,16 +694,21 @@ class PureCoachMatch {
       const nextX = p.x + Math.cos(p.angle) * baseSpeed * dt;
       const nextY = p.y + Math.sin(p.angle) * baseSpeed * dt;
 
-      // Solid obstacle wall collision check
-      if (!this.isLineBlockedByWall(p.x, p.y, nextX, nextY)) {
+      // STRICT PHYSICAL BARRIER: Bots CANNOT enter black areas!
+      if (this.isWalkable(nextX, nextY)) {
         p.x = nextX;
         p.y = nextY;
       } else {
-        // Wall sliding
-        if (!this.isLineBlockedByWall(p.x, p.y, nextX, p.y)) {
+        // Wall sliding along corridor
+        if (this.isWalkable(nextX, p.y)) {
           p.x = nextX;
-        } else if (!this.isLineBlockedByWall(p.x, p.y, p.x, nextY)) {
+        } else if (this.isWalkable(p.x, nextY)) {
           p.y = nextY;
+        } else {
+          // Advance to next waypoint if corner obstructs
+          if (p.pathIndex < p.path.length - 1) {
+            p.pathIndex++;
+          }
         }
       }
       p.state = 'moving';
@@ -685,14 +747,17 @@ class PureCoachMatch {
     return (0.01 < lambda && lambda < 0.99) && (0.01 < gamma && gamma < 0.99);
   }
 
+  // Exact 1024x1024 Radar Collision Raycast:
+  // If line of sight or bullet passes through ANY black pixel -> BLOCKED!
   isLineBlockedByWall(x1, y1, x2, y2) {
-    if (!this.mapData.walls) return false;
-    const p1 = { x: x1, y: y1 };
-    const p2 = { x: x2, y: y2 };
-    for (const w of this.mapData.walls) {
-      if (this.lineIntersects(p1, p2, { x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 })) {
-        return true;
-      }
+    const dist = Math.hypot(x2 - x1, y2 - y1);
+    if (dist < 1) return !this.isWalkable(x1, y1);
+    const steps = Math.ceil(dist / 3);
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const px = Math.round(x1 + (x2 - x1) * t);
+      const py = Math.round(y1 + (y2 - y1) * t);
+      if (!this.isWalkable(px, py)) return true; // Black pixel = solid wall!
     }
     return false;
   }
@@ -1172,7 +1237,7 @@ class PureCoachMatch {
         this.setPlayerPath(t, spot);
       });
     } else {
-      const bSpots = ['b_platform', 'b_car', 'b_window', 'upper_tunnels_stairs', 'b_site'];
+      const bSpots = ['b_platform', 'b_car', 'b_window', 'upper_tunnels_choke', 'b_site'];
       aliveTs.forEach((t, idx) => {
         const spot = bSpots[idx % bSpots.length];
         this.setPlayerPath(t, spot);
