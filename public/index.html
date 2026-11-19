@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SimulatorX - CS:GO Esports Team Manager & Coach Simulator</title>
+  <title>SimulatorX - CS:GO Tactical Coach Simulator</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,13 +57,13 @@
     </div>
   </header>
 
-  <!-- MAIN MANAGER LAYOUT -->
+  <!-- MAIN COACH LAYOUT -->
   <main class="sim-container">
-    <!-- LEFT PANEL: COACH TACTICAL DESK -->
+    <!-- LEFT PANEL: COACH DESK (TIMEOUT ONLY) -->
     <aside class="panel side-panel left-panel">
-      <!-- SELECT TEAM TO COACH -->
+      <!-- 1. SELECT TEAM TO COACH -->
       <section class="panel-section coach-select-section">
-        <h3 class="section-title">KOÇLUK YÖNETİM MASASI</h3>
+        <h3 class="section-title">TAKIM KOÇLUĞU SEÇİMİ</h3>
         <div class="team-select-buttons">
           <button class="btn btn-team btn-ct" id="btnCoachCT">
             <span>🛡️ CT TAKIMI KOÇU OL</span>
@@ -72,90 +72,48 @@
             <span>💣 T TAKIMI KOÇU OL</span>
           </button>
           <button class="btn btn-team btn-spec" id="btnCoachSpec">
-            <span>👁️ GÖZLEMCİ / ANALİST</span>
+            <span>👁️ GÖZLEMCİ / İZLEYİCİ</span>
           </button>
         </div>
         <div class="current-role-badge">
-          Aktif Rolünüz: <strong id="activeCoachRole">Analist / İzleyici</strong>
+          Aktif Rol: <strong id="activeCoachRole">İzleyici</strong>
         </div>
       </section>
 
-      <!-- 1. OYUN TEMPOSU & RİSK (PACING DIRECTIVE) -->
-      <section class="panel-section">
-        <div class="strat-header">
-          <h3 class="section-title">1. OYUN TEMPOSU & RİSK DÜZEYİ</h3>
-        </div>
-        <div class="directive-grid" id="pacingGrid">
-          <button class="directive-btn active" data-pacing="default">
-            <span class="d-icon">🧠</span>
-            <div class="d-body">
-              <strong>Kontrollü / Varsayılan</strong>
-              <small>Standart tempo, bilgi topla</small>
-            </div>
-          </button>
-          <button class="directive-btn" data-pacing="aggressive">
-            <span class="d-icon">⚡</span>
-            <div class="d-body">
-              <strong>Hızlı & Ofansif</strong>
-              <small>Hızlı tempo, baskı kur</small>
-            </div>
-          </button>
-          <button class="directive-btn" data-pacing="passive">
-            <span class="d-icon">🛡️</span>
-            <div class="d-body">
-              <strong>Pasif & Açı Tut</strong>
-              <small>Hata bekle, crosshair kur</small>
-            </div>
-          </button>
-          <button class="directive-btn" data-pacing="high_risk">
-            <span class="d-icon">🎲</span>
-            <div class="d-body">
-              <strong>Yüksek Risk & Push</strong>
-              <small>Agresif peek, risk al</small>
-            </div>
-          </button>
-        </div>
-      </section>
-
-      <!-- 2. EKONOMİ TALİMATI (BUY ORDERS) -->
-      <section class="panel-section">
-        <h3 class="section-title">2. EKONOMİ & SİLAH TALİMATI</h3>
-        <div class="economy-grid" id="economyGrid">
-          <button class="eco-btn active" data-eco="auto">
-            <span class="eco-title">🔄 Otomatik</span>
-            <span class="eco-desc">Oyuncular paraya göre alsın</span>
-          </button>
-          <button class="eco-btn" data-eco="full_buy">
-            <span class="eco-title">💰 Full Buy</span>
-            <span class="eco-desc">Tüfekler, AWP, Zırh</span>
-          </button>
-          <button class="eco-btn" data-eco="force_buy">
-            <span class="eco-title">💵 Force Buy</span>
-            <span class="eco-desc">Her kuruşu harca, risk al</span>
-          </button>
-          <button class="eco-btn" data-eco="eco">
-            <span class="eco-title">🪙 Eco (Save)</span>
-            <span class="eco-desc">Parayı sakla, tabancayla oyna</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- 3. TAKTİK PLANI (STRATEGY BOARD) -->
-      <section class="panel-section">
-        <h3 class="section-title">3. TAKTİK PLANI</h3>
-        <div class="strat-list" id="stratList">
-          <!-- Populated dynamically based on chosen team -->
-        </div>
-      </section>
-
-      <!-- 4. TAKTİKSEL MOLA (TIMEOUT) -->
+      <!-- 2. THE ONLY IN-GAME POWER: TACTICAL TIMEOUT -->
       <section class="panel-section timeout-section">
-        <h3 class="section-title">4. TAKTİKSEL MOLA</h3>
+        <h3 class="section-title">KOÇ YETKİSİ: TAKTİKSEL MOLA</h3>
         <button class="btn btn-timeout" id="btnCallTimeout">
-          ⏸️ Taktiksel Mola Al (Kalan: <span id="timeoutsLeftDisplay">2</span>)
+          ⏸️ TAKTİKSEL MOLA AL (Kalan: <span id="timeoutsLeftDisplay">2</span>)
         </button>
-        <div class="timeout-note">
-          💡 Mola 25 saniye sürer. Oyuncuların tilkini sıfırlar ve morallerini yükseltir!
+        <div class="timeout-rules">
+          <p>📋 <strong>Kural:</strong> Koç olarak oyuna silah, tempo veya hareket müdahalesi yapılamaz. Karakterler profesyonel CS:GO stratejilerine göre otonom oynar.</p>
+          <p>⏱️ <strong>Mola:</strong> Maç başına 2 mola hakkınız vardır. 25 saniyelik mola takımı toparlar ve tilt seviyelerini sıfırlar.</p>
+        </div>
+      </section>
+
+      <!-- 3. LIVE MATCH INTELLIGENCE (AUTONOMOUS TEAM TACTICS) -->
+      <section class="panel-section intel-section">
+        <h3 class="section-title">TAKIM STRATEJİSİ (IGL KARARI)</h3>
+        <div class="intel-box">
+          <div class="intel-row">
+            <span class="intel-label">CT Düzeni:</span>
+            <span class="intel-val" id="ctStratDisplay">Standart 2-1-2</span>
+          </div>
+          <div class="intel-row">
+            <span class="intel-label">T Planı:</span>
+            <span class="intel-val" id="tStratDisplay">Rush B Don't Stop</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. MATCH CONTROLS -->
+      <section class="panel-section match-controls-section">
+        <h3 class="section-title">MAÇ KONTROLLERİ</h3>
+        <div class="match-action-btns">
+          <button class="btn btn-ctrl-start" id="btnStartMatch">▶️ Maçı Başlat</button>
+          <button class="btn btn-ctrl-pause" id="btnPauseMatch">⏸️ Duraklat / Sürdür</button>
+          <button class="btn btn-ctrl-reset" id="btnResetMatch">🔄 Sıfırla (Lobiye Dön)</button>
         </div>
       </section>
     </aside>
@@ -165,16 +123,16 @@
       <div class="radar-box">
         <canvas id="radarCanvas" width="1024" height="1024"></canvas>
 
-        <!-- LOBBY OVERLAY (Waiting for Coach to Start Match) -->
+        <!-- LOBBY START OVERLAY -->
         <div class="lobby-start-overlay" id="lobbyStartOverlay">
           <div class="lobby-start-card">
-            <div class="lobby-badge">CS:GO MENAJERLİK ARENASI</div>
-            <h2 class="lobby-title">BÜYÜK DERBİYE HAZIR MISINIZ?</h2>
+            <div class="lobby-badge">CS:GO TAKIM MENAJERLİK ARENASI</div>
+            <h2 class="lobby-title">5v5 TAKTİKSEL HARİTA SİMÜLATÖRÜ</h2>
             <p class="lobby-desc">
-              Sol panelden takımınızı seçin (CT veya T), oyun temposunu ve stratejinizi belirleyin. Hazır olduğunuzda aşağıdaki butona basarak maçı başlatın!
+              Oyuncular tamamen bağımsız bir şekilde profesyonel CS:GO kurallarıyla çatışır, bomba kurar ve taktik uygular. Tek yetkiniz kritik anlarda <strong>Taktiksel Mola</strong> almaktır.
             </p>
-            <button class="btn btn-start-match" id="btnStartMatch">
-              🎮 MAÇI BAŞLAT (START MATCH)
+            <button class="btn btn-start-match" id="btnOverlayStart">
+              🎮 MAÇI BAŞLAT
             </button>
           </div>
         </div>
@@ -192,22 +150,17 @@
         <div class="timeout-banner" id="timeoutBanner" style="display:none;">
           <span class="to-icon">⏸️</span>
           <div class="to-content">
-            <div class="to-title">TAKTIKSEL MOLA (TAKIM KOÇU TALİMAT VERİYOR)</div>
+            <div class="to-title">TAKTİKSEL MOLA ALINDI</div>
             <div class="to-timer"><span id="timeoutSeconds">25</span>s</div>
           </div>
         </div>
 
         <!-- RADAR FOOTER CONTROLS -->
         <div class="radar-footer-controls">
-          <div class="match-ctrl-group">
-            <button class="btn btn-match-act" id="btnFooterStart">▶️ Maçı Başlat</button>
-            <button class="btn btn-match-act" id="btnFooterPause">⏸️ Duraklat</button>
-            <button class="btn btn-match-act" id="btnFooterRestart">🔄 Sıfırla</button>
-          </div>
           <button class="btn btn-ctrl" id="btnToggleScoreboard">TAB (Skor Tablosu)</button>
           <button class="btn btn-ctrl" id="btnSoundToggle">🔊 Ses: Açık</button>
           <div class="speed-btns">
-            <span class="speed-label">Hız:</span>
+            <span class="speed-label">Simülasyon Hızı:</span>
             <button class="btn btn-speed active" data-speed="1.0">1x</button>
             <button class="btn btn-speed" data-speed="2.0">2x</button>
             <button class="btn btn-speed" data-speed="3.0">3x</button>
@@ -216,42 +169,23 @@
       </div>
     </section>
 
-    <!-- RIGHT PANEL: ROSTER, MORALE & COACH RADIO -->
+    <!-- RIGHT PANEL: ROSTER & LIVE MATCH LOG -->
     <aside class="panel side-panel right-panel">
-      <!-- TEAM ROSTER & ROLES -->
+      <!-- TEAM ROSTER -->
       <section class="panel-section roster-section">
-        <h3 class="section-title">TAKIM KADROSU & MORAL DURUMU</h3>
-        <div class="roster-list" id="rosterList">
-          <!-- 5 Players dynamically rendered with Roles, Morale, Tilt, HP and Weapon -->
-        </div>
-      </section>
-
-      <!-- COACH MOTIVATION / SPEECH BUTTONS -->
-      <section class="panel-section coach-cheer-section">
-        <h3 class="section-title">KOÇ TELSİZİ & MOTİVASYON</h3>
-        <div class="cheer-buttons">
-          <button class="btn btn-cheer btn-motivate" id="btnMotivate">
-            🔥 "Tempoyu artırın, vurun geçin!" (+Moral)
-          </button>
-          <button class="btn btn-cheer btn-calm" id="btnCalm">
-            🧘 "Sakin kalın, tilt olmayın!" (-Tilt)
-          </button>
-        </div>
+        <h3 class="section-title">TAKIM KADROSU & DURUM</h3>
+        <div class="roster-list" id="rosterList"></div>
       </section>
 
       <!-- LIVE RADIO & MATCH LOG -->
       <section class="panel-section chat-section">
-        <h3 class="section-title">CANLI MAÇ & KOÇ TELSİZİ</h3>
+        <h3 class="section-title">CANLI MAÇ TELSİZİ & LOGLAR</h3>
         <div class="chat-messages" id="chatMessages">
           <div class="chat-msg system">
             <span class="chat-time">00:00</span>
-            <span class="chat-body">CS:GO Takım Menajer & Koç Simülatörüne Hoş Geldiniz!</span>
+            <span class="chat-body">CS:GO Koç Simülatörüne Hoş Geldiniz!</span>
           </div>
         </div>
-        <form class="chat-input-wrap" id="chatForm">
-          <input type="text" id="chatInput" placeholder="Koç olarak takıma seslen..." autocomplete="off">
-          <button type="submit" class="btn btn-send">Konuş</button>
-        </form>
       </section>
     </aside>
   </main>
@@ -260,7 +194,7 @@
   <div class="scoreboard-modal" id="scoreboardModal" style="display:none;">
     <div class="scoreboard-card">
       <div class="scoreboard-header">
-        <h2 class="scoreboard-title">CS:GO MAÇ SKOR TABLOSU</h2>
+        <h2 class="scoreboard-title">CS:GO RESMİ SKOR TABLOSU</h2>
         <button class="close-btn" id="btnCloseScoreboard">✕</button>
       </div>
 
@@ -282,7 +216,6 @@
               <th>D</th>
               <th>A</th>
               <th>MORAL</th>
-              <th>TİLT</th>
               <th>MVP</th>
             </tr>
           </thead>
@@ -308,7 +241,6 @@
               <th>D</th>
               <th>A</th>
               <th>MORAL</th>
-              <th>TİLT</th>
               <th>MVP</th>
             </tr>
           </thead>

@@ -25,7 +25,6 @@ const WEAPONS = {
   glock: { name: 'Glock-18', type: 'pistol', damage: 22, hsMult: 3.0, fireRate: 0.14, accuracy: 0.82, maxRange: 260, cost: 200, team: 't', silenced: false }
 };
 
-// ESPORTS ROSTER PRESETS
 const ROSTERS = {
   ct: [
     { name: 's1mple', role: 'Sniper (AWP)' },
@@ -43,35 +42,32 @@ const ROSTERS = {
   ]
 };
 
-class CSManagerMatch {
+const T_STRATS = ['rush_b', 'long_a_execute', 'a_split', 'mid_to_b', 'default_pick'];
+const CT_STRATS = ['standard_212', 'aggressive_long', 'b_stack', 'cat_control', 'retake_defense'];
+
+class PureCoachMatch {
   constructor(io) {
     this.io = io;
     this.mapData = DUST2_DATA;
     this.round = 1;
     this.maxRounds = 24;
     this.score = { ct: 0, t: 0 };
-    this.phase = 'lobby'; // 'lobby' (waiting for coach to start), 'freeze', 'live', 'timeout', 'round_end', 'match_over'
+    this.phase = 'lobby'; // 'lobby', 'freeze', 'live', 'timeout', 'round_end', 'match_over'
     this.timer = 0;
     this.isPaused = false;
     this.simSpeed = 1.0;
     this.lossStreak = { ct: 0, t: 0 };
 
+    // Coach accounts (User only has timeout authority)
     this.coaches = {
-      ct: { name: 'B1ad3 (AI)', isHuman: false, socketId: null, timeoutsLeft: 2 },
-      t: { name: 'zonic (AI)', isHuman: false, socketId: null, timeoutsLeft: 2 }
+      ct: { name: 'B1ad3 (CT Koçu)', isHuman: false, socketId: null, timeoutsLeft: 2 },
+      t: { name: 'zonic (T Koçu)', isHuman: false, socketId: null, timeoutsLeft: 2 }
     };
 
-    this.coachDirectives = {
-      ct: {
-        pacing: 'passive',
-        economyCall: 'auto',
-        strategy: 'standard_212'
-      },
-      t: {
-        pacing: 'default',
-        economyCall: 'auto',
-        strategy: 'rush_b'
-      }
+    // Current autonomous strategies picked by team IGLs
+    this.activeStrategies = {
+      ct: 'standard_212',
+      t: 'rush_b'
     };
 
     this.timeoutState = {
@@ -111,7 +107,6 @@ class CSManagerMatch {
 
   initPlayers() {
     this.players = {};
-    // CT Players
     for (let i = 0; i < 5; i++) {
       const id = `ct_${i}`;
       const spawn = this.mapData.spawns.CT[i];
@@ -158,7 +153,6 @@ class CSManagerMatch {
       };
     }
 
-    // T Players
     for (let i = 0; i < 5; i++) {
       const id = `t_${i}`;
       const spawn = this.mapData.spawns.T[i];
@@ -208,11 +202,12 @@ class CSManagerMatch {
     this.assignStrategyPaths();
   }
 
-  // Starts the match when Coach clicks "MAÇI BAŞLAT"
   startMatch() {
     this.round = 1;
     this.score = { ct: 0, t: 0 };
     this.isPaused = false;
+    this.coaches.ct.timeoutsLeft = 2;
+    this.coaches.t.timeoutsLeft = 2;
     this.initPlayers();
     this.startRound();
   }
@@ -239,6 +234,16 @@ class CSManagerMatch {
     const tSlots = [0, 1, 2, 3, 4];
     this.bomb.carrierId = `t_${tSlots[Math.floor(Math.random() * tSlots.length)]}`;
 
+    // AUTONOMOUS STRATEGY SELECTION BY IGLs
+    if (this.round === 1 || this.round === 13) {
+      this.activeStrategies.t = Math.random() < 0.6 ? 'rush_b' : 'default_pick';
+      this.activeStrategies.ct = 'standard_212';
+    } else {
+      this.activeStrategies.t = T_STRATS[Math.floor(Math.random() * T_STRATS.length)];
+      this.activeStrategies.ct = CT_STRATS[Math.floor(Math.random() * CT_STRATS.length)];
+    }
+
+    // Reset Players & Autonomous Pro CS:GO Buys
     Object.values(this.players).forEach(p => {
       p.alive = true;
       p.hp = 100;
@@ -260,16 +265,14 @@ class CSManagerMatch {
       p.targetAngle = p.angle;
       p.hasBomb = (p.id === this.bomb.carrierId);
 
-      this.executeCoachEconomy(p);
+      this.autonomousPlayerBuy(p);
     });
 
     this.assignStrategyPaths();
   }
 
-  executeCoachEconomy(p) {
-    const directive = this.coachDirectives[p.team];
-    const call = directive.economyCall;
-
+  // Players buy completely on their own based on money & professional CS:GO meta
+  autonomousPlayerBuy(p) {
     if (this.round === 1 || this.round === 13) {
       p.weapon = p.team === 'ct' ? 'usp' : 'glock';
       if (Math.random() < 0.35 && p.money >= 700) {
@@ -283,54 +286,43 @@ class CSManagerMatch {
       return;
     }
 
-    if (call === 'eco') {
-      p.weapon = p.team === 'ct' ? 'usp' : 'glock';
-      if (Math.random() < 0.25 && p.money >= 1200) {
-        p.weapon = 'deagle';
-        p.money -= 700;
+    // Sniper role priority buy
+    if (p.slot === 0 && p.money >= 4750) {
+      p.weapon = 'awp';
+      p.money -= 4750;
+      p.armor = 100;
+      p.hasHelmet = true;
+      return;
+    }
+
+    // Full buy
+    if (p.money >= 3700) {
+      p.weapon = p.team === 'ct' ? 'm4a1' : 'ak47';
+      p.money -= (p.team === 'ct' ? 2900 : 2700);
+      p.armor = 100;
+      p.hasHelmet = true;
+      if (p.team === 'ct' && p.money >= 400) {
+        p.hasKit = true;
+        p.money -= 400;
       }
-    } else if (call === 'force_buy') {
-      if (p.money >= 2900 && p.team === 'ct') {
-        p.weapon = 'm4a1';
-        p.money -= 2900;
-      } else if (p.money >= 2700 && p.team === 't') {
-        p.weapon = 'ak47';
-        p.money -= 2700;
-      } else if (p.money >= 1800) {
-        p.weapon = p.team === 'ct' ? 'famas' : 'galil';
-        p.money -= (p.team === 'ct' ? 2050 : 1800);
-      } else if (p.money >= 700) {
-        p.weapon = 'deagle';
-        p.money -= 700;
-      }
+    } else if (p.money >= 1800 && Math.random() < 0.4) {
+      // Occasional force buy
+      p.weapon = p.team === 'ct' ? 'famas' : 'galil';
+      p.money -= (p.team === 'ct' ? 2050 : 1800);
       p.armor = 100;
     } else {
-      if (p.money >= 4750 && p.slot === 0) {
-        p.weapon = 'awp';
-        p.money -= 4750;
-        p.armor = 100;
-        p.hasHelmet = true;
-      } else if (p.money >= 3700) {
-        p.weapon = p.team === 'ct' ? 'm4a1' : 'ak47';
-        p.money -= (p.team === 'ct' ? 2900 : 2700);
-        p.armor = 100;
-        p.hasHelmet = true;
-        if (p.team === 'ct' && p.money >= 400) {
-          p.hasKit = true;
-          p.money -= 400;
-        }
-      } else if (p.money >= 1600) {
-        p.weapon = p.team === 'ct' ? 'famas' : 'galil';
-        p.money -= (p.team === 'ct' ? 2050 : 1800);
-      } else {
-        p.weapon = p.team === 'ct' ? 'usp' : 'glock';
+      // Eco save
+      p.weapon = p.team === 'ct' ? 'usp' : 'glock';
+      if (p.money >= 1400 && Math.random() < 0.3) {
+        p.weapon = 'deagle';
+        p.money -= 700;
       }
     }
   }
 
   assignStrategyPaths() {
-    const tStratKey = this.coachDirectives.t.strategy;
-    const ctStratKey = this.coachDirectives.ct.strategy;
+    const tStratKey = this.activeStrategies.t;
+    const ctStratKey = this.activeStrategies.ct;
 
     const tStrat = this.mapData.strategies.T[tStratKey] || this.mapData.strategies.T.rush_b;
     const ctStrat = this.mapData.strategies.CT[ctStratKey] || this.mapData.strategies.CT.standard_212;
@@ -359,13 +351,11 @@ class CSManagerMatch {
 
     this.events = [];
 
-    // If waiting in lobby or paused, don't progress match
     if (this.phase === 'lobby' || this.isPaused) {
       this.broadcastState();
       return;
     }
 
-    // TIMEOUT MANAGEMENT
     if (this.phase === 'timeout') {
       this.timeoutState.timer -= dt;
       if (this.timeoutState.timer <= 0) {
@@ -493,12 +483,7 @@ class CSManagerMatch {
     }
   }
 
-  // Smooth waypoint navigation (walkable open corridors)
   updatePlayerMovement(p, dt) {
-    const directive = this.coachDirectives[p.team];
-    const pacing = directive.pacing;
-
-    // Engaging enemy: Stop to shoot (Counter-strafe) and micro-strafe between bursts
     if (p.targetEnemyId) {
       const enemy = this.players[p.targetEnemyId];
       if (enemy && enemy.alive) {
@@ -550,10 +535,6 @@ class CSManagerMatch {
       p.angle = p.targetAngle;
 
       let baseSpeed = 130;
-      if (pacing === 'aggressive') baseSpeed = 155;
-      else if (pacing === 'passive') baseSpeed = 110;
-      else if (pacing === 'high_risk') baseSpeed = 160;
-
       if (p.weapon === 'awp') baseSpeed *= 0.85;
 
       p.x += Math.cos(p.angle) * baseSpeed * dt;
@@ -670,9 +651,7 @@ class CSManagerMatch {
       if (bestTarget) {
         if (p.targetEnemyId !== bestTarget.id) {
           p.targetEnemyId = bestTarget.id;
-          const pacing = this.coachDirectives[p.team].pacing;
-          let baseReaction = 0.22;
-          if (pacing === 'passive') baseReaction = 0.16;
+          let baseReaction = 0.20;
           if (p.tilt > 40) baseReaction += 0.08;
           p.reactionTimer = Math.max(0.12, baseReaction + (Math.random() * 0.06));
         }
@@ -699,7 +678,6 @@ class CSManagerMatch {
 
   resolveProShot(shooter, target, weapon, dist) {
     shooter.burstCount = (shooter.burstCount || 0) + 1;
-    const pacing = this.coachDirectives[shooter.team].pacing;
 
     let burstAccuracy = 1.0;
     if (shooter.burstCount === 1) burstAccuracy = 0.96;
@@ -716,8 +694,8 @@ class CSManagerMatch {
     let damage = 0;
 
     if (isHit) {
-      const hsChance = pacing === 'high_risk' ? 0.38 : (shooter.burstCount === 1 ? 0.42 : 0.22);
-      isHeadshot = Math.random() < (weapon.name === 'AWP' ? 0.15 : hsChance);
+      const baseHsChance = weapon.name === 'AWP' ? 0.15 : (shooter.burstCount === 1 ? 0.42 : 0.22);
+      isHeadshot = Math.random() < baseHsChance;
 
       damage = weapon.damage * (isHeadshot ? weapon.hsMult : 1.0);
       if (target.armor > 0 && !isHeadshot && weapon.type !== 'sniper') {
@@ -1053,7 +1031,7 @@ class CSManagerMatch {
       isPaused: this.isPaused,
       score: this.score,
       coaches: this.coaches,
-      coachDirectives: this.coachDirectives,
+      activeStrategies: this.activeStrategies,
       timeoutState: this.timeoutState,
       bomb: {
         planted: this.bomb.planted,
@@ -1078,7 +1056,7 @@ class CSManagerMatch {
   }
 }
 
-const match = new CSManagerMatch(io);
+const match = new PureCoachMatch(io);
 
 io.on('connection', (socket) => {
   socket.emit('init_data', {
@@ -1088,16 +1066,16 @@ io.on('connection', (socket) => {
     rosters: ROSTERS
   });
 
-  // START MATCH (Coach clicked Start Match)
+  // START MATCH
   socket.on('start_match', () => {
     match.startMatch();
     io.emit('chat_message', { sender: 'HAKEM', text: 'MAÇ BAŞLATILDI! 1. Raund Hazırlık Aşaması.' });
   });
 
-  // PAUSE / RESUME TOGGLE
+  // PAUSE / RESUME
   socket.on('toggle_pause', () => {
     match.isPaused = !match.isPaused;
-    const txt = match.isPaused ? 'Maç koç tarafından DURAKLATILDI.' : 'Maç DEVAM EDİYOR.';
+    const txt = match.isPaused ? 'Maç DURAKLATILDI.' : 'Maç DEVAM EDİYOR.';
     io.emit('chat_message', { sender: 'HAKEM', text: txt });
   });
 
@@ -1113,43 +1091,16 @@ io.on('connection', (socket) => {
   // BECOME COACH
   socket.on('join_coach', ({ team, coachName }) => {
     if (team === 'ct' || team === 't') {
-      match.coaches[team].name = coachName || `${team.toUpperCase()} Head Coach`;
+      match.coaches[team].name = coachName || `${team.toUpperCase()} Koçu`;
       match.coaches[team].isHuman = true;
       match.coaches[team].socketId = socket.id;
       match.connectedSockets[socket.id] = { team, coachName };
       socket.emit('coach_joined_ack', { team, coachName });
-      io.emit('chat_message', { sender: 'SİSTEM', text: `${coachName} artık ${team.toUpperCase()} Takımı Baş Koçu!` });
+      io.emit('chat_message', { sender: 'SİSTEM', text: `${coachName} artık ${team.toUpperCase()} Takımı Koçu!` });
     }
   });
 
-  // PACING DIRECTIVE
-  socket.on('set_coach_pacing', ({ team, pacing }) => {
-    if (team === 'ct' || team === 't') {
-      match.coachDirectives[team].pacing = pacing;
-      const label = pacing === 'aggressive' ? 'Hızlı & Ofansif' : (pacing === 'passive' ? 'Pasif & Açı Tut' : (pacing === 'high_risk' ? 'Yüksek Risk / Push' : 'Varsayılan Taktik'));
-      io.emit('chat_message', { sender: `KOÇ (${team.toUpperCase()})`, text: `Takım temposu: [${label}]`, team });
-    }
-  });
-
-  // ECONOMY DIRECTIVE
-  socket.on('set_coach_economy', ({ team, economyCall }) => {
-    if (team === 'ct' || team === 't') {
-      match.coachDirectives[team].economyCall = economyCall;
-      const label = economyCall === 'full_buy' ? 'FULL BUY' : (economyCall === 'force_buy' ? 'FORCE BUY' : (economyCall === 'eco' ? 'ECO (Save)' : 'OTOMATİK'));
-      io.emit('chat_message', { sender: `KOÇ (${team.toUpperCase()})`, text: `Ekonomi talimatı: [${label}]`, team });
-    }
-  });
-
-  // STRATEGY DIRECTIVE
-  socket.on('set_coach_strategy', ({ team, strategy }) => {
-    if (team === 'ct' || team === 't') {
-      match.coachDirectives[team].strategy = strategy;
-      match.assignStrategyPaths();
-      io.emit('chat_message', { sender: `KOÇ (${team.toUpperCase()})`, text: `Taktik değiştirildi: [${strategy}]`, team });
-    }
-  });
-
-  // TIMEOUT
+  // THE ONLY IN-GAME POWER: TACTICAL TIMEOUT (MOLA AL)
   socket.on('call_timeout', ({ team }) => {
     if (team === 'ct' || team === 't') {
       if (match.coaches[team].timeoutsLeft > 0 && match.phase === 'freeze') {
@@ -1165,23 +1116,8 @@ io.on('connection', (socket) => {
           p.morale = Math.min(100, p.morale + 20);
         });
         io.emit('timeout_called', { team, coach: match.coaches[team].name });
-        io.emit('chat_message', { sender: 'HAKEM', text: `${team.toUpperCase()} Takımı Koçu Taktik Mola aldı! (25s)` });
+        io.emit('chat_message', { sender: 'HAKEM', text: `${team.toUpperCase()} Takımı Koçu Taktiksel Mola aldı! (25s)` });
       }
-    }
-  });
-
-  // MOTIVATION
-  socket.on('coach_cheer', ({ team, speechType }) => {
-    if (team === 'ct' || team === 't') {
-      let text = "Beyler odaklanın, bu raund bizim!";
-      if (speechType === 'motivate') {
-        text = "Harika gidiyoruz, tempoyu düşürmeyin, vurun geçin!";
-        Object.values(match.players).filter(p => p.team === team).forEach(p => p.morale = Math.min(100, p.morale + 10));
-      } else if (speechType === 'calm') {
-        text = "Sakin kalın, tilt olmayın! Pozisyonlarınızı koruyun.";
-        Object.values(match.players).filter(p => p.team === team).forEach(p => p.tilt = Math.max(0, p.tilt - 20));
-      }
-      io.emit('chat_message', { sender: `KOÇ (${team.toUpperCase()})`, text, team });
     }
   });
 
@@ -1205,7 +1141,7 @@ io.on('connection', (socket) => {
 
 server.listen(PORT, () => {
   console.log(`===============================================`);
-  console.log(`   CS:GO Manager SimulatorX Running on Port ${PORT}`);
+  console.log(`   CS:GO Pure Coach Simulator Running on Port ${PORT}`);
   console.log(`   Open http://localhost:${PORT} in your browser`);
   console.log(`===============================================`);
 });

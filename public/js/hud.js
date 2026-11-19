@@ -1,4 +1,17 @@
-// HUD and Coach Management UI for CS:GO Manager Simulator
+// HUD and Coach Management UI for CS:GO Pure Coach Simulator
+const STRAT_NAMES = {
+  rush_b: "Rush B Don't Stop",
+  long_a_execute: "Long A Execute",
+  a_split: "A Split (Short & Long)",
+  mid_to_b: "Mid to B Split",
+  default_pick: "Default (Harita Kontrolü)",
+  standard_212: "Standart 2-1-2",
+  aggressive_long: "Agresif Long Baskısı",
+  b_stack: "B Stack Savunması",
+  cat_control: "Catwalk / Mid Kontrolü",
+  retake_defense: "Pasif Retake Düzeni"
+};
+
 class HUDManager {
   constructor() {
     this.ctCoachName = document.getElementById('ctCoachName');
@@ -22,7 +35,8 @@ class HUDManager {
 
     this.lobbyStartOverlay = document.getElementById('lobbyStartOverlay');
     this.activeCoachRole = document.getElementById('activeCoachRole');
-    this.stratList = document.getElementById('stratList');
+    this.ctStratDisplay = document.getElementById('ctStratDisplay');
+    this.tStratDisplay = document.getElementById('tStratDisplay');
     this.rosterList = document.getElementById('rosterList');
 
     this.scoreboardModal = document.getElementById('scoreboardModal');
@@ -58,7 +72,7 @@ class HUDManager {
     this.sbScoreCT.innerText = state.score.ct;
     this.sbScoreT.innerText = state.score.t;
 
-    // 2. Coach Names
+    // 2. Coach Names & Timeouts Left
     if (state.coaches) {
       this.ctCoachName.innerText = state.coaches.ct.name;
       this.tCoachName.innerText = state.coaches.t.name;
@@ -70,7 +84,13 @@ class HUDManager {
       }
     }
 
-    // 3. Round Timers & Phase
+    // 3. Autonomous Team Strategies Display
+    if (state.activeStrategies) {
+      this.ctStratDisplay.innerText = STRAT_NAMES[state.activeStrategies.ct] || state.activeStrategies.ct;
+      this.tStratDisplay.innerText = STRAT_NAMES[state.activeStrategies.t] || state.activeStrategies.t;
+    }
+
+    // 4. Round Timers & Phase Tag
     const totalSecs = Math.max(0, Math.ceil(state.timer));
     const mins = Math.floor(totalSecs / 60);
     const secs = totalSecs % 60;
@@ -87,7 +107,7 @@ class HUDManager {
     this.phaseTag.innerText = phaseName;
     this.phaseTag.className = `phase-tag ${state.phase}`;
 
-    // 4. Timeout Banner
+    // 5. Timeout Banner
     if (state.timeoutState && state.timeoutState.active) {
       this.timeoutBanner.style.display = 'flex';
       this.timeoutSeconds.innerText = Math.ceil(state.timeoutState.timer);
@@ -95,7 +115,7 @@ class HUDManager {
       this.timeoutBanner.style.display = 'none';
     }
 
-    // 5. Bomb Alert Banner
+    // 6. Bomb Alert Banner
     if (state.bomb && state.bomb.planted) {
       this.bombAlertBanner.style.display = 'flex';
       this.bombSiteText.innerText = `BÖLGE ${state.bomb.site}`;
@@ -107,25 +127,14 @@ class HUDManager {
       this.roundTimer.classList.remove('bomb-ticking');
     }
 
-    // 6. Top Avatars
+    // 7. Top Avatars
     this.renderAvatars(state.players);
 
-    // 7. Roster & Morale Cards
+    // 8. Roster List
     this.renderRoster(state.players, localTeam);
 
-    // 8. Full Scoreboard
+    // 9. Full Scoreboard
     this.renderScoreboardTables(state.players);
-
-    // 9. Sync Active Coach Directives UI
-    if (localTeam && state.coachDirectives && state.coachDirectives[localTeam]) {
-      const dir = state.coachDirectives[localTeam];
-      document.querySelectorAll('.directive-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.pacing === dir.pacing);
-      });
-      document.querySelectorAll('.eco-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.eco === dir.economyCall);
-      });
-    }
   }
 
   renderAvatars(players) {
@@ -164,20 +173,6 @@ class HUDManager {
           <span class="r-name">${p.name} ${p.hasBomb ? '💣' : ''} ${p.hasKit ? '✂️' : ''}</span>
           <span class="r-role">${p.role}</span>
         </div>
-        <div class="r-bars">
-          <div class="r-bar-item">
-            <span>Moral: ${p.morale}%</span>
-            <div class="r-bar-track">
-              <div class="r-morale-fill" style="width: ${p.morale}%;"></div>
-            </div>
-          </div>
-          <div class="r-bar-item">
-            <span>Tilt: ${p.tilt}%</span>
-            <div class="r-bar-track">
-              <div class="r-tilt-fill" style="width: ${p.tilt}%;"></div>
-            </div>
-          </div>
-        </div>
         <div class="r-weapon-money">
           <span>HP: ${Math.max(0, p.hp)} | ${p.weapon ? p.weapon.toUpperCase() : 'USP'}</span>
           <span>Bakiye: <strong>$${p.money}</strong></span>
@@ -204,42 +199,12 @@ class HUDManager {
         <td>${p.deaths}</td>
         <td>${p.assists}</td>
         <td style="color:#9b59b6">${p.morale}%</td>
-        <td style="color:#e74c3c">${p.tilt}%</td>
         <td style="color:#f1c40f">${p.mvps > 0 ? '★ ' + p.mvps : '-'}</td>
       </tr>
     `;
 
     this.ctTableBody.innerHTML = ctList.map(renderRow).join('');
     this.tTableBody.innerHTML = tList.map(renderRow).join('');
-  }
-
-  renderStrategies(strategies, team, activeStratKey) {
-    this.stratList.innerHTML = '';
-    if (!team) {
-      this.stratList.innerHTML = '<div style="font-size:10px;color:#95a5a6;padding:6px;">Taktik seçmek için önce bir takıma koçluk yapın.</div>';
-      return;
-    }
-
-    const teamKey = team.toUpperCase();
-    const teamStrats = strategies[teamKey];
-    if (!teamStrats) return;
-
-    Object.entries(teamStrats).forEach(([key, s]) => {
-      const card = document.createElement('div');
-      card.className = `strat-card ${key === activeStratKey ? 'active' : ''}`;
-      card.innerHTML = `
-        <div class="strat-name">${s.name}</div>
-        <div class="strat-desc">${s.description}</div>
-      `;
-      card.addEventListener('click', () => {
-        document.querySelectorAll('.strat-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        if (window.onStrategySelect) {
-          window.onStrategySelect(team, key);
-        }
-      });
-      this.stratList.appendChild(card);
-    });
   }
 
   showRoundEndBanner(winner, reason, mvpName) {
