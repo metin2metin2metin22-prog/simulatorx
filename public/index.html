@@ -33,9 +33,9 @@
       </div>
 
       <div class="timer-container">
-        <div class="round-label" id="roundLabel">RAUND 1 / 24</div>
-        <div class="round-timer" id="roundTimer">01:55</div>
-        <div class="phase-tag" id="phaseTag">CANLI</div>
+        <div class="round-label" id="roundLabel">LOBİ (BEKLEMEDE)</div>
+        <div class="round-timer" id="roundTimer">00:00</div>
+        <div class="phase-tag" id="phaseTag">LOBİ</div>
       </div>
 
       <div class="team-badge t-badge">
@@ -165,6 +165,20 @@
       <div class="radar-box">
         <canvas id="radarCanvas" width="1024" height="1024"></canvas>
 
+        <!-- LOBBY OVERLAY (Waiting for Coach to Start Match) -->
+        <div class="lobby-start-overlay" id="lobbyStartOverlay">
+          <div class="lobby-start-card">
+            <div class="lobby-badge">CS:GO MENAJERLİK ARENASI</div>
+            <h2 class="lobby-title">BÜYÜK DERBİYE HAZIR MISINIZ?</h2>
+            <p class="lobby-desc">
+              Sol panelden takımınızı seçin (CT veya T), oyun temposunu ve stratejinizi belirleyin. Hazır olduğunuzda aşağıdaki butona basarak maçı başlatın!
+            </p>
+            <button class="btn btn-start-match" id="btnStartMatch">
+              🎮 MAÇI BAŞLAT (START MATCH)
+            </button>
+          </div>
+        </div>
+
         <!-- KILLFEED OVERLAY -->
         <div class="killfeed-container" id="killfeedContainer"></div>
 
@@ -185,10 +199,15 @@
 
         <!-- RADAR FOOTER CONTROLS -->
         <div class="radar-footer-controls">
+          <div class="match-ctrl-group">
+            <button class="btn btn-match-act" id="btnFooterStart">▶️ Maçı Başlat</button>
+            <button class="btn btn-match-act" id="btnFooterPause">⏸️ Duraklat</button>
+            <button class="btn btn-match-act" id="btnFooterRestart">🔄 Sıfırla</button>
+          </div>
           <button class="btn btn-ctrl" id="btnToggleScoreboard">TAB (Skor Tablosu)</button>
           <button class="btn btn-ctrl" id="btnSoundToggle">🔊 Ses: Açık</button>
           <div class="speed-btns">
-            <span class="speed-label">Simülasyon Hızı:</span>
+            <span class="speed-label">Hız:</span>
             <button class="btn btn-speed active" data-speed="1.0">1x</button>
             <button class="btn btn-speed" data-speed="2.0">2x</button>
             <button class="btn btn-speed" data-speed="3.0">3x</button>

@@ -20,6 +20,7 @@ class HUDManager {
     this.timeoutSeconds = document.getElementById('timeoutSeconds');
     this.timeoutsLeftDisplay = document.getElementById('timeoutsLeftDisplay');
 
+    this.lobbyStartOverlay = document.getElementById('lobbyStartOverlay');
     this.activeCoachRole = document.getElementById('activeCoachRole');
     this.stratList = document.getElementById('stratList');
     this.rosterList = document.getElementById('rosterList');
@@ -43,13 +44,19 @@ class HUDManager {
   updateHUD(state, localTeam) {
     if (!state) return;
 
-    // 1. Scores & Round Info
+    // 1. Lobby Overlay & Round Info
+    if (state.phase === 'lobby') {
+      this.lobbyStartOverlay.style.display = 'flex';
+      this.roundLabel.innerText = 'LOBİ (BEKLEMEDE)';
+    } else {
+      this.lobbyStartOverlay.style.display = 'none';
+      this.roundLabel.innerText = `RAUND ${state.round} / 24`;
+    }
+
     this.scoreCT.innerText = state.score.ct;
     this.scoreT.innerText = state.score.t;
     this.sbScoreCT.innerText = state.score.ct;
     this.sbScoreT.innerText = state.score.t;
-
-    this.roundLabel.innerText = `RAUND ${state.round} / 24`;
 
     // 2. Coach Names
     if (state.coaches) {
@@ -67,12 +74,15 @@ class HUDManager {
     const totalSecs = Math.max(0, Math.ceil(state.timer));
     const mins = Math.floor(totalSecs / 60);
     const secs = totalSecs % 60;
-    this.roundTimer.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    this.roundTimer.innerText = state.phase === 'lobby' ? '00:00' : `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
     let phaseName = 'CANLI';
-    if (state.phase === 'freeze') phaseName = 'HAZIRLIK (FREEZE)';
+    if (state.phase === 'lobby') phaseName = 'LOBİ';
+    else if (state.phase === 'freeze') phaseName = 'HAZIRLIK (FREEZE)';
     else if (state.phase === 'timeout') phaseName = 'MOLA';
     else if (state.phase === 'round_end') phaseName = 'RAUND SONU';
+
+    if (state.isPaused) phaseName = 'DURAKLATILDI';
 
     this.phaseTag.innerText = phaseName;
     this.phaseTag.className = `phase-tag ${state.phase}`;

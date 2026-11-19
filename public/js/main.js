@@ -92,6 +92,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   requestAnimationFrame(renderLoop);
 
+  // 3.1 MATCH START / PAUSE / RESTART CONTROLS
+  const startMatchHandler = () => {
+    initAudio();
+    socket.emit('start_match');
+  };
+  document.getElementById('btnStartMatch').addEventListener('click', startMatchHandler);
+  document.getElementById('btnFooterStart').addEventListener('click', startMatchHandler);
+
+  document.getElementById('btnFooterPause').addEventListener('click', () => {
+    initAudio();
+    socket.emit('toggle_pause');
+  });
+
+  document.getElementById('btnFooterRestart').addEventListener('click', () => {
+    initAudio();
+    socket.emit('restart_match');
+  });
+
   // 4. BECOME COACH
   document.getElementById('btnCoachCT').addEventListener('click', () => {
     initAudio();
