@@ -58,24 +58,34 @@ class CombatSystem {
         p.smokeExitTimer -= dt;
       }
 
+      const enemies = Object.values(match.players).filter(e => e.team !== p.team && e.alive);
+
       // Handle Reloading Logic
       if (p.isReloading) {
-        p.reloadTimer -= dt;
-        if (p.reloadTimer <= 0) {
+        // If ambushed point-blank (< 110 units) while reloading, cancel reload and draw backup pistol!
+        const closeEnemy = enemies.find(e => Math.hypot(e.x - p.x, e.y - p.y) < 110 && this.canSeeEnemy(p, e, match.smokes));
+        if (closeEnemy && (p.weapon === 'ak47' || p.weapon === 'm4a1' || p.weapon === 'm4a4' || p.weapon === 'awp')) {
           p.isReloading = false;
-          const currentW = WEAPONS[p.weapon] || WEAPONS.ak47;
-          const clip = currentW.clipSize || 30;
-          const needed = clip - (p.ammo || 0);
-          const reserve = p.reserveAmmo !== undefined ? p.reserveAmmo : 90;
-          const added = Math.min(needed, reserve);
-          p.ammo = (p.ammo || 0) + added;
-          p.reserveAmmo = Math.max(0, reserve - added);
-          match.events.push({ type: 'reload_end', playerId: p.id, weapon: p.weapon });
+          p.weapon = p.team === 'ct' ? 'usp' : 'glock';
+          p.ammo = 12;
+          p.reserveAmmo = 24;
+          match.addRadioMessage(p.team, p.name, "Şarjör değiştirirken yakalandım, acil tabancaya geçtim!");
+        } else {
+          p.reloadTimer -= dt;
+          if (p.reloadTimer <= 0) {
+            p.isReloading = false;
+            const currentW = WEAPONS[p.weapon] || WEAPONS.ak47;
+            const clip = currentW.clipSize || 30;
+            const needed = clip - (p.ammo || 0);
+            const reserve = p.reserveAmmo !== undefined ? p.reserveAmmo : 90;
+            const added = Math.min(needed, reserve);
+            p.ammo = (p.ammo || 0) + added;
+            p.reserveAmmo = Math.max(0, reserve - added);
+            match.events.push({ type: 'reload_end', playerId: p.id, weapon: p.weapon });
+          }
+          return; // Cannot shoot while reloading!
         }
-        return; // Cannot shoot while reloading!
       }
-
-      const enemies = Object.values(match.players).filter(e => e.team !== p.team && e.alive);
 
       // PRO CS:GO RULE: Players CANNOT shoot while actively defusing or planting!
       if (p.state === 'planting') {
@@ -226,6 +236,19 @@ class CombatSystem {
         p.targetEnemyId = null;
         p.burstCount = 0;
         p.isCrouching = false;
+
+        // TACTICAL RELOAD IN LULLS / COVER:
+        // If not in active combat, ammo is low (<= 8 for rifles, <= 4 for pistols), and has reserve ammo:
+        if (!p.isReloading && p.ammo !== undefined && p.reserveAmmo > 0) {
+          const currentW = WEAPONS[p.weapon] || WEAPONS.ak47;
+          const lowAmmoThreshold = (currentW.type === 'pistol' ? 4 : 8);
+          if (p.ammo <= lowAmmoThreshold && Math.random() < 0.15) {
+            p.isReloading = true;
+            p.reloadTimer = currentW.reloadTime || 2.4;
+            match.events.push({ type: 'reload_start', playerId: p.id, weapon: p.weapon });
+          }
+        }
+
         this.checkSmokeSpam(match, p, dt, now);
       }
     });
@@ -265,7 +288,7 @@ class CombatSystem {
           p.damage += dmg;
           match.events.push({ type: 'hit', shooterId: p.id, targetId: hitEnemy.id, damage: dmg, isHeadshot: false });
           if (hitEnemy.hp <= 0 && hitEnemy.alive) {
-            this.handleKill(match, p, hitEnemy, weapon, false);
+            this.handleKill(match, p, hitEnemy, weapon, false, { isThroughSmoke: true });
           }
         }
 
@@ -309,7 +332,9 @@ class CombatSystem {
     const isClutching = (aliveAllies === 1 && aliveEnemies >= 1);
     const clutchBonus = isClutching ? ((clutch - 90) * 0.012) : 0;
 
-    const movingPenalty = (shooter.state === 'moving' && weapon.type !== 'pistol') ? -0.16 : 0;
+    const movingPenalty = shooter.state === 'moving' 
+      ? (weapon.type === 'sniper' ? -0.55 : (weapon.type === 'pistol' ? -0.06 : -0.25)) 
+      : 0;
     const stationaryTargetBonus = (target.state === 'planting' || target.state === 'defusing') ? 0.12 : 0;
 
     // 1. SİPER ALMA & AÇI TUTMA AVANTAJI:
@@ -449,7 +474,13 @@ class CombatSystem {
       });
 
       if (target.hp <= 0 && target.alive) {
-        this.handleKill(match, shooter, target, weapon, isHeadshot);
+        const isBlind = (shooter.flashDuration > 0.3);
+        const isThroughSmoke = this.collision.isLineBlockedBySmoke(match.smokes, shooter.x, shooter.y, target.x, target.y);
+        const isNoScope = (weapon.name === 'AWP' && dist < 120);
+        const isMidDoorsWb = (Math.abs(target.x - 500) < 55 && ((shooter.y < 430 && target.y > 430) || (shooter.y > 430 && target.y < 430)));
+        const isBDoorsWb = (Math.abs(target.x - 310) < 45 && Math.abs(target.y - 180) < 45);
+        const isWallbang = Boolean(isMidDoorsWb || isBDoorsWb);
+        this.handleKill(match, shooter, target, weapon, isHeadshot, { isWallbang, isThroughSmoke, isNoScope, isBlind });
       }
     }
 
@@ -491,7 +522,7 @@ class CombatSystem {
     });
   }
 
-  handleKill(match, killer, victim, weapon, isHeadshot) {
+  handleKill(match, killer, victim, weapon, isHeadshot, mods = {}) {
     if (!victim.alive) return; // Guard against multiple simultaneous kill resolutions
     victim.alive = false;
     victim.state = 'dead';
@@ -714,6 +745,10 @@ class CombatSystem {
       weapon: weaponName,
       headshot: isHeadshot,
       isHeadshot,
+      isWallbang: Boolean(mods.isWallbang),
+      isThroughSmoke: Boolean(mods.isThroughSmoke),
+      isNoScope: Boolean(mods.isNoScope),
+      isBlind: Boolean(mods.isBlind),
       teamKiller: killer.team,
       teamVictim: victim.team,
       time: Date.now()
@@ -732,6 +767,10 @@ class CombatSystem {
       weapon: weaponName,
       headshot: isHeadshot,
       isHeadshot,
+      isWallbang: Boolean(mods.isWallbang),
+      isThroughSmoke: Boolean(mods.isThroughSmoke),
+      isNoScope: Boolean(mods.isNoScope),
+      isBlind: Boolean(mods.isBlind),
       teamKiller: killer.team,
       teamVictim: victim.team
     });

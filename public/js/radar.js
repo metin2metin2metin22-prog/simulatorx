@@ -542,6 +542,16 @@ class RadarRenderer {
       ctx.font = 'bold 9px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('RELOAD...', 0, 24);
+    } else if (player.isCrouching) {
+      ctx.fillStyle = '#9b59b6';
+      ctx.font = 'bold 8px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('ÇÖMELİYOR', 0, 24);
+    } else if (player.isDeagleEcoTrap && player.state === 'holding') {
+      ctx.fillStyle = '#e74c3c';
+      ctx.font = 'bold 8px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('1-TAP PUSU', 0, 24);
     }
 
     // 4. Main Player Dot Body

@@ -262,6 +262,7 @@ class PureCoachMatch {
     this.midToBCrossSmoked = false;
     this.fakeAExecuted = false;
     this.fakeBHitCalled = false;
+    this.ctMidCrossCalled = false;
     this.droppedKits = []; // Clear dropped kits for fresh round
     this.events.push({ type: 'round_freeze', round: this.round });
 
@@ -465,20 +466,34 @@ class PureCoachMatch {
             p.weapon = 'awp';
             p.money -= 4750;
           }
-          if (p.armor < 50 && p.money >= 1000) {
+          if (p.armor >= 50 && !p.hasHelmet && p.money >= 350) {
+            p.hasHelmet = true;
+            p.money -= 350;
+          } else if (p.armor < 50 && p.money >= 1000) {
             p.armor = 100;
             p.hasHelmet = true;
             p.money -= 1000;
+          } else if (p.armor < 50 && p.money >= 650) {
+            p.armor = 100;
+            p.hasHelmet = false;
+            p.money -= 650;
           }
         } else {
           if (!hasRifleOrAwp && p.money >= (team === 'ct' ? 2900 : 2700)) {
             p.weapon = team === 'ct' ? 'm4a1' : 'ak47';
             p.money -= (team === 'ct' ? 2900 : 2700);
           }
-          if (p.armor < 50 && p.money >= 1000) {
+          if (p.armor >= 50 && !p.hasHelmet && p.money >= 350) {
+            p.hasHelmet = true;
+            p.money -= 350;
+          } else if (p.armor < 50 && p.money >= 1000) {
             p.armor = 100;
             p.hasHelmet = true;
             p.money -= 1000;
+          } else if (p.armor < 50 && p.money >= 650) {
+            p.armor = 100;
+            p.hasHelmet = false;
+            p.money -= 650;
           }
         }
         if (team === 'ct' && !p.hasKit && p.money >= 400) {
@@ -495,7 +510,10 @@ class PureCoachMatch {
             p.money -= 700;
           }
         }
-        if (p.armor < 50 && p.money >= 650) {
+        if (p.armor >= 50 && !p.hasHelmet && p.money >= 350) {
+          p.hasHelmet = true;
+          p.money -= 350;
+        } else if (p.armor < 50 && p.money >= 650) {
           p.armor = 100;
           p.hasHelmet = false;
           p.money -= 650;
@@ -574,6 +592,24 @@ class PureCoachMatch {
         p.path = expandWaypoints(asg.path, this.mapData.nodes);
         p.pathIndex = 0;
         p.holdTimer = 0;
+        p.state = 'moving';
+      }
+    });
+
+    // CS:GO DEAGLE ECO TRAP PATHING:
+    // Players equipped with Deagles for 1-tap ambush take close tight-corner setups!
+    [...tPlayers, ...ctPlayers].forEach(p => {
+      if (p.isDeagleEcoTrap && p.id !== this.bomb.carrierId) {
+        const ambushSpot = p.team === 'ct'
+          ? (p.slot % 2 === 0 ? 'b_car' : 'long_pit')
+          : (p.slot % 2 === 0 ? 'lower_tunnels' : 'outside_long');
+        const startNode = getClosestNode(p.x, p.y, this.mapData.nodes, this.collision);
+        if (startNode && ambushSpot) {
+          p.path = findPath(startNode, ambushSpot, this.mapData.nodes);
+          p.pathIndex = 0;
+          p.holdTimer = 0;
+          p.state = 'moving';
+        }
       }
     });
   }
@@ -821,7 +857,7 @@ class PureCoachMatch {
     const targetAim = PRE_AIM_DIRECTIONS[nodeKey];
     if (targetAim) {
       p.targetAngle = Math.atan2(targetAim.y - p.y, targetAim.x - p.x);
-      p.angle = p.targetAngle;
+      p.baseHoldAngle = p.targetAngle;
     }
   }
 
@@ -905,6 +941,16 @@ class PureCoachMatch {
       if (p.holdTimer > 0) {
         p.holdTimer -= dt;
         p.state = 'holding';
+
+        // Pro Micro-Glance & Angle Jiggle:
+        // Periodically adjust stance and glance slightly to scan the choke angle
+        p.glanceTimer = (p.glanceTimer || 0) + dt;
+        if (p.glanceTimer >= 4.5) {
+          p.glanceTimer = 0;
+          if (p.baseHoldAngle === undefined) p.baseHoldAngle = p.targetAngle || p.angle;
+          const glanceOffset = (Math.random() - 0.5) * 0.28;
+          p.targetAngle = p.baseHoldAngle + glanceOffset;
+        }
       } else {
         p.state = 'idle';
       }
@@ -944,7 +990,13 @@ class PureCoachMatch {
     if (dist < arrivalRadius) {
       p.pathIndex++;
       if (p.pathIndex >= p.path.length) {
-        if (p.team === 'ct' && !this.bomb.planted) {
+        if (this.bomb.dropped && !this.bomb.planted) {
+          // If bomb is dropped on ground, keep crosshairs trained onto dropped bomb!
+          p.holdTimer = 22.0;
+          p.state = 'holding';
+          p.targetAngle = Math.atan2(this.bomb.y - p.y, this.bomb.x - p.x);
+          p.baseHoldAngle = p.targetAngle;
+        } else if (p.team === 'ct' && !this.bomb.planted) {
           p.holdTimer = 16.0 + Math.random() * 8.0;
           p.state = 'holding';
           this.setDefensiveHoldAngle(p, targetNodeKey);
@@ -965,7 +1017,6 @@ class PureCoachMatch {
       if (!hasFreshSoundAlert) {
         p.targetAngle = moveAngle;
       }
-      p.angle = p.targetAngle;
 
       let baseSpeed = 75; // Pro realistic movement speed
       if (p.weapon === 'awp') baseSpeed = 62;
@@ -1055,6 +1106,10 @@ class PureCoachMatch {
             } else if (p.pathIndex < p.path.length - 1) {
               p.pathIndex++;
             } else {
+              // Bot reached destination vicinity but was nudged against wall corner: complete path cleanly!
+              p.pathIndex = p.path.length;
+              p.holdTimer = 16.0;
+              p.state = 'holding';
               this.ensureWalkable(p);
             }
           }

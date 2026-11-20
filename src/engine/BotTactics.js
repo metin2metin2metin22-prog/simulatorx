@@ -173,6 +173,9 @@ class BotTactics {
     // 0. CS:GO PRO 2-MAN B SETUP & SEQUENTIAL CHAINED MOLOTOVS
     this.updateCTBDefenseAndMolotovChain(match, dt);
 
+    // 0.5. DUST II ICONIC MID DOORS OPENING SNIPER DUEL
+    this.updateMidDoorsSniperOpeningDuel(match, dt);
+
     // 1. Check if ANY CT sees the Bomb Carrier
     if (!match.bomb.dropped && match.bomb.carrierId) {
       const carrier = match.players[match.bomb.carrierId];
@@ -366,6 +369,40 @@ class BotTactics {
         if (!rotatingB.targetEnemyId) {
           match.setPlayerPath(rotatingB, 'goose'); // Assign Goose anchor to prevent stacking on a_site
           match.addRadioMessage('ct', rotatingB.name, "B'den A Goose'a rotasyon yapıyorum, geldim!");
+        }
+      }
+    }
+  }
+
+  // DUST II ICONIC OPENING: CT Mid AWP Peek & Suicide Cross Pick
+  updateMidDoorsSniperOpeningDuel(match, dt) {
+    if (match.phase !== 'live' || match.timer < 88 || match.timer > 96) return;
+
+    const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
+    const ctSniper = aliveCTs.find(p => p.slot === 2 || (p.weapon === 'awp' && p.x >= 450 && p.x <= 530 && p.y >= 260 && p.y <= 420));
+    if (!ctSniper) return;
+
+    // CT sniper holds pre-aim crosshairs aimed down Mid Doors crack towards Suicide (x: 465, y: 740)
+    if (!ctSniper.targetEnemyId) {
+      ctSniper.targetAngle = Math.atan2(740 - ctSniper.y, 465 - ctSniper.x);
+    }
+
+    const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
+    const crossingT = aliveTs.find(t => t.x >= 430 && t.x <= 500 && t.y >= 680 && t.y <= 790);
+
+    if (crossingT) {
+      const isSmoked = this.collision.isLineBlockedBySmoke(match.smokes, ctSniper.x, ctSniper.y, crossingT.x, crossingT.y);
+      if (!isSmoked) {
+        if (!match.ctMidCrossCalled) {
+          match.ctMidCrossCalled = true;
+          match.addRadioMessage('ct', ctSniper.name, "Mid kapısından T geçişi görüldü! Ateş açıyorum!");
+        }
+
+        const now = Date.now();
+        if (!ctSniper.lastMidOpeningShot || now - ctSniper.lastMidOpeningShot > 1600) {
+          ctSniper.lastMidOpeningShot = now;
+          ctSniper.targetEnemyId = crossingT.id;
+          ctSniper.reactionTimer = 0.08;
         }
       }
     }
@@ -628,6 +665,9 @@ class BotTactics {
         this.throwGrenade(match, p, 'flash', 870, 550);
       } else if (nodeKey === 'long_street' && Math.random() < 0.7) {
         this.throwSmoke(match, p, 830, 240); // Smoke Long Cross
+      } else if (nodeKey === 'long_corner' && Math.random() < 0.65) {
+        this.throwGrenade(match, p, 'molotov', 820, 160); // Clear Goose with Molotov
+        match.addRadioMessage('t', p.name, "Goose arkasına molotof salladım! Köşede saklanan varsa yandı!");
       } else if (nodeKey === 'catwalk_stairs' && Math.random() < 0.75) {
         this.throwGrenade(match, p, 'flash', 800, 200); // Flash A Site
       } else if (nodeKey === 'a_short' && Math.random() < 0.7) {
@@ -637,7 +677,12 @@ class BotTactics {
       } else if (nodeKey === 'upper_tunnels_north' && Math.random() < 0.75) {
         this.throwGrenade(match, p, 'flash', 180, 200); // Flash B Platform
       } else if (nodeKey === 'b_tunnels_exit' && Math.random() < 0.7) {
-        this.throwSmoke(match, p, 310, 180); // Smoke B Doors
+        if (Math.random() < 0.5) {
+          this.throwGrenade(match, p, 'molotov', 230, 195); // Clear Car with Molotov
+          match.addRadioMessage('t', p.name, "Car arkasına molotof salladım! Pusuyu yaktık!");
+        } else {
+          this.throwSmoke(match, p, 310, 180); // Smoke B Doors
+        }
       } else if (nodeKey === 'top_mid' && Math.random() < 0.6) {
         this.throwSmoke(match, p, 490, 390); // Smoke Mid Doors
       }
@@ -951,6 +996,13 @@ class BotTactics {
       aliveTs.forEach(t => {
         if (t.targetEnemyId || t.isSaving || t.isRetrievingBomb) return;
         if (t.state === 'idle' || (t.state === 'holding' && t.holdTimer <= 2.0)) {
+          if (match.bomb.dropped) {
+            const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
+            match.setPlayerPath(t, bombNode);
+            t.holdTimer = 0;
+            t.state = 'moving';
+            return;
+          }
           const targetNode = match.tTargetSite === 'B' ? 'b_site' : 'a_site';
           const sitePos = match.mapData.sites[match.tTargetSite];
           const dSite = Math.hypot(t.x - sitePos.x, t.y - sitePos.y);

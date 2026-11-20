@@ -545,8 +545,17 @@ body.theme-cs {
   display: inline-block;
   vertical-align: middle;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+  margin: 0 1px;
 }
+
+.kf-mod-icon {
+  height: 13px;
+  max-width: 18px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+  margin: 0 2px;
 }
 
 /* BOMB ALERT BANNER */

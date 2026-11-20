@@ -473,15 +473,31 @@ class HUDManager {
       ? `<span class="kf-plus">+</span><span class="kf-assister ${killerTeam}">${kill.assister}</span>` 
       : '';
 
-    const hsHtml = isHeadshot 
-      ? `<img src="/assets/weapons/headshot.svg" class="kf-hs-icon" alt="HS" />` 
-      : '';
+    let preMods = '';
+    if (kill.isBlind) {
+      preMods += `<img src="/assets/weapons/blind_kill.svg" class="kf-mod-icon" title="Kör Vuruşu" alt="Blind" />`;
+    }
+    if (kill.isThroughSmoke) {
+      preMods += `<img src="/assets/weapons/smoke_kill.svg" class="kf-mod-icon" title="Sis İçi" alt="Smoke" />`;
+    }
+    if (kill.isNoScope) {
+      preMods += `<img src="/assets/weapons/noscope.svg" class="kf-mod-icon" title="Dürbünsüz (No Scope)" alt="NoScope" />`;
+    }
+
+    let postMods = '';
+    if (kill.isWallbang) {
+      postMods += `<img src="/assets/weapons/penetrate.svg" class="kf-mod-icon" title="Duvar Arkası (Wallbang)" alt="Wallbang" />`;
+    }
+    if (isHeadshot) {
+      postMods += `<img src="/assets/weapons/headshot.svg" class="kf-hs-icon" title="Kafadan Vuruş" alt="HS" />`;
+    }
 
     item.innerHTML = `
       <span class="kf-killer ${killerTeam}">${kill.killer}</span>
       ${assisterHtml}
+      ${preMods}
       <img src="${weaponIconUrl}" class="kf-weapon-icon" alt="${kill.weapon || 'weapon'}" />
-      ${hsHtml}
+      ${postMods}
       <span class="kf-victim ${victimTeam}">${kill.victim}</span>
     `;
 
