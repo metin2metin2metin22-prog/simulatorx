@@ -427,12 +427,17 @@ class CombatSystem {
       }
     }
 
+    const killId = Math.random().toString(36).substr(2, 9);
+    const weaponName = weapon ? (weapon.name || weapon.type || killer.weapon) : killer.weapon;
+
     match.killfeed.unshift({
+      id: killId,
       killer: killer.name,
       victim: victim.name,
       assister: assister ? assister.name : null,
-      weapon: killer.weapon,
+      weapon: weaponName,
       headshot: isHeadshot,
+      isHeadshot,
       teamKiller: killer.team,
       teamVictim: victim.team,
       time: Date.now()
@@ -444,10 +449,15 @@ class CombatSystem {
 
     match.events.push({
       type: 'kill',
-      killerName: killer.name,
-      victimName: victim.name,
-      weapon: killer.weapon,
-      isHeadshot
+      id: killId,
+      killer: killer.name,
+      victim: victim.name,
+      assister: assister ? assister.name : null,
+      weapon: weaponName,
+      headshot: isHeadshot,
+      isHeadshot,
+      teamKiller: killer.team,
+      teamVictim: victim.team
     });
   }
 }

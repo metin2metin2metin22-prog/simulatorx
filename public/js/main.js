@@ -77,6 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
         window.soundEngine.playBombDefused();
         hud.addChatMessage('C4', `Bomba ${evt.defuserName || 'CT'} tarafından imha edildi!`, 'ct');
         break;
+      case 'kill':
+        hud.addKillfeedItem(evt);
+        if (evt.isHeadshot) {
+          window.soundEngine.playHeadshot();
+        }
+        break;
       case 'bomb_explode':
         window.soundEngine.playBombExplosion();
         break;
@@ -85,7 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
         hud.showRoundEndBanner(evt.winner, evt.reason, evt.mvpName);
         hud.addChatMessage('MAÇ', `${evt.winner.toUpperCase()} RAUNDU KAZANDI: ${evt.reason}`, evt.winner);
         break;
+      case 'round_freeze':
       case 'round_start':
+        hud.clearKillfeed();
         hud.addChatMessage('MAÇ', `Raund başladı!`, 'system');
         break;
       case 'radio_message':

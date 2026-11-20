@@ -26,6 +26,7 @@ class HUDManager {
     this.phaseTag = document.getElementById('phaseTag');
 
     this.killfeedContainer = document.getElementById('killfeedContainer');
+    this.activeKillIds = new Set();
     this.bombAlertBanner = document.getElementById('bombAlertBanner');
     this.bombSiteText = document.getElementById('bombSiteText');
     this.bombCountdown = document.getElementById('bombCountdown');
@@ -429,15 +430,73 @@ class HUDManager {
     }
   }
 
+  addKillfeedItem(kill) {
+    if (!this.killfeedContainer || !kill) return;
+    const killId = kill.id || `${kill.killer}_${kill.victim}_${kill.time || Date.now()}`;
+    if (this.activeKillIds.has(killId)) return;
+    this.activeKillIds.add(killId);
+
+    const item = document.createElement('div');
+    const isHeadshot = Boolean(kill.isHeadshot || kill.headshot);
+    item.className = `kf-item ${isHeadshot ? 'kf-hs' : ''}`;
+    item.id = `kf-${killId}`;
+
+    const weaponDisplay = (kill.weapon || 'AK-47').toUpperCase();
+    const hsSvg = `
+      <svg class="kf-hs-svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8"/>
+        <line x1="12" y1="2" x2="12" y2="6"/>
+        <line x1="12" y1="18" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="6" y2="12"/>
+        <line x1="18" y1="12" x2="22" y2="12"/>
+        <circle cx="12" cy="12" r="2.5" fill="#e74c3c"/>
+      </svg>
+    `;
+
+    const assisterHtml = kill.assister ? `<span class="kf-plus">+</span><span class="kf-assister ${kill.teamKiller}">${kill.assister}</span>` : '';
+
+    item.innerHTML = `
+      <span class="kf-killer ${kill.teamKiller}">${kill.killer}</span>
+      ${assisterHtml}
+      <span class="kf-weapon-pill ${weaponDisplay.toLowerCase()}">${weaponDisplay}</span>
+      ${isHeadshot ? hsSvg : ''}
+      <span class="kf-victim ${kill.teamVictim}">${kill.victim}</span>
+    `;
+
+    // Prepend to killfeed so newest kill is at the top
+    this.killfeedContainer.prepend(item);
+
+    // Keep max 5 simultaneous kills in the feed
+    while (this.killfeedContainer.children.length > 5) {
+      this.killfeedContainer.lastElementChild.remove();
+    }
+
+    // Authentic CS:GO 5-second lifespan with smooth slide-out
+    setTimeout(() => {
+      item.classList.add('kf-fade-out');
+      setTimeout(() => {
+        if (item.parentNode) item.remove();
+        this.activeKillIds.delete(killId);
+      }, 350);
+    }, 4500);
+  }
+
   updateKillfeed(feed) {
-    this.killfeedContainer.innerHTML = feed.map(k => `
-      <div class="kf-item">
-        <span class="kf-killer ${k.teamKiller}">${k.killer}</span>
-        <span class="kf-weapon">${k.weapon.toUpperCase()}</span>
-        ${k.headshot ? '<span class="kf-hs">🎯</span>' : ''}
-        <span class="kf-victim ${k.teamVictim}">${k.victim}</span>
-      </div>
-    `).join('');
+    if (!feed || !Array.isArray(feed)) return;
+    // Sync incoming killfeed items without wiping the container
+    for (let i = feed.length - 1; i >= 0; i--) {
+      this.addKillfeedItem(feed[i]);
+    }
+  }
+
+  clearKillfeed() {
+    if (!this.killfeedContainer) return;
+    const items = Array.from(this.killfeedContainer.children);
+    items.forEach(item => {
+      item.classList.add('kf-fade-out');
+      setTimeout(() => item.remove(), 250);
+    });
+    this.activeKillIds.clear();
   }
 
   addChatMessage(sender, text, team = '') {

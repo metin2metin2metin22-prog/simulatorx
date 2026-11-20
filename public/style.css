@@ -454,40 +454,93 @@ body.theme-cs {
   display: block;
 }
 
-/* KILLFEED */
+/* CS:GO AUTHENTIC KILLFEED */
 .killfeed-container {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 14px;
+  right: 14px;
   display: flex;
   flex-direction: column;
   gap: 5px;
   pointer-events: none;
-  z-index: 5;
+  z-index: 25;
 }
 
 .kf-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(14, 20, 28, 0.88);
-  border: 1px solid var(--border-color);
-  padding: 3px 8px;
+  background: rgba(11, 16, 25, 0.90);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: 'Chakra Petch', 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  animation: kf-slide-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.kf-item.kf-hs {
+  border-left: 3px solid #e74c3c;
+  background: rgba(18, 14, 20, 0.92);
+}
+
+.kf-item.kf-fade-out {
+  opacity: 0;
+  transform: translateX(35px);
+}
+
+@keyframes kf-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(35px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.kf-killer.ct, .kf-victim.ct, .kf-assister.ct {
+  color: #4da6ff;
+  text-shadow: 0 0 8px rgba(77, 166, 255, 0.4);
+}
+
+.kf-killer.t, .kf-victim.t, .kf-assister.t {
+  color: #ff9f43;
+  text-shadow: 0 0 8px rgba(255, 159, 67, 0.4);
+}
+
+.kf-plus {
+  color: #8899a6;
+  font-size: 10px;
+  margin: 0 -2px;
+}
+
+.kf-assister {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.kf-weapon-pill {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 1px 6px;
   border-radius: 3px;
   font-size: 10px;
-  font-weight: 700;
-  animation: slide-in 0.2s ease-out;
+  letter-spacing: 0.5px;
+  font-weight: 800;
 }
 
-@keyframes slide-in {
-  from { transform: translateX(30px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+.kf-hs-svg {
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 4px rgba(231, 76, 60, 0.7));
 }
-
-.kf-killer.ct, .kf-victim.ct { color: var(--ct-blue); }
-.kf-killer.t, .kf-victim.t { color: var(--t-orange); }
-.kf-weapon { color: #bdc3c7; background: #1c2738; padding: 1px 4px; border-radius: 2px; }
-.kf-hs { color: var(--danger-red); }
 
 /* BOMB ALERT BANNER */
 .bomb-alert-banner {
