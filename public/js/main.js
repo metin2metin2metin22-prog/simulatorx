@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'bomb_defused':
         window.soundEngine.playBombDefused();
+        hud.addChatMessage('C4', `Bomba ${evt.defuserName || 'CT'} tarafından imha edildi!`, 'ct');
         break;
       case 'bomb_explode':
         window.soundEngine.playBombExplosion();
@@ -79,8 +80,20 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'round_start':
         hud.addChatMessage('MAÇ', `Raund başladı!`, 'system');
         break;
+      case 'radio_message':
       case 'radio_call':
         hud.addChatMessage(evt.sender, evt.text, evt.team);
+        break;
+      case 'clutch':
+        hud.addChatMessage('CLUTCH', `⭐ ${evt.player} (${evt.team.toUpperCase()}) 1v${evt.count} durumunda!`, evt.team);
+        break;
+      case 'halftime':
+        hud.addChatMessage('HAKEM', 'DEVRE ARASI! Takımlar taraf değiştirdi.', 'system');
+        break;
+      case 'match_over':
+        hud.showMatchOverModal(evt.winner, currentGameState);
+        window.soundEngine.playRoundWin(evt.winner === 'Counter-Terrorists' ? 'ct' : 't');
+        hud.addChatMessage('HAKEM', `🏆 MAÇ TAMAMLANDI! ŞAMPİYON: ${evt.winner}`, 'system');
         break;
       case 'timeout_end':
         hud.addChatMessage('HAKEM', `Taktiksel mola sona erdi!`, 'system');
@@ -177,8 +190,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSound = document.getElementById('btnSoundToggle');
   btnSound.addEventListener('click', () => {
     window.soundEngine.enabled = !window.soundEngine.enabled;
+    window.soundEngine.speechEnabled = window.soundEngine.enabled;
     btnSound.innerText = window.soundEngine.enabled ? '🔊 Ses: Açık' : '🔇 Ses: Kapalı';
   });
+
+  // 9. CHAT MESSAGE SENDING
+  const chatInput = document.getElementById('chatInput');
+  const btnSendChat = document.getElementById('btnSendChat');
+  const sendChat = () => {
+    if (!chatInput) return;
+    const text = chatInput.value.trim();
+    if (text) {
+      const sender = localTeam ? `${coachName} (${localTeam.toUpperCase()} Koçu)` : 'İzleyici';
+      socket.emit('send_chat', { text, sender });
+      chatInput.value = '';
+    }
+  };
+  if (btnSendChat) btnSendChat.addEventListener('click', sendChat);
+  if (chatInput) {
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendChat();
+    });
+  }
+
+  // 10. RESTART FROM MATCH OVER MODAL
+  const btnRestartFromOver = document.getElementById('btnRestartFromOver');
+  if (btnRestartFromOver) {
+    btnRestartFromOver.addEventListener('click', () => {
+      const mo = document.getElementById('matchOverModal');
+      if (mo) mo.style.display = 'none';
+      socket.emit('restart_match');
+    });
+  }
 
   socket.on('chat_message', ({ sender, text, team }) => {
     hud.addChatMessage(sender, text, team);

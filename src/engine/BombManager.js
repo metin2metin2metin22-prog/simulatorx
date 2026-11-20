@@ -78,7 +78,7 @@ class BombManager {
 
       for (const ct of aliveCTs) {
         const dist = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
-        if (dist <= 36 && !ct.targetEnemyId) {
+        if (dist <= 48 && !ct.targetEnemyId) {
           activeDefuser = ct;
           break;
         }
@@ -100,6 +100,7 @@ class BombManager {
           activeDefuser.state = 'idle';
           activeDefuser.mvps++;
           activeDefuser.defusingAnnounced = false;
+          match.events.push({ type: 'bomb_defused', defuserName: activeDefuser.name });
           match.endRound('ct', 'Counter-Terrorists bombayı imha etti!');
         }
       } else {

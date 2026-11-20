@@ -137,7 +137,9 @@ class PureCoachMatch {
         money: 800,
         kills: 0,
         deaths: 0,
+        assists: 0,
         damage: 0,
+        damageHistory: {},
         mvps: 0,
         alive: true,
         state: 'idle',
@@ -185,7 +187,9 @@ class PureCoachMatch {
         money: 800,
         kills: 0,
         deaths: 0,
+        assists: 0,
         damage: 0,
+        damageHistory: {},
         mvps: 0,
         alive: true,
         state: 'idle',
@@ -240,10 +244,13 @@ class PureCoachMatch {
     this.bomb.defuseProgress = 0;
 
     // C4 Bomb is ALWAYS assigned to a living Terrorist every single round!
-    // Rotates between core pack riflers: t_1 (NiKo / Planter), t_2 (m0NESY), or t_3 (electronic)
-    const eligibleSlots = [1, 2, 3];
-    const carrierSlot = eligibleSlots[Math.floor(Math.random() * eligibleSlots.length)];
-    this.bomb.carrierId = `t_${carrierSlot}`;
+    // Dynamically finds actual players playing on T team (handles halftime swaps cleanly)
+    const tPlayers = Object.values(this.players).filter(p => p.team === 't').sort((a, b) => a.slot - b.slot);
+    const eligibleIndices = [1, 2, 3];
+    const carrierIdx = eligibleIndices[Math.floor(Math.random() * eligibleIndices.length)];
+    const chosenCarrier = tPlayers[carrierIdx] || tPlayers[0];
+
+    this.bomb.carrierId = chosenCarrier ? chosenCarrier.id : 't_1';
     this.bomb.carried = true;
     this.bomb.dropped = false;
     this.bomb.planted = false;
@@ -285,9 +292,11 @@ class PureCoachMatch {
       p.holdTimer = 0;
       p.sprintTimer = 3.5;
       p.droppedBombSmoked = false;
+      p.hasKit = false;
+      p.damageHistory = {};
 
       const spawnList = p.team === 'ct' ? this.mapData.spawns.CT : this.mapData.spawns.T;
-      const spawn = spawnList[p.slot];
+      const spawn = spawnList[p.slot % spawnList.length];
       p.x = spawn.x;
       p.y = spawn.y;
       this.ensureWalkable(p);
@@ -372,8 +381,11 @@ class PureCoachMatch {
     const tStrat = this.mapData.strategies.T[tStratKey] || this.mapData.strategies.T.rush_b;
     const ctStrat = this.mapData.strategies.CT[ctStratKey] || this.mapData.strategies.CT.standard_212;
 
+    const tPlayers = Object.values(this.players).filter(p => p.team === 't').sort((a, b) => a.slot - b.slot);
+    const ctPlayers = Object.values(this.players).filter(p => p.team === 'ct').sort((a, b) => a.slot - b.slot);
+
     tStrat.assignments.forEach(asg => {
-      const p = this.players[`t_${asg.slot}`];
+      const p = tPlayers[asg.slot];
       if (p) {
         p.path = [...asg.path];
         p.pathIndex = 0;
@@ -391,7 +403,7 @@ class PureCoachMatch {
     }
 
     ctStrat.assignments.forEach(asg => {
-      const p = this.players[`ct_${asg.slot}`];
+      const p = ctPlayers[asg.slot];
       if (p) {
         p.path = [...asg.path];
         p.pathIndex = 0;
@@ -514,6 +526,9 @@ class PureCoachMatch {
     // Bomb Objectives
     this.bombManager.updateBombObjectives(this, dt);
 
+    // Retake & Post-Plant Tactics
+    this.tactics.updateRetakeAndPostPlantTactics(this, dt);
+
     // Check Clutch moments
     this.tactics.checkClutchSituation(this);
 
@@ -546,8 +561,28 @@ class PureCoachMatch {
     }
   }
 
+  applyTeammateSeparation(p, dt) {
+    const teammates = Object.values(this.players).filter(other => other.team === p.team && other.id !== p.id && other.alive);
+    for (const other of teammates) {
+      const dx = p.x - other.x;
+      const dy = p.y - other.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 0.01 && d < 18) {
+        const pushForce = (18 - d) * 20 * dt;
+        const angle = Math.atan2(dy, dx);
+        const nx = p.x + Math.cos(angle) * pushForce;
+        const ny = p.y + Math.sin(angle) * pushForce;
+        if (this.isWalkable(nx, ny)) {
+          p.x = nx;
+          p.y = ny;
+        }
+      }
+    }
+  }
+
   updatePlayerMovement(p, dt) {
     this.ensureWalkable(p);
+    this.applyTeammateSeparation(p, dt);
     if (p.sprintTimer > 0) p.sprintTimer -= dt;
 
     if (p.targetEnemyId) {
@@ -698,9 +733,12 @@ class PureCoachMatch {
       p.team = p.team === 'ct' ? 't' : 'ct';
       p.money = 800;
       p.weapon = p.team === 'ct' ? 'usp' : 'glock';
+      p.hasKit = false;
+      p.damageHistory = {};
     });
 
     this.events.push({ type: 'halftime' });
+    this.addRadioMessage('ct', 'Twistzz', 'DEVRE ARASI! Takımlar taraf değiştirdi.');
   }
 
   broadcastState() {

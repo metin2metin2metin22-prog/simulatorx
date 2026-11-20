@@ -72,6 +72,81 @@ class BotTactics {
     });
   }
 
+  // Active Retake & Defuse Guidance: Runs every tick while the bomb is planted
+  updateRetakeAndPostPlantTactics(match, dt) {
+    if (!match.bomb.planted) return;
+
+    const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
+    const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
+    if (aliveCTs.length === 0) return;
+
+    const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
+
+    // 1. If all Ts are dead, ALL CTs swarm the bomb immediately
+    if (aliveTs.length === 0) {
+      aliveCTs.forEach(ct => {
+        if (!ct.targetEnemyId && ct.state !== 'defusing') {
+          const distToBomb = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
+          if (distToBomb > 35 && (!ct.path || ct.pathIndex >= ct.path.length || ct.path[ct.path.length - 1] !== bombNode)) {
+            match.setPlayerPath(ct, bombNode);
+          }
+        }
+      });
+      return;
+    }
+
+    // 2. Identify the Primary Defuser (closest CT or one with kit)
+    let bestDefuser = null;
+    let minDist = Infinity;
+    aliveCTs.forEach(ct => {
+      let d = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
+      if (ct.hasKit) d -= 60; // Kit priority
+      if (d < minDist) {
+        minDist = d;
+        bestDefuser = ct;
+      }
+    });
+
+    if (bestDefuser && !bestDefuser.targetEnemyId && bestDefuser.state !== 'defusing') {
+      const distToBomb = Math.hypot(bestDefuser.x - match.bomb.x, bestDefuser.y - match.bomb.y);
+      if (distToBomb > 40 && (!bestDefuser.path || bestDefuser.pathIndex >= bestDefuser.path.length || bestDefuser.path[bestDefuser.path.length - 1] !== bombNode)) {
+        match.setPlayerPath(bestDefuser, bombNode);
+      }
+    }
+
+    // 3. Supporting CTs push onto site to cover
+    aliveCTs.forEach(ct => {
+      if (bestDefuser && ct.id === bestDefuser.id) return;
+      if (!ct.targetEnemyId && (ct.state === 'idle' || !ct.path || ct.pathIndex >= ct.path.length)) {
+        const siteNode = match.bomb.site === 'B' ? 'b_site' : 'a_site';
+        const dSite = Math.hypot(ct.x - match.mapData.sites[match.bomb.site].x, ct.y - match.mapData.sites[match.bomb.site].y);
+        if (dSite > 60) {
+          match.setPlayerPath(ct, siteNode);
+        }
+      }
+    });
+
+    // 4. Terrorist Post-Plant Peeking: If CT is defusing, nearest T peeks bomb
+    if (match.bomb.defusing && aliveTs.length > 0) {
+      let nearestT = null;
+      let minTDist = Infinity;
+      aliveTs.forEach(t => {
+        const d = Math.hypot(t.x - match.bomb.x, t.y - match.bomb.y);
+        if (d < minTDist) {
+          minTDist = d;
+          nearestT = t;
+        }
+      });
+      if (nearestT && minTDist < 380 && !nearestT.targetEnemyId) {
+        nearestT.holdTimer = 0;
+        nearestT.targetAngle = Math.atan2(match.bomb.y - nearestT.y, match.bomb.x - nearestT.x);
+        if (minTDist > 60 && (!nearestT.path || nearestT.pathIndex >= nearestT.path.length)) {
+          match.setPlayerPath(nearestT, bombNode);
+        }
+      }
+    }
+  }
+
   tacticalBotUtility(match, p, nodeKey) {
     if (match.smokes.length + match.grenades.length > 7) return;
 

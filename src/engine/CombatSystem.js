@@ -140,6 +140,10 @@ class CombatSystem {
       target.hp = Math.max(0, target.hp - damage);
       shooter.damage += damage;
 
+      // Track damage history for assists
+      target.damageHistory = target.damageHistory || {};
+      target.damageHistory[shooter.id] = (target.damageHistory[shooter.id] || 0) + damage;
+
       match.events.push({
         type: isHeadshot ? 'headshot' : 'hit',
         shooterId: shooter.id,
@@ -195,6 +199,21 @@ class CombatSystem {
 
     killer.kills++;
     killer.money += (weapon.type === 'sniper' ? 100 : 300);
+
+    // Official CS:GO Assist System: Teammate dealing >= 41 damage gets assist
+    let assister = null;
+    if (victim.damageHistory) {
+      for (const [shooterId, dmg] of Object.entries(victim.damageHistory)) {
+        if (shooterId !== killer.id && dmg >= 41) {
+          const potAssister = match.players[shooterId];
+          if (potAssister && potAssister.team === killer.team) {
+            potAssister.assists = (potAssister.assists || 0) + 1;
+            assister = potAssister;
+            break;
+          }
+        }
+      }
+    }
 
     Object.values(match.players).filter(p => p.team === victim.team && p.alive).forEach(mate => {
       const dist = Math.hypot(mate.x - victim.x, mate.y - victim.y);
@@ -321,6 +340,7 @@ class CombatSystem {
     match.killfeed.unshift({
       killer: killer.name,
       victim: victim.name,
+      assister: assister ? assister.name : null,
       weapon: killer.weapon,
       headshot: isHeadshot,
       teamKiller: killer.team,

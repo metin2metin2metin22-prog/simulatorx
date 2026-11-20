@@ -194,6 +194,10 @@
             <span class="chat-body">CS:GO Koç Simülatörüne Hoş Geldiniz!</span>
           </div>
         </div>
+        <div class="chat-input-wrap">
+          <input type="text" id="chatInput" placeholder="Telsiz mesajı yazın..." maxlength="120" />
+          <button class="btn btn-send" id="btnSendChat">Gönder</button>
+        </div>
       </section>
     </aside>
   </main>
@@ -295,6 +299,24 @@
       <div class="mvp-box">
         <span class="mvp-star">⭐</span>
         <span class="mvp-text">RAUNDUN MVP'Sİ: <strong id="roundMvpName">s1mple</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCH OVER VICTORY MODAL -->
+  <div class="match-over-modal" id="matchOverModal" style="display:none;">
+    <div class="match-over-card">
+      <div class="trophy-icon">🏆</div>
+      <h2 class="mo-title" id="moWinnerTitle">COUNTER-TERRORISTS WIN!</h2>
+      <div class="mo-score-row">
+        <span class="mo-team ct">CT <strong id="moScoreCT">13</strong></span>
+        <span class="mo-divider">:</span>
+        <span class="mo-team t"><strong id="moScoreT">9</strong> T</span>
+      </div>
+      <p class="mo-desc" id="moDescText">13 raunda ilk ulaşan takım maçı kazandı.</p>
+      <div class="mo-actions">
+        <button class="btn btn-ctrl-start" id="btnRestartFromOver">🔄 Yeniden Başlat (Lobi)</button>
+        <button class="btn btn-ctrl" id="btnCloseOverModal">✕ Kapat</button>
       </div>
     </div>
   </div>

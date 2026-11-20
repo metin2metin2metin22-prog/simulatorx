@@ -62,6 +62,14 @@ class HUDManager {
     this.roundReasonText = document.getElementById('roundReasonText');
     this.roundMvpName = document.getElementById('roundMvpName');
 
+    this.matchOverModal = document.getElementById('matchOverModal');
+    this.moWinnerTitle = document.getElementById('moWinnerTitle');
+    this.moScoreCT = document.getElementById('moScoreCT');
+    this.moScoreT = document.getElementById('moScoreT');
+    this.moDescText = document.getElementById('moDescText');
+    this.btnRestartFromOver = document.getElementById('btnRestartFromOver');
+    this.btnCloseOverModal = document.getElementById('btnCloseOverModal');
+
     this.chatMessages = document.getElementById('chatMessages');
 
     this.selectedRosterTeam = 'ct';
@@ -105,9 +113,16 @@ class HUDManager {
       });
     }
 
+    if (this.btnCloseOverModal) {
+      this.btnCloseOverModal.addEventListener('click', () => {
+        if (this.matchOverModal) this.matchOverModal.style.display = 'none';
+      });
+    }
+
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (this.playerCardsModal) this.playerCardsModal.style.display = 'none';
+        if (this.matchOverModal) this.matchOverModal.style.display = 'none';
       }
     });
   }
@@ -364,7 +379,7 @@ class HUDManager {
         <td style="color:#2ecc71">$${p.money}</td>
         <td>${p.kills}</td>
         <td>${p.deaths}</td>
-        <td>${p.damage || 0}</td>
+        <td>${p.assists || 0}</td>
         <td style="color:#f1c40f; font-weight:700;">★ ${(p.rating || 1.20).toFixed(2)}</td>
         <td style="color:#f1c40f">${p.mvps > 0 ? '★ ' + p.mvps : '-'}</td>
       </tr>
@@ -384,6 +399,18 @@ class HUDManager {
     setTimeout(() => {
       this.roundEndOverlay.style.display = 'none';
     }, 4500);
+  }
+
+  showMatchOverModal(winner, state) {
+    if (!this.matchOverModal) return;
+    this.matchOverModal.style.display = 'flex';
+    const isCT = winner === 'Counter-Terrorists' || winner === 'ct';
+    this.moWinnerTitle.innerText = `${isCT ? 'COUNTER-TERRORISTS' : 'TERRORISTS'} KAZANDI!`;
+    this.moWinnerTitle.style.color = isCT ? '#1e90ff' : '#ff9f1a';
+    if (state && state.score) {
+      if (this.moScoreCT) this.moScoreCT.innerText = state.score.ct;
+      if (this.moScoreT) this.moScoreT.innerText = state.score.t;
+    }
   }
 
   updateKillfeed(feed) {
