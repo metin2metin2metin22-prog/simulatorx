@@ -12,6 +12,7 @@ const { BombManager } = require('./BombManager');
 const { EconomySystem } = require('./EconomySystem');
 const { MovementSystem } = require('./MovementSystem');
 const { LeagueManager } = require('./LeagueManager');
+const { db } = require('../storage/db');
 
 class PureCoachMatch {
   constructor(io) {
@@ -342,6 +343,47 @@ class PureCoachMatch {
       weekName: nextMatch.weekName,
       userClub: nextMatch.userClub,
       opponent: nextMatch.opponent,
+      userSide: this.userSide,
+      isHome: userIsHome
+    };
+
+    this.round = 1;
+    this.score = { ct: 0, t: 0 };
+    this.lossStreak = { ct: 0, t: 0 };
+    this.isPaused = false;
+    this.killfeed = [];
+    this.events = [];
+    this.coaches.ct.timeoutsLeft = 2;
+    this.coaches.t.timeoutsLeft = 2;
+    this.initPlayers();
+    this.startRound();
+    this.broadcastState();
+    return true;
+  }
+
+  loadUserMatch(userMatchInfo, username) {
+    if (!userMatchInfo) return false;
+    this.activeUsername = username;
+    const userIsHome = userMatchInfo.isHome;
+    const userRoster = userMatchInfo.userClub.roster;
+    const opponentRoster = userMatchInfo.opponent.roster;
+
+    if (userIsHome) {
+      this.currentRosters.ct = JSON.parse(JSON.stringify(userRoster));
+      this.currentRosters.t = JSON.parse(JSON.stringify(opponentRoster));
+      this.userSide = 'ct';
+    } else {
+      this.currentRosters.t = JSON.parse(JSON.stringify(userRoster));
+      this.currentRosters.ct = JSON.parse(JSON.stringify(opponentRoster));
+      this.userSide = 't';
+    }
+
+    this.matchInfo = {
+      isLeagueMatch: true,
+      week: userMatchInfo.week,
+      weekName: userMatchInfo.weekName,
+      userClub: userMatchInfo.userClub,
+      opponent: userMatchInfo.opponent,
       userSide: this.userSide,
       isHome: userIsHome
     };
@@ -861,12 +903,20 @@ class PureCoachMatch {
       const opponentScore = this.score[this.userSide];
       const userClubWon = userScore > opponentScore;
 
-      if (this.matchInfo && this.matchInfo.isLeagueMatch && this.league) {
+      if (this.matchInfo && this.matchInfo.isLeagueMatch) {
         const homeScore = this.matchInfo.isHome ? userScore : opponentScore;
         const awayScore = this.matchInfo.isHome ? opponentScore : userScore;
-        this.league.advanceWeekWithUserResult(homeScore, awayScore);
-        if (this.io) {
-          this.io.emit('league_data', this.league.getLeagueData());
+        if (this.activeUsername) {
+          const updatedUser = db.recordUserMatchResult(this.activeUsername, homeScore, awayScore);
+          if (this.io && updatedUser) {
+            this.io.emit('user_updated', updatedUser);
+          }
+        }
+        if (this.league) {
+          this.league.advanceWeekWithUserResult(homeScore, awayScore);
+          if (this.io) {
+            this.io.emit('league_data', this.league.getLeagueData());
+          }
         }
       }
 

@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
   rosterManager.init(socket);
   window.rosterManager = rosterManager;
 
+  const dashboardUI = new DashboardUI();
+  dashboardUI.init(socket);
+  window.dashboardUI = dashboardUI;
+
   const leagueUI = new LeagueUI();
   leagueUI.init(socket);
   window.leagueUI = leagueUI;
@@ -173,9 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 2. RADAR RENDER LOOP (60 FPS)
+  // 2. RADAR RENDER LOOP (60 FPS when in live simulation)
   function renderLoop() {
-    radar.render(currentGameState, null);
+    if (window.dashboardUI && window.dashboardUI.activeScreen === 'simulation') {
+      radar.render(currentGameState, null);
+    }
     requestAnimationFrame(renderLoop);
   }
   requestAnimationFrame(renderLoop);

@@ -1,0 +1,2402 @@
+{
+  "users": {
+    "test_coach": {
+      "id": "usr_1795173269485",
+      "username": "test_coach",
+      "password": "password123",
+      "createdAt": 1795173269485,
+      "token": "tok_1795173269485_yl5esb9ug",
+      "club": {
+        "id": "club_test_coach",
+        "name": "Anadolu Kartalları",
+        "shortTag": "ANA",
+        "icon": "🦅",
+        "color": "#00d2ff",
+        "budget": 25000,
+        "tier": "amateur",
+        "roster": [
+          {
+            "id": "p_1795173269484_0_po8o4",
+            "name": "Umut \"aimer\" Çelik",
+            "country": "TR",
+            "age": 17,
+            "role": "AWPer",
+            "tag": "Çaylak",
+            "teamName": "Anadolu Kartalları",
+            "rating": 0.91,
+            "tier": "Amatör Çaylak",
+            "price": 7825,
+            "perk": "raw_talent",
+            "skills": {
+              "aim": 58,
+              "reflex": 60,
+              "headshot": 52,
+              "gamesense": 53,
+              "clutch": 58,
+              "utility": 56,
+              "aggression": 62
+            },
+            "desc": "Anadolu Kartalları akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173269484_1_wty2e",
+            "name": "Adam \"demon\" Kurt",
+            "country": "TR",
+            "age": 18,
+            "role": "Entry Fragger",
+            "tag": "Çaylak",
+            "teamName": "Anadolu Kartalları",
+            "rating": 0.91,
+            "tier": "Amatör Çaylak",
+            "price": 7768,
+            "perk": "raw_talent",
+            "skills": {
+              "aim": 58,
+              "reflex": 55,
+              "headshot": 60,
+              "gamesense": 54,
+              "clutch": 53,
+              "utility": 49,
+              "aggression": 86
+            },
+            "desc": "Anadolu Kartalları akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173269484_2_qwfmk",
+            "name": "Can \"v0rtex\" Larsen",
+            "country": "TR",
+            "age": 20,
+            "role": "Rifler (Star)",
+            "tag": "Çaylak",
+            "teamName": "Anadolu Kartalları",
+            "rating": 0.81,
+            "tier": "Amatör Çaylak",
+            "price": 5655,
+            "perk": "rookie_nervous",
+            "skills": {
+              "aim": 44,
+              "reflex": 49,
+              "headshot": 47,
+              "gamesense": 48,
+              "clutch": 48,
+              "utility": 47,
+              "aggression": 64
+            },
+            "desc": "Anadolu Kartalları akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173269484_3_q1vi4",
+            "name": "Mateo \"ardx\" Öztürk",
+            "country": "TR",
+            "age": 16,
+            "role": "Site Anchor",
+            "tag": "Çaylak",
+            "teamName": "Anadolu Kartalları",
+            "rating": 0.91,
+            "tier": "Amatör Çaylak",
+            "price": 7768,
+            "perk": "smoke_criminal",
+            "skills": {
+              "aim": 57,
+              "reflex": 55,
+              "headshot": 57,
+              "gamesense": 58,
+              "clutch": 53,
+              "utility": 57,
+              "aggression": 52
+            },
+            "desc": "Anadolu Kartalları akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173269484_4_u3w62",
+            "name": "Jan \"reaper\" Novak",
+            "country": "TR",
+            "age": 19,
+            "role": "In-Game Leader (IGL)",
+            "tag": "Çaylak",
+            "teamName": "Anadolu Kartalları",
+            "rating": 0.92,
+            "tier": "Amatör Çaylak",
+            "price": 7940,
+            "perk": "tactical_mastermind",
+            "skills": {
+              "aim": 51,
+              "reflex": 57,
+              "headshot": 55,
+              "gamesense": 59,
+              "clutch": 61,
+              "utility": 61,
+              "aggression": 51
+            },
+            "desc": "Anadolu Kartalları akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          }
+        ],
+        "stats": {
+          "played": 1,
+          "won": 1,
+          "lost": 0,
+          "trophies": 0
+        }
+      },
+      "leagueData": {
+        "tierKey": "amateur",
+        "tierName": "Amatör Çaylak Ligi (Tier 3)",
+        "tierBadge": "🌱",
+        "season": 1,
+        "currentWeek": 2,
+        "isSeasonFinished": false,
+        "champion": null,
+        "standings": [
+          {
+            "teamId": "bot_bogazici_esports",
+            "name": "Boğaziçi Esports",
+            "shortTag": "BOGAZ",
+            "icon": "🏛️",
+            "color": "#8e44ad",
+            "isUser": false,
+            "rating": 0.94,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 13,
+            "roundsLost": 5,
+            "roundDiff": 8,
+            "points": 3
+          },
+          {
+            "teamId": "club_test_coach",
+            "name": "Anadolu Kartalları",
+            "shortTag": "ANA",
+            "icon": "🦅",
+            "color": "#00d2ff",
+            "isUser": true,
+            "rating": 0.89,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 13,
+            "roundsLost": 9,
+            "roundDiff": 4,
+            "points": 3
+          },
+          {
+            "teamId": "bot_anadolu_genclik",
+            "name": "Anadolu Gençlik",
+            "shortTag": "ANG",
+            "icon": "🦅",
+            "color": "#16a085",
+            "isUser": false,
+            "rating": 0.92,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 16,
+            "roundsLost": 13,
+            "roundDiff": 3,
+            "points": 3
+          },
+          {
+            "teamId": "bot_karadeniz_firtina",
+            "name": "Karadeniz Fırtınası",
+            "shortTag": "FIRTINA",
+            "icon": "🌊",
+            "color": "#2980b9",
+            "isUser": false,
+            "rating": 0.93,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 13,
+            "roundsLost": 11,
+            "roundDiff": 2,
+            "points": 3
+          },
+          {
+            "teamId": "bot_ege_thunder",
+            "name": "Ege Thunder",
+            "shortTag": "THUNDER",
+            "icon": "⚡",
+            "color": "#f39c12",
+            "isUser": false,
+            "rating": 0.95,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 11,
+            "roundsLost": 13,
+            "roundDiff": -2,
+            "points": 0
+          },
+          {
+            "teamId": "bot_toros_kaplanlari",
+            "name": "Toros Kaplanları",
+            "shortTag": "TOROS",
+            "icon": "🐯",
+            "color": "#d35400",
+            "isUser": false,
+            "rating": 0.96,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 13,
+            "roundsLost": 16,
+            "roundDiff": -3,
+            "points": 0
+          },
+          {
+            "teamId": "bot_kadikoy_bulls",
+            "name": "Kadıköy Bulls",
+            "shortTag": "BULLS",
+            "icon": "🐂",
+            "color": "#c0392b",
+            "isUser": false,
+            "rating": 0.94,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 9,
+            "roundsLost": 13,
+            "roundDiff": -4,
+            "points": 0
+          },
+          {
+            "teamId": "bot_mezopotamya_stars",
+            "name": "Mezopotamya Stars",
+            "shortTag": "MEZO",
+            "icon": "🌟",
+            "color": "#e67e22",
+            "isUser": false,
+            "rating": 0.93,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 5,
+            "roundsLost": 13,
+            "roundDiff": -8,
+            "points": 0
+          }
+        ],
+        "fixtures": [
+          {
+            "week": 1,
+            "name": "Hafta 1: Açılış Mücadeleleri",
+            "matches": [
+              {
+                "id": "w1_m1",
+                "homeTeamId": "club_test_coach",
+                "awayTeamId": "bot_kadikoy_bulls",
+                "completed": true,
+                "score": {
+                  "homeScore": 13,
+                  "awayScore": 9
+                }
+              },
+              {
+                "id": "w1_m2",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_karadeniz_firtina",
+                "completed": true,
+                "score": {
+                  "homeScore": 11,
+                  "awayScore": 13
+                }
+              },
+              {
+                "id": "w1_m3",
+                "homeTeamId": "bot_anadolu_genclik",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": true,
+                "score": {
+                  "homeScore": 16,
+                  "awayScore": 13
+                }
+              },
+              {
+                "id": "w1_m4",
+                "homeTeamId": "bot_bogazici_esports",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": true,
+                "score": {
+                  "homeScore": 13,
+                  "awayScore": 5
+                }
+              }
+            ]
+          },
+          {
+            "week": 2,
+            "name": "Hafta 2: Klasik Rekabet",
+            "matches": [
+              {
+                "id": "w2_m1",
+                "homeTeamId": "club_test_coach",
+                "awayTeamId": "bot_ege_thunder",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w2_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w2_m3",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w2_m4",
+                "homeTeamId": "bot_toros_kaplanlari",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 3,
+            "name": "Hafta 3: Liderlik Savaşı",
+            "matches": [
+              {
+                "id": "w3_m1",
+                "homeTeamId": "club_test_coach",
+                "awayTeamId": "bot_karadeniz_firtina",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w3_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_ege_thunder",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w3_m3",
+                "homeTeamId": "bot_anadolu_genclik",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w3_m4",
+                "homeTeamId": "bot_toros_kaplanlari",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 4,
+            "name": "Hafta 4: Kritik Viraj",
+            "matches": [
+              {
+                "id": "w4_m1",
+                "homeTeamId": "club_test_coach",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w4_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_karadeniz_firtina",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w4_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w4_m4",
+                "homeTeamId": "bot_bogazici_esports",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 5,
+            "name": "Hafta 5: Zirve Mücadelesi",
+            "matches": [
+              {
+                "id": "w5_m1",
+                "homeTeamId": "club_test_coach",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w5_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w5_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w5_m4",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 6,
+            "name": "Hafta 6: Playoff Randevusu",
+            "matches": [
+              {
+                "id": "w6_m1",
+                "homeTeamId": "club_test_coach",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w6_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w6_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w6_m4",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 7,
+            "name": "Hafta 7: Şampiyonluk Final Haftası",
+            "matches": [
+              {
+                "id": "w7_m1",
+                "homeTeamId": "club_test_coach",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w7_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w7_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w7_m4",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              }
+            ]
+          }
+        ],
+        "botTeams": [
+          {
+            "id": "bot_kadikoy_bulls",
+            "name": "Kadıköy Bulls",
+            "shortTag": "BULLS",
+            "icon": "🐂",
+            "country": "TR",
+            "color": "#c0392b",
+            "coachName": "Alper \"bull\" Kara",
+            "rating": 0.94,
+            "roster": [
+              {
+                "name": "Oğuz \"sniper\" Demir",
+                "role": "AWPer",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 54,
+                  "gamesense": 56,
+                  "clutch": 52,
+                  "utility": 48,
+                  "aggression": 60
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Tolga \"entry\" Yıldız",
+                "role": "Entry Fragger",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 60,
+                  "reflex": 59,
+                  "headshot": 58,
+                  "gamesense": 52,
+                  "clutch": 50,
+                  "utility": 45,
+                  "aggression": 82
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Kaan \"star\" Çelik",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 53,
+                  "gamesense": 54,
+                  "clutch": 51,
+                  "utility": 46,
+                  "aggression": 65
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Sarp \"anchor\" Kaya",
+                "role": "Site Anchor",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 54,
+                  "reflex": 52,
+                  "headshot": 50,
+                  "gamesense": 58,
+                  "clutch": 55,
+                  "utility": 52,
+                  "aggression": 45
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Alper \"igl\" Çetin",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 52,
+                  "reflex": 50,
+                  "headshot": 48,
+                  "gamesense": 60,
+                  "clutch": 54,
+                  "utility": 54,
+                  "aggression": 50
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.94,
+              "aim": 56,
+              "reflex": 55,
+              "gamesense": 56,
+              "clutch": 52,
+              "utility": 49
+            }
+          },
+          {
+            "id": "bot_ege_thunder",
+            "name": "Ege Thunder",
+            "shortTag": "THUNDER",
+            "icon": "⚡",
+            "country": "TR",
+            "color": "#f39c12",
+            "coachName": "Barış \"volt\" Şen",
+            "rating": 0.95,
+            "roster": [
+              {
+                "name": "Efe \"zeus\" Doğan",
+                "role": "AWPer",
+                "rating": 0.96,
+                "skills": {
+                  "aim": 62,
+                  "reflex": 60,
+                  "headshot": 56,
+                  "gamesense": 58,
+                  "clutch": 54,
+                  "utility": 50,
+                  "aggression": 62
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Burak \"rush\" Koç",
+                "role": "Entry Fragger",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 61,
+                  "reflex": 60,
+                  "headshot": 59,
+                  "gamesense": 54,
+                  "clutch": 52,
+                  "utility": 46,
+                  "aggression": 84
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Yiğit \"blade\" Aksoy",
+                "role": "Rifler",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 56,
+                  "headshot": 55,
+                  "gamesense": 55,
+                  "clutch": 53,
+                  "utility": 48,
+                  "aggression": 68
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Doruk \"rock\" Yavuz",
+                "role": "Site Anchor",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 55,
+                  "reflex": 53,
+                  "headshot": 52,
+                  "gamesense": 59,
+                  "clutch": 56,
+                  "utility": 53,
+                  "aggression": 46
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Mert \"brain\" Şahin",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 54,
+                  "reflex": 52,
+                  "headshot": 50,
+                  "gamesense": 62,
+                  "clutch": 55,
+                  "utility": 55,
+                  "aggression": 52
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.94,
+              "aim": 58,
+              "reflex": 56,
+              "gamesense": 58,
+              "clutch": 54,
+              "utility": 50
+            }
+          },
+          {
+            "id": "bot_karadeniz_firtina",
+            "name": "Karadeniz Fırtınası",
+            "shortTag": "FIRTINA",
+            "icon": "🌊",
+            "country": "TR",
+            "color": "#2980b9",
+            "coachName": "Emre \"wave\" Kurt",
+            "rating": 0.93,
+            "roster": [
+              {
+                "name": "Hakan \"storm\" Polat",
+                "role": "AWPer",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 59,
+                  "reflex": 58,
+                  "headshot": 54,
+                  "gamesense": 56,
+                  "clutch": 53,
+                  "utility": 49,
+                  "aggression": 60
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Ozan \"flash\" Aslan",
+                "role": "Entry Fragger",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 56,
+                  "gamesense": 52,
+                  "clutch": 49,
+                  "utility": 44,
+                  "aggression": 80
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Berk \"pulse\" Öztürk",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 53,
+                  "gamesense": 54,
+                  "clutch": 52,
+                  "utility": 47,
+                  "aggression": 66
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Umut \"wall\" Demir",
+                "role": "Site Anchor",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 53,
+                  "reflex": 51,
+                  "headshot": 50,
+                  "gamesense": 57,
+                  "clutch": 54,
+                  "utility": 51,
+                  "aggression": 44
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Deniz \"chief\" Kaya",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 51,
+                  "reflex": 50,
+                  "headshot": 48,
+                  "gamesense": 59,
+                  "clutch": 53,
+                  "utility": 53,
+                  "aggression": 50
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.93,
+              "aim": 55,
+              "reflex": 54,
+              "gamesense": 56,
+              "clutch": 52,
+              "utility": 49
+            }
+          },
+          {
+            "id": "bot_anadolu_genclik",
+            "name": "Anadolu Gençlik",
+            "shortTag": "ANG",
+            "icon": "🦅",
+            "country": "TR",
+            "color": "#16a085",
+            "coachName": "Murat \"kartal\" Yılmaz",
+            "rating": 0.92,
+            "roster": [
+              {
+                "name": "Cem \"falcon\" Çelik",
+                "role": "AWPer",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 57,
+                  "reflex": 56,
+                  "headshot": 52,
+                  "gamesense": 55,
+                  "clutch": 51,
+                  "utility": 47,
+                  "aggression": 58
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Tuna \"strike\" Şen",
+                "role": "Entry Fragger",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 54,
+                  "gamesense": 51,
+                  "clutch": 48,
+                  "utility": 43,
+                  "aggression": 78
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Arda \"razor\" Yıldız",
+                "role": "Rifler",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 55,
+                  "reflex": 54,
+                  "headshot": 52,
+                  "gamesense": 53,
+                  "clutch": 50,
+                  "utility": 46,
+                  "aggression": 64
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Kerem \"shield\" Çetin",
+                "role": "Site Anchor",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 52,
+                  "reflex": 50,
+                  "headshot": 49,
+                  "gamesense": 56,
+                  "clutch": 53,
+                  "utility": 50,
+                  "aggression": 43
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Can \"master\" Aksoy",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.91,
+                "skills": {
+                  "aim": 50,
+                  "reflex": 49,
+                  "headshot": 47,
+                  "gamesense": 58,
+                  "clutch": 52,
+                  "utility": 52,
+                  "aggression": 48
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.92,
+              "aim": 54,
+              "reflex": 53,
+              "gamesense": 55,
+              "clutch": 51,
+              "utility": 48
+            }
+          },
+          {
+            "id": "bot_toros_kaplanlari",
+            "name": "Toros Kaplanları",
+            "shortTag": "TOROS",
+            "icon": "🐯",
+            "country": "TR",
+            "color": "#d35400",
+            "coachName": "Burak \"kaplan\" Doğan",
+            "rating": 0.96,
+            "roster": [
+              {
+                "name": "Sinan \"tiger\" Koç",
+                "role": "AWPer",
+                "rating": 0.97,
+                "skills": {
+                  "aim": 63,
+                  "reflex": 61,
+                  "headshot": 58,
+                  "gamesense": 59,
+                  "clutch": 56,
+                  "utility": 51,
+                  "aggression": 64
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Görkem \"claw\" Aslan",
+                "role": "Entry Fragger",
+                "rating": 0.96,
+                "skills": {
+                  "aim": 63,
+                  "reflex": 62,
+                  "headshot": 60,
+                  "gamesense": 55,
+                  "clutch": 53,
+                  "utility": 47,
+                  "aggression": 86
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Selim \"fang\" Yavuz",
+                "role": "Rifler",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 59,
+                  "reflex": 58,
+                  "headshot": 56,
+                  "gamesense": 56,
+                  "clutch": 54,
+                  "utility": 49,
+                  "aggression": 70
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Volkan \"fort\" Şahin",
+                "role": "Site Anchor",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 54,
+                  "headshot": 53,
+                  "gamesense": 60,
+                  "clutch": 57,
+                  "utility": 54,
+                  "aggression": 48
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Onur \"tactician\" Kurt",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 55,
+                  "reflex": 53,
+                  "headshot": 51,
+                  "gamesense": 63,
+                  "clutch": 56,
+                  "utility": 56,
+                  "aggression": 53
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.95,
+              "aim": 59,
+              "reflex": 58,
+              "gamesense": 59,
+              "clutch": 55,
+              "utility": 51
+            }
+          },
+          {
+            "id": "bot_bogazici_esports",
+            "name": "Boğaziçi Esports",
+            "shortTag": "BOGAZ",
+            "icon": "🏛️",
+            "country": "TR",
+            "color": "#8e44ad",
+            "coachName": "Selim \"bosphorus\" Polat",
+            "rating": 0.94,
+            "roster": [
+              {
+                "name": "Metin \"hawk\" Öztürk",
+                "role": "AWPer",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 60,
+                  "reflex": 59,
+                  "headshot": 55,
+                  "gamesense": 57,
+                  "clutch": 53,
+                  "utility": 49,
+                  "aggression": 61
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Batu \"titan\" Demir",
+                "role": "Entry Fragger",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 59,
+                  "reflex": 58,
+                  "headshot": 57,
+                  "gamesense": 53,
+                  "clutch": 51,
+                  "utility": 45,
+                  "aggression": 81
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Kadir \"snipe\" Kaya",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 57,
+                  "reflex": 56,
+                  "headshot": 54,
+                  "gamesense": 55,
+                  "clutch": 52,
+                  "utility": 48,
+                  "aggression": 67
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Enes \"guard\" Çelik",
+                "role": "Site Anchor",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 54,
+                  "reflex": 52,
+                  "headshot": 51,
+                  "gamesense": 58,
+                  "clutch": 55,
+                  "utility": 52,
+                  "aggression": 45
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Tarik \"commander\" Şen",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 53,
+                  "reflex": 51,
+                  "headshot": 49,
+                  "gamesense": 61,
+                  "clutch": 55,
+                  "utility": 54,
+                  "aggression": 51
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.94,
+              "aim": 57,
+              "reflex": 55,
+              "gamesense": 57,
+              "clutch": 53,
+              "utility": 50
+            }
+          },
+          {
+            "id": "bot_mezopotamya_stars",
+            "name": "Mezopotamya Stars",
+            "shortTag": "MEZO",
+            "icon": "🌟",
+            "country": "TR",
+            "color": "#e67e22",
+            "coachName": "Yusuf \"star\" Yıldız",
+            "rating": 0.93,
+            "roster": [
+              {
+                "name": "Ferhat \"comet\" Çetin",
+                "role": "AWPer",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 53,
+                  "gamesense": 56,
+                  "clutch": 52,
+                  "utility": 48,
+                  "aggression": 59
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Hamza \"blaze\" Aksoy",
+                "role": "Entry Fragger",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 56,
+                  "gamesense": 52,
+                  "clutch": 50,
+                  "utility": 44,
+                  "aggression": 80
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Baran \"spark\" Doğan",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 53,
+                  "gamesense": 54,
+                  "clutch": 51,
+                  "utility": 47,
+                  "aggression": 65
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "İsmail \"pillar\" Koç",
+                "role": "Site Anchor",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 53,
+                  "reflex": 51,
+                  "headshot": 50,
+                  "gamesense": 57,
+                  "clutch": 54,
+                  "utility": 51,
+                  "aggression": 44
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Mahmut \"leader\" Aslan",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 52,
+                  "reflex": 50,
+                  "headshot": 48,
+                  "gamesense": 60,
+                  "clutch": 54,
+                  "utility": 53,
+                  "aggression": 50
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.93,
+              "aim": 55,
+              "reflex": 54,
+              "gamesense": 56,
+              "clutch": 52,
+              "utility": 49
+            }
+          }
+        ]
+      }
+    },
+    "bursa_manager": {
+      "id": "usr_1795173723639",
+      "username": "bursa_manager",
+      "password": "bursapassword",
+      "createdAt": 1795173723639,
+      "token": "tok_1795173723639_mufg7b11h",
+      "club": {
+        "id": "club_bursa_manager",
+        "name": "Bursa Espor",
+        "shortTag": "BUR",
+        "icon": "🐊",
+        "color": "#00d2ff",
+        "budget": 25000,
+        "tier": "amateur",
+        "roster": [
+          {
+            "id": "p_1795173723639_0_m0ijp",
+            "name": "Kaan \"flash\" Aslan",
+            "country": "TR",
+            "age": 18,
+            "role": "AWPer",
+            "tag": "Çaylak",
+            "teamName": "Bursa Espor",
+            "rating": 0.92,
+            "tier": "Amatör Çaylak",
+            "price": 7940,
+            "perk": "ice_clutch",
+            "skills": {
+              "aim": 63,
+              "reflex": 58,
+              "headshot": 54,
+              "gamesense": 50,
+              "clutch": 58,
+              "utility": 53,
+              "aggression": 63
+            },
+            "desc": "Bursa Espor akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173723639_1_f8v43",
+            "name": "Bilal \"titan\" Çelik",
+            "country": "TR",
+            "age": 21,
+            "role": "Entry Fragger",
+            "tag": "Çaylak",
+            "teamName": "Bursa Espor",
+            "rating": 0.86,
+            "tier": "Amatör Çaylak",
+            "price": 6718,
+            "perk": "onetap_god",
+            "skills": {
+              "aim": 54,
+              "reflex": 54,
+              "headshot": 54,
+              "gamesense": 52,
+              "clutch": 46,
+              "utility": 48,
+              "aggression": 90
+            },
+            "desc": "Bursa Espor akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173723639_2_mvl64",
+            "name": "Lukas \"viper\" Polat",
+            "country": "TR",
+            "age": 20,
+            "role": "Rifler (Star)",
+            "tag": "Çaylak",
+            "teamName": "Bursa Espor",
+            "rating": 0.93,
+            "tier": "Amatör Çaylak",
+            "price": 8233,
+            "perk": "onetap_god",
+            "skills": {
+              "aim": 56,
+              "reflex": 57,
+              "headshot": 60,
+              "gamesense": 59,
+              "clutch": 56,
+              "utility": 60,
+              "aggression": 70
+            },
+            "desc": "Bursa Espor akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173723639_3_i3j9g",
+            "name": "Mateo \"strike\" Öztürk",
+            "country": "TR",
+            "age": 21,
+            "role": "Site Anchor",
+            "tag": "Çaylak",
+            "teamName": "Bursa Espor",
+            "rating": 0.83,
+            "tier": "Amatör Çaylak",
+            "price": 5986,
+            "perk": "iron_anchor",
+            "skills": {
+              "aim": 46,
+              "reflex": 47,
+              "headshot": 49,
+              "gamesense": 56,
+              "clutch": 46,
+              "utility": 54,
+              "aggression": 51
+            },
+            "desc": "Bursa Espor akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          },
+          {
+            "id": "p_1795173723639_4_lpfi4",
+            "name": "Mateo \"hunter\" Çelik",
+            "country": "TR",
+            "age": 17,
+            "role": "In-Game Leader (IGL)",
+            "tag": "Çaylak",
+            "teamName": "Bursa Espor",
+            "rating": 0.78,
+            "tier": "Amatör Çaylak",
+            "price": 5270,
+            "perk": "raw_talent",
+            "skills": {
+              "aim": 40,
+              "reflex": 43,
+              "headshot": 43,
+              "gamesense": 49,
+              "clutch": 51,
+              "utility": 48,
+              "aggression": 59
+            },
+            "desc": "Bursa Espor akademisinden yetişmiş, gelişime açık amatör oyuncu."
+          }
+        ],
+        "stats": {
+          "played": 1,
+          "won": 1,
+          "lost": 0,
+          "trophies": 0
+        }
+      },
+      "leagueData": {
+        "tierKey": "amateur",
+        "tierName": "Amatör Çaylak Ligi (Tier 3)",
+        "tierBadge": "🌱",
+        "season": 1,
+        "currentWeek": 2,
+        "isSeasonFinished": false,
+        "champion": null,
+        "standings": [
+          {
+            "teamId": "club_bursa_manager",
+            "name": "Bursa Espor",
+            "shortTag": "BUR",
+            "icon": "🐊",
+            "color": "#00d2ff",
+            "isUser": true,
+            "rating": 0.86,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 13,
+            "roundsLost": 8,
+            "roundDiff": 5,
+            "points": 3
+          },
+          {
+            "teamId": "bot_ege_thunder",
+            "name": "Ege Thunder",
+            "shortTag": "THUNDER",
+            "icon": "⚡",
+            "color": "#f39c12",
+            "isUser": false,
+            "rating": 0.95,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 13,
+            "roundsLost": 8,
+            "roundDiff": 5,
+            "points": 3
+          },
+          {
+            "teamId": "bot_bogazici_esports",
+            "name": "Boğaziçi Esports",
+            "shortTag": "BOGAZ",
+            "icon": "🏛️",
+            "color": "#8e44ad",
+            "isUser": false,
+            "rating": 0.94,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 13,
+            "roundsLost": 10,
+            "roundDiff": 3,
+            "points": 3
+          },
+          {
+            "teamId": "bot_toros_kaplanlari",
+            "name": "Toros Kaplanları",
+            "shortTag": "TOROS",
+            "icon": "🐯",
+            "color": "#d35400",
+            "isUser": false,
+            "rating": 0.96,
+            "played": 1,
+            "won": 1,
+            "lost": 0,
+            "roundsWon": 13,
+            "roundsLost": 10,
+            "roundDiff": 3,
+            "points": 3
+          },
+          {
+            "teamId": "bot_anadolu_genclik",
+            "name": "Anadolu Gençlik",
+            "shortTag": "ANG",
+            "icon": "🦅",
+            "color": "#16a085",
+            "isUser": false,
+            "rating": 0.92,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 10,
+            "roundsLost": 13,
+            "roundDiff": -3,
+            "points": 0
+          },
+          {
+            "teamId": "bot_mezopotamya_stars",
+            "name": "Mezopotamya Stars",
+            "shortTag": "MEZO",
+            "icon": "🌟",
+            "color": "#e67e22",
+            "isUser": false,
+            "rating": 0.93,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 10,
+            "roundsLost": 13,
+            "roundDiff": -3,
+            "points": 0
+          },
+          {
+            "teamId": "bot_kadikoy_bulls",
+            "name": "Kadıköy Bulls",
+            "shortTag": "BULLS",
+            "icon": "🐂",
+            "color": "#c0392b",
+            "isUser": false,
+            "rating": 0.94,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 8,
+            "roundsLost": 13,
+            "roundDiff": -5,
+            "points": 0
+          },
+          {
+            "teamId": "bot_karadeniz_firtina",
+            "name": "Karadeniz Fırtınası",
+            "shortTag": "FIRTINA",
+            "icon": "🌊",
+            "color": "#2980b9",
+            "isUser": false,
+            "rating": 0.93,
+            "played": 1,
+            "won": 0,
+            "lost": 1,
+            "roundsWon": 8,
+            "roundsLost": 13,
+            "roundDiff": -5,
+            "points": 0
+          }
+        ],
+        "fixtures": [
+          {
+            "week": 1,
+            "name": "Hafta 1: Açılış Mücadeleleri",
+            "matches": [
+              {
+                "id": "w1_m1",
+                "homeTeamId": "club_bursa_manager",
+                "awayTeamId": "bot_kadikoy_bulls",
+                "completed": true,
+                "score": {
+                  "homeScore": 13,
+                  "awayScore": 8
+                }
+              },
+              {
+                "id": "w1_m2",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_karadeniz_firtina",
+                "completed": true,
+                "score": {
+                  "homeScore": 13,
+                  "awayScore": 8
+                }
+              },
+              {
+                "id": "w1_m3",
+                "homeTeamId": "bot_anadolu_genclik",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": true,
+                "score": {
+                  "homeScore": 10,
+                  "awayScore": 13
+                }
+              },
+              {
+                "id": "w1_m4",
+                "homeTeamId": "bot_bogazici_esports",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": true,
+                "score": {
+                  "homeScore": 13,
+                  "awayScore": 10
+                }
+              }
+            ]
+          },
+          {
+            "week": 2,
+            "name": "Hafta 2: Klasik Rekabet",
+            "matches": [
+              {
+                "id": "w2_m1",
+                "homeTeamId": "club_bursa_manager",
+                "awayTeamId": "bot_ege_thunder",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w2_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w2_m3",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w2_m4",
+                "homeTeamId": "bot_toros_kaplanlari",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 3,
+            "name": "Hafta 3: Liderlik Savaşı",
+            "matches": [
+              {
+                "id": "w3_m1",
+                "homeTeamId": "club_bursa_manager",
+                "awayTeamId": "bot_karadeniz_firtina",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w3_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_ege_thunder",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w3_m3",
+                "homeTeamId": "bot_anadolu_genclik",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w3_m4",
+                "homeTeamId": "bot_toros_kaplanlari",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 4,
+            "name": "Hafta 4: Kritik Viraj",
+            "matches": [
+              {
+                "id": "w4_m1",
+                "homeTeamId": "club_bursa_manager",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w4_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_karadeniz_firtina",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w4_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w4_m4",
+                "homeTeamId": "bot_bogazici_esports",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 5,
+            "name": "Hafta 5: Zirve Mücadelesi",
+            "matches": [
+              {
+                "id": "w5_m1",
+                "homeTeamId": "club_bursa_manager",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w5_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w5_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w5_m4",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 6,
+            "name": "Hafta 6: Playoff Randevusu",
+            "matches": [
+              {
+                "id": "w6_m1",
+                "homeTeamId": "club_bursa_manager",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w6_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w6_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w6_m4",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              }
+            ]
+          },
+          {
+            "week": 7,
+            "name": "Hafta 7: Şampiyonluk Final Haftası",
+            "matches": [
+              {
+                "id": "w7_m1",
+                "homeTeamId": "club_bursa_manager",
+                "awayTeamId": "bot_mezopotamya_stars",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w7_m2",
+                "homeTeamId": "bot_kadikoy_bulls",
+                "awayTeamId": "bot_bogazici_esports",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w7_m3",
+                "homeTeamId": "bot_ege_thunder",
+                "awayTeamId": "bot_anadolu_genclik",
+                "completed": false,
+                "score": null
+              },
+              {
+                "id": "w7_m4",
+                "homeTeamId": "bot_karadeniz_firtina",
+                "awayTeamId": "bot_toros_kaplanlari",
+                "completed": false,
+                "score": null
+              }
+            ]
+          }
+        ],
+        "botTeams": [
+          {
+            "id": "bot_kadikoy_bulls",
+            "name": "Kadıköy Bulls",
+            "shortTag": "BULLS",
+            "icon": "🐂",
+            "country": "TR",
+            "color": "#c0392b",
+            "coachName": "Alper \"bull\" Kara",
+            "rating": 0.94,
+            "roster": [
+              {
+                "name": "Oğuz \"sniper\" Demir",
+                "role": "AWPer",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 54,
+                  "gamesense": 56,
+                  "clutch": 52,
+                  "utility": 48,
+                  "aggression": 60
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Tolga \"entry\" Yıldız",
+                "role": "Entry Fragger",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 60,
+                  "reflex": 59,
+                  "headshot": 58,
+                  "gamesense": 52,
+                  "clutch": 50,
+                  "utility": 45,
+                  "aggression": 82
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Kaan \"star\" Çelik",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 53,
+                  "gamesense": 54,
+                  "clutch": 51,
+                  "utility": 46,
+                  "aggression": 65
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Sarp \"anchor\" Kaya",
+                "role": "Site Anchor",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 54,
+                  "reflex": 52,
+                  "headshot": 50,
+                  "gamesense": 58,
+                  "clutch": 55,
+                  "utility": 52,
+                  "aggression": 45
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Alper \"igl\" Çetin",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 52,
+                  "reflex": 50,
+                  "headshot": 48,
+                  "gamesense": 60,
+                  "clutch": 54,
+                  "utility": 54,
+                  "aggression": 50
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.94,
+              "aim": 56,
+              "reflex": 55,
+              "gamesense": 56,
+              "clutch": 52,
+              "utility": 49
+            }
+          },
+          {
+            "id": "bot_ege_thunder",
+            "name": "Ege Thunder",
+            "shortTag": "THUNDER",
+            "icon": "⚡",
+            "country": "TR",
+            "color": "#f39c12",
+            "coachName": "Barış \"volt\" Şen",
+            "rating": 0.95,
+            "roster": [
+              {
+                "name": "Efe \"zeus\" Doğan",
+                "role": "AWPer",
+                "rating": 0.96,
+                "skills": {
+                  "aim": 62,
+                  "reflex": 60,
+                  "headshot": 56,
+                  "gamesense": 58,
+                  "clutch": 54,
+                  "utility": 50,
+                  "aggression": 62
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Burak \"rush\" Koç",
+                "role": "Entry Fragger",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 61,
+                  "reflex": 60,
+                  "headshot": 59,
+                  "gamesense": 54,
+                  "clutch": 52,
+                  "utility": 46,
+                  "aggression": 84
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Yiğit \"blade\" Aksoy",
+                "role": "Rifler",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 56,
+                  "headshot": 55,
+                  "gamesense": 55,
+                  "clutch": 53,
+                  "utility": 48,
+                  "aggression": 68
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Doruk \"rock\" Yavuz",
+                "role": "Site Anchor",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 55,
+                  "reflex": 53,
+                  "headshot": 52,
+                  "gamesense": 59,
+                  "clutch": 56,
+                  "utility": 53,
+                  "aggression": 46
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Mert \"brain\" Şahin",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 54,
+                  "reflex": 52,
+                  "headshot": 50,
+                  "gamesense": 62,
+                  "clutch": 55,
+                  "utility": 55,
+                  "aggression": 52
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.94,
+              "aim": 58,
+              "reflex": 56,
+              "gamesense": 58,
+              "clutch": 54,
+              "utility": 50
+            }
+          },
+          {
+            "id": "bot_karadeniz_firtina",
+            "name": "Karadeniz Fırtınası",
+            "shortTag": "FIRTINA",
+            "icon": "🌊",
+            "country": "TR",
+            "color": "#2980b9",
+            "coachName": "Emre \"wave\" Kurt",
+            "rating": 0.93,
+            "roster": [
+              {
+                "name": "Hakan \"storm\" Polat",
+                "role": "AWPer",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 59,
+                  "reflex": 58,
+                  "headshot": 54,
+                  "gamesense": 56,
+                  "clutch": 53,
+                  "utility": 49,
+                  "aggression": 60
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Ozan \"flash\" Aslan",
+                "role": "Entry Fragger",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 56,
+                  "gamesense": 52,
+                  "clutch": 49,
+                  "utility": 44,
+                  "aggression": 80
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Berk \"pulse\" Öztürk",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 53,
+                  "gamesense": 54,
+                  "clutch": 52,
+                  "utility": 47,
+                  "aggression": 66
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Umut \"wall\" Demir",
+                "role": "Site Anchor",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 53,
+                  "reflex": 51,
+                  "headshot": 50,
+                  "gamesense": 57,
+                  "clutch": 54,
+                  "utility": 51,
+                  "aggression": 44
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Deniz \"chief\" Kaya",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 51,
+                  "reflex": 50,
+                  "headshot": 48,
+                  "gamesense": 59,
+                  "clutch": 53,
+                  "utility": 53,
+                  "aggression": 50
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.93,
+              "aim": 55,
+              "reflex": 54,
+              "gamesense": 56,
+              "clutch": 52,
+              "utility": 49
+            }
+          },
+          {
+            "id": "bot_anadolu_genclik",
+            "name": "Anadolu Gençlik",
+            "shortTag": "ANG",
+            "icon": "🦅",
+            "country": "TR",
+            "color": "#16a085",
+            "coachName": "Murat \"kartal\" Yılmaz",
+            "rating": 0.92,
+            "roster": [
+              {
+                "name": "Cem \"falcon\" Çelik",
+                "role": "AWPer",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 57,
+                  "reflex": 56,
+                  "headshot": 52,
+                  "gamesense": 55,
+                  "clutch": 51,
+                  "utility": 47,
+                  "aggression": 58
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Tuna \"strike\" Şen",
+                "role": "Entry Fragger",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 54,
+                  "gamesense": 51,
+                  "clutch": 48,
+                  "utility": 43,
+                  "aggression": 78
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Arda \"razor\" Yıldız",
+                "role": "Rifler",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 55,
+                  "reflex": 54,
+                  "headshot": 52,
+                  "gamesense": 53,
+                  "clutch": 50,
+                  "utility": 46,
+                  "aggression": 64
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Kerem \"shield\" Çetin",
+                "role": "Site Anchor",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 52,
+                  "reflex": 50,
+                  "headshot": 49,
+                  "gamesense": 56,
+                  "clutch": 53,
+                  "utility": 50,
+                  "aggression": 43
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Can \"master\" Aksoy",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.91,
+                "skills": {
+                  "aim": 50,
+                  "reflex": 49,
+                  "headshot": 47,
+                  "gamesense": 58,
+                  "clutch": 52,
+                  "utility": 52,
+                  "aggression": 48
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.92,
+              "aim": 54,
+              "reflex": 53,
+              "gamesense": 55,
+              "clutch": 51,
+              "utility": 48
+            }
+          },
+          {
+            "id": "bot_toros_kaplanlari",
+            "name": "Toros Kaplanları",
+            "shortTag": "TOROS",
+            "icon": "🐯",
+            "country": "TR",
+            "color": "#d35400",
+            "coachName": "Burak \"kaplan\" Doğan",
+            "rating": 0.96,
+            "roster": [
+              {
+                "name": "Sinan \"tiger\" Koç",
+                "role": "AWPer",
+                "rating": 0.97,
+                "skills": {
+                  "aim": 63,
+                  "reflex": 61,
+                  "headshot": 58,
+                  "gamesense": 59,
+                  "clutch": 56,
+                  "utility": 51,
+                  "aggression": 64
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Görkem \"claw\" Aslan",
+                "role": "Entry Fragger",
+                "rating": 0.96,
+                "skills": {
+                  "aim": 63,
+                  "reflex": 62,
+                  "headshot": 60,
+                  "gamesense": 55,
+                  "clutch": 53,
+                  "utility": 47,
+                  "aggression": 86
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Selim \"fang\" Yavuz",
+                "role": "Rifler",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 59,
+                  "reflex": 58,
+                  "headshot": 56,
+                  "gamesense": 56,
+                  "clutch": 54,
+                  "utility": 49,
+                  "aggression": 70
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Volkan \"fort\" Şahin",
+                "role": "Site Anchor",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 54,
+                  "headshot": 53,
+                  "gamesense": 60,
+                  "clutch": 57,
+                  "utility": 54,
+                  "aggression": 48
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Onur \"tactician\" Kurt",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 55,
+                  "reflex": 53,
+                  "headshot": 51,
+                  "gamesense": 63,
+                  "clutch": 56,
+                  "utility": 56,
+                  "aggression": 53
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.95,
+              "aim": 59,
+              "reflex": 58,
+              "gamesense": 59,
+              "clutch": 55,
+              "utility": 51
+            }
+          },
+          {
+            "id": "bot_bogazici_esports",
+            "name": "Boğaziçi Esports",
+            "shortTag": "BOGAZ",
+            "icon": "🏛️",
+            "country": "TR",
+            "color": "#8e44ad",
+            "coachName": "Selim \"bosphorus\" Polat",
+            "rating": 0.94,
+            "roster": [
+              {
+                "name": "Metin \"hawk\" Öztürk",
+                "role": "AWPer",
+                "rating": 0.95,
+                "skills": {
+                  "aim": 60,
+                  "reflex": 59,
+                  "headshot": 55,
+                  "gamesense": 57,
+                  "clutch": 53,
+                  "utility": 49,
+                  "aggression": 61
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Batu \"titan\" Demir",
+                "role": "Entry Fragger",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 59,
+                  "reflex": 58,
+                  "headshot": 57,
+                  "gamesense": 53,
+                  "clutch": 51,
+                  "utility": 45,
+                  "aggression": 81
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Kadir \"snipe\" Kaya",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 57,
+                  "reflex": 56,
+                  "headshot": 54,
+                  "gamesense": 55,
+                  "clutch": 52,
+                  "utility": 48,
+                  "aggression": 67
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "Enes \"guard\" Çelik",
+                "role": "Site Anchor",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 54,
+                  "reflex": 52,
+                  "headshot": 51,
+                  "gamesense": 58,
+                  "clutch": 55,
+                  "utility": 52,
+                  "aggression": 45
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Tarik \"commander\" Şen",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 53,
+                  "reflex": 51,
+                  "headshot": 49,
+                  "gamesense": 61,
+                  "clutch": 55,
+                  "utility": 54,
+                  "aggression": 51
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.94,
+              "aim": 57,
+              "reflex": 55,
+              "gamesense": 57,
+              "clutch": 53,
+              "utility": 50
+            }
+          },
+          {
+            "id": "bot_mezopotamya_stars",
+            "name": "Mezopotamya Stars",
+            "shortTag": "MEZO",
+            "icon": "🌟",
+            "country": "TR",
+            "color": "#e67e22",
+            "coachName": "Yusuf \"star\" Yıldız",
+            "rating": 0.93,
+            "roster": [
+              {
+                "name": "Ferhat \"comet\" Çetin",
+                "role": "AWPer",
+                "rating": 0.94,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 53,
+                  "gamesense": 56,
+                  "clutch": 52,
+                  "utility": 48,
+                  "aggression": 59
+                },
+                "perk": "flick_king"
+              },
+              {
+                "name": "Hamza \"blaze\" Aksoy",
+                "role": "Entry Fragger",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 58,
+                  "reflex": 57,
+                  "headshot": 56,
+                  "gamesense": 52,
+                  "clutch": 50,
+                  "utility": 44,
+                  "aggression": 80
+                },
+                "perk": "aggressive_entry"
+              },
+              {
+                "name": "Baran \"spark\" Doğan",
+                "role": "Rifler",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 56,
+                  "reflex": 55,
+                  "headshot": 53,
+                  "gamesense": 54,
+                  "clutch": 51,
+                  "utility": 47,
+                  "aggression": 65
+                },
+                "perk": "raw_talent"
+              },
+              {
+                "name": "İsmail \"pillar\" Koç",
+                "role": "Site Anchor",
+                "rating": 0.93,
+                "skills": {
+                  "aim": 53,
+                  "reflex": 51,
+                  "headshot": 50,
+                  "gamesense": 57,
+                  "clutch": 54,
+                  "utility": 51,
+                  "aggression": 44
+                },
+                "perk": "iron_anchor"
+              },
+              {
+                "name": "Mahmut \"leader\" Aslan",
+                "role": "In-Game Leader (IGL)",
+                "rating": 0.92,
+                "skills": {
+                  "aim": 52,
+                  "reflex": 50,
+                  "headshot": 48,
+                  "gamesense": 60,
+                  "clutch": 54,
+                  "utility": 53,
+                  "aggression": 50
+                },
+                "perk": "tactical_mastermind"
+              }
+            ],
+            "stats": {
+              "rating": 0.93,
+              "aim": 55,
+              "reflex": 54,
+              "gamesense": 56,
+              "clutch": 52,
+              "utility": 49
+            }
+          }
+        ]
+      }
+    }
+  },
+  "sessions": {
+    "tok_1795173269485_yl5esb9ug": "test_coach",
+    "tok_1795173723639_mufg7b11h": "bursa_manager"
+  }
+}

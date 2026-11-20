@@ -1,6 +1,8 @@
 // SimulatorX - Socket.io Real-Time Networking & Event Dispatcher
 const { WEAPONS } = require('../config/weapons');
 const { ROSTERS, DEFAULT_ROSTERS, PRO_PLAYER_POOL, PERK_DEFINITIONS, ROSTER_PRESETS, calculateTeamStats } = require('../config/rosters');
+const { db } = require('../storage/db');
+const { LEAGUE_TIERS } = require('../config/multiLeague');
 
 function registerSocketHandlers(io, match) {
   io.on('connection', (socket) => {
@@ -15,6 +17,7 @@ function registerSocketHandlers(io, match) {
       playerPool: PRO_PLAYER_POOL,
       perks: PERK_DEFINITIONS,
       presets: ROSTER_PRESETS,
+      leagueTiers: LEAGUE_TIERS,
       league: match.league ? match.league.getLeagueData() : null,
       userClub: match.league ? match.league.userClub : null,
       coaches: match.coaches,
@@ -23,14 +26,87 @@ function registerSocketHandlers(io, match) {
 
     io.emit('online_count', onlineCount);
 
-    // LEAGUE: PLAY NEXT MATCH (Strictly live real-time simulation)
-    socket.on('play_league_match', () => {
-      const loaded = match.loadLeagueMatch();
+    // --- AUTHENTICATION & PROFILE SYSTEM ---
+    socket.on('auth_register', (data, callback) => {
+      const res = db.registerUser(data);
+      if (res.success) {
+        socket.username = res.user.username;
+        socket.emit('auth_success', res);
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('auth_login', (data, callback) => {
+      const res = db.loginUser(data);
+      if (res.success) {
+        socket.username = res.user.username;
+        socket.emit('auth_success', res);
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('auth_token_login', ({ token }, callback) => {
+      const user = db.getUserByToken(token);
+      if (user) {
+        socket.username = user.username;
+        socket.emit('auth_success', { success: true, token, user });
+        if (typeof callback === 'function') callback({ success: true, user });
+      } else {
+        if (typeof callback === 'function') callback({ success: false });
+      }
+    });
+
+    socket.on('update_user_profile', (data, callback) => {
+      const userToUse = data.username || socket.username;
+      if (!userToUse) return;
+      const updatedUser = db.updateUserClub(userToUse, data);
+      if (updatedUser) {
+        socket.emit('user_updated', updatedUser);
+        if (typeof callback === 'function') callback({ success: true, user: updatedUser });
+      }
+    });
+
+    socket.on('save_user_roster', ({ username, roster }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const updatedUser = db.updateUserClub(userToUse, { roster });
+      if (updatedUser) {
+        socket.emit('user_updated', updatedUser);
+        if (typeof callback === 'function') callback({ success: true, user: updatedUser });
+      }
+    });
+
+    socket.on('reset_user_season', ({ username }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const updatedUser = db.resetUserSeason(userToUse);
+      if (updatedUser) {
+        socket.emit('user_updated', updatedUser);
+        if (typeof callback === 'function') callback({ success: true, user: updatedUser });
+      }
+    });
+
+    socket.on('get_tier_overview', ({ tierKey }, callback) => {
+      const overview = db.getTierOverview(tierKey);
+      if (typeof callback === 'function') callback(overview);
+    });
+
+    // --- LEAGUE MATCH START (Live Real-Time Simulation) ---
+    socket.on('start_league_match', ({ username }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const nextMatch = db.getUserNextMatch(userToUse);
+      if (!nextMatch) {
+        if (typeof callback === 'function') callback({ success: false, error: 'Sıradaki maç bulunamadı!' });
+        return;
+      }
+      const loaded = match.loadUserMatch(nextMatch, userToUse);
       if (loaded) {
         io.emit('chat_message', {
           sender: 'LİG HAKEMİ',
-          text: `🏆 ${match.matchInfo.weekName.toUpperCase()} BAŞLADI: ${match.matchInfo.userClub.name} vs ${match.matchInfo.opponent.name}!`
+          text: `🏆 CANLI MAÇ BAŞLADI: ${nextMatch.userClub.name} vs ${nextMatch.opponent.name} (${nextMatch.weekName})`
         });
+        if (typeof callback === 'function') callback({ success: true, matchInfo: match.matchInfo });
       }
     });
 

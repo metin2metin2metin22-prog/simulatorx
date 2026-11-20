@@ -11,54 +11,212 @@
 </head>
 <body class="theme-cs">
 
-  <!-- TOP HEADER HUD -->
-  <header class="hud-top">
-    <!-- CT Coach Badge & Avatars -->
-    <div class="team-header-side ct-side">
-      <div class="coach-banner ct-coach-banner">
-        <span class="coach-icon">👔</span>
-        <div class="coach-info">
-          <span class="coach-role">CT BAŞ KOÇU</span>
-          <span class="coach-name" id="ctCoachName">B1ad3 (AI)</span>
+  <!-- ==========================================
+       VIEW 1: AUTHENTICATION SCREEN (LOGIN & REGISTER)
+       ========================================== -->
+  <div id="viewAuth" class="view-screen auth-screen">
+    <div class="auth-hero-title">🏆 SIMULATORX</div>
+    <div class="auth-hero-sub">5v5 Taktiksel Espor Kulüp Menajeri & Canlı Simülasyon Arenası</div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button id="authTabLogin" class="auth-tab-btn active">🔑 GİRİŞ YAP</button>
+        <button id="authTabRegister" class="auth-tab-btn">🚀 YENİ KULÜP KUR (KAYIT)</button>
+      </div>
+
+      <div id="authErrorAlert" class="auth-error-alert"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="authFormLogin" onsubmit="return false;">
+        <div class="auth-field">
+          <label class="auth-label">Kullanıcı Adı (Menajer):</label>
+          <input type="text" id="loginUsername" class="auth-input" placeholder="Örn: coach_mert" autocomplete="username" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Şifre:</label>
+          <input type="password" id="loginPassword" class="auth-input" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button type="submit" id="btnSubmitLogin" class="btn-auth-submit" style="margin-top:10px;">
+          🎮 Kulübüme Giriş Yap
+        </button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="authFormRegister" style="display:none;" onsubmit="return false;">
+        <div class="auth-field">
+          <label class="auth-label">Menajer Adı (Kullanıcı Adı):</label>
+          <input type="text" id="regUsername" class="auth-input" placeholder="Örn: kurt_coach" maxlength="20" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Giriş Şifresi:</label>
+          <input type="password" id="regPassword" class="auth-input" placeholder="En az 4 karakter" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Espor Kulüp Adı:</label>
+          <input type="text" id="regClubName" class="auth-input" placeholder="Örn: Anadolu Kartalları, Bursa Espor" maxlength="24" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Kulüp Logosu / İkonu Seçin:</label>
+          <div class="reg-icon-selector-wrap">
+            <span id="regSelectedIconBadge" class="reg-selected-badge">🐺</span>
+            <div class="reg-icon-grid" id="regIconSelector">
+              <div class="reg-icon-item selected" data-icon="🐺">🐺</div>
+              <div class="reg-icon-item" data-icon="🦁">🦁</div>
+              <div class="reg-icon-item" data-icon="🦅">🦅</div>
+              <div class="reg-icon-item" data-icon="⚡">⚡</div>
+              <div class="reg-icon-item" data-icon="🛡️">🛡️</div>
+              <div class="reg-icon-item" data-icon="🐉">🐉</div>
+              <div class="reg-icon-item" data-icon="⚔️">⚔️</div>
+              <div class="reg-icon-item" data-icon="🎯">🎯</div>
+              <div class="reg-icon-item" data-icon="👑">👑</div>
+              <div class="reg-icon-item" data-icon="🦈">🦈</div>
+              <div class="reg-icon-item" data-icon="🐯">🐯</div>
+              <div class="reg-icon-item" data-icon="🚀">🚀</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-info-note">
+          🌱 <strong>Kariyer Başlangıcı:</strong> Kayıt olduğunuzda kulübünüze özel <strong>5 adet rastgele amatör yetenek</strong> atanır ve takımınız <strong>Amatör Çaylak Ligi'nden</strong> başlar. Kendi kadronuz kalıcıdır.
+        </div>
+
+        <button type="submit" id="btnSubmitRegister" class="btn-auth-submit">
+          ⭐ Kulübümü Kur & Oyuna Başla
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       VIEW 2: CLUB DASHBOARD & ESPORTS HUB
+       ========================================== -->
+  <div id="viewDashboard" class="view-screen dashboard-screen" style="display:none;">
+    <!-- TOP DASHBOARD BAR -->
+    <header class="dash-top-bar">
+      <div class="dash-club-brand">
+        <div class="dash-club-icon" id="dashClubIcon">🐺</div>
+        <div>
+          <div class="dash-club-name" id="dashClubName">Kulübüm</div>
+          <div class="dash-manager-tag" id="dashManagerTag">@menajer</div>
         </div>
       </div>
-      <div class="team-avatars ct-avatars" id="ctAvatars"></div>
-    </div>
 
-    <!-- Match Center Scoreboard -->
-    <div class="match-center-board">
-      <div class="team-badge ct-badge">
-        <span class="team-name" id="nameCT">CT</span>
-        <span class="team-score" id="scoreCT">0</span>
+      <div class="dash-metrics-group">
+        <div class="dash-chip budget">Kasa: <strong id="dashBudgetVal">$25,000</strong></div>
+        <div class="dash-chip league"><span id="dashLeagueBadge">🌱 Amatör Çaylak Ligi</span></div>
+        <div class="dash-chip"><span id="dashRecordVal">0G - 0M (0 🏆)</span></div>
       </div>
 
-      <div class="timer-container">
-        <div class="round-label" id="roundLabel">LOBİ (BEKLEMEDE)</div>
-        <div class="round-timer" id="roundTimer">00:00</div>
-        <div class="phase-tag" id="phaseTag">LOBİ</div>
+      <div class="dash-actions-group">
+        <button id="btnReturnToSimulation" class="btn btn-return-sim" style="display:none;">
+          🔴 Canlı Maç Arenasına Dön
+        </button>
+        <button id="btnLogout" class="btn btn-logout">🚪 Çıkış</button>
       </div>
+    </header>
 
-      <div class="team-badge t-badge">
-        <span class="team-score" id="scoreT">0</span>
-        <span class="team-name" id="nameT">T</span>
-      </div>
-    </div>
+    <!-- DASHBOARD NAVIGATION TABS -->
+    <nav class="dash-nav-bar" id="dashNavTabs">
+      <button class="dash-tab-btn active" data-tab="match">⚔️ Sıradaki Maç Merkezi</button>
+      <button class="dash-tab-btn" data-tab="squad">👔 Kulüp Kadrom (İlk 5)</button>
+      <button class="dash-tab-btn" data-tab="leagues">🏆 Ligler & Puan Durumu</button>
+      <button class="dash-tab-btn" data-tab="market">🛒 Transfer Pazarı</button>
+    </nav>
 
-    <!-- T Coach Badge & Avatars -->
-    <div class="team-header-side t-side">
-      <div class="team-avatars t-avatars" id="tAvatars"></div>
-      <div class="coach-banner t-coach-banner">
-        <div class="coach-info" style="text-align: right;">
-          <span class="coach-role">T BAŞ KOÇU</span>
-          <span class="coach-name" id="tCoachName">zonic (AI)</span>
+    <!-- DASHBOARD TAB CONTENTS -->
+    <main class="dash-body">
+      <!-- 1. MATCH CENTER TAB -->
+      <section id="tabContentMatch" class="dash-tab-content">
+        <div id="dashMatchHero">
+          <!-- Rendered via DashboardUI -->
         </div>
-        <span class="coach-icon">👔</span>
-      </div>
-    </div>
-  </header>
+      </section>
 
-  <!-- MAIN COACH LAYOUT -->
-  <main class="sim-container">
+      <!-- 2. SQUAD TAB -->
+      <section id="tabContentSquad" class="dash-tab-content" style="display:none;">
+        <div class="dash-squad-summary" id="dashSquadSummary">
+          <!-- Injected via JS -->
+        </div>
+        <div class="dash-squad-grid" id="dashSquadGrid">
+          <!-- 5 Starter Cards Injected via JS -->
+        </div>
+      </section>
+
+      <!-- 3. MULTI-TIER LEAGUES TAB -->
+      <section id="tabContentLeagues" class="dash-tab-content" style="display:none;">
+        <div class="dash-tier-selector" id="dashTierSelector">
+          <button class="dash-tier-btn active" data-tier="amateur">🌱 Amatör Çaylak Ligi (Tier 3)</button>
+          <button class="dash-tier-btn" data-tier="challenger">⚡ Challenger Yarı-Pro (Tier 2)</button>
+          <button class="dash-tier-btn" data-tier="pro">🏆 Pro Espor Süper Ligi (Tier 1)</button>
+        </div>
+        <div id="dashLeagueContent">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+
+      <!-- 4. TRANSFER MARKET TAB -->
+      <section id="tabContentMarket" class="dash-tab-content" style="display:none;">
+        <div id="dashMarketContainer">
+          <!-- Injected via JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       VIEW 3: LIVE MATCH SIMULATION ARENA (5v5 RADAR)
+       ========================================== -->
+  <div id="viewSimulation" class="view-screen simulation-screen" style="display:none;">
+    <!-- TOP HEADER HUD -->
+    <header class="hud-top">
+      <button class="btn btn-ctrl btn-back-dash" id="btnBackToDashboard">← Kulüp Paneline Dön</button>
+
+      <!-- CT Coach Badge & Avatars -->
+      <div class="team-header-side ct-side">
+        <div class="coach-banner ct-coach-banner">
+          <span class="coach-icon">👔</span>
+          <div class="coach-info">
+            <span class="coach-role">CT BAŞ KOÇU</span>
+            <span class="coach-name" id="ctCoachName">B1ad3 (AI)</span>
+          </div>
+        </div>
+        <div class="team-avatars ct-avatars" id="ctAvatars"></div>
+      </div>
+
+      <!-- Match Center Scoreboard -->
+      <div class="match-center-board">
+        <div class="team-badge ct-badge">
+          <span class="team-name" id="nameCT">CT</span>
+          <span class="team-score" id="scoreCT">0</span>
+        </div>
+
+        <div class="timer-container">
+          <div class="round-label" id="roundLabel">LOBİ (BEKLEMEDE)</div>
+          <div class="round-timer" id="roundTimer">00:00</div>
+          <div class="phase-tag" id="phaseTag">LOBİ</div>
+        </div>
+
+        <div class="team-badge t-badge">
+          <span class="team-score" id="scoreT">0</span>
+          <span class="team-name" id="nameT">T</span>
+        </div>
+      </div>
+
+      <!-- T Coach Badge & Avatars -->
+      <div class="team-header-side t-side">
+        <div class="team-avatars t-avatars" id="tAvatars"></div>
+        <div class="coach-banner t-coach-banner">
+          <div class="coach-info" style="text-align: right;">
+            <span class="coach-role">T BAŞ KOÇU</span>
+            <span class="coach-name" id="tCoachName">zonic (AI)</span>
+          </div>
+          <span class="coach-icon">👔</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN COACH LAYOUT -->
+    <main class="sim-container">
     <!-- LEFT PANEL: COACH DESK (TIMEOUT ONLY) -->
     <aside class="panel side-panel left-panel">
       <!-- 1. KULÜBÜMÜZ & LİG MERKEZİ -->
@@ -220,6 +378,7 @@
       </section>
     </aside>
   </main>
+  </div> <!-- END VIEW 3: SIMULATION SCREEN -->
 
   <!-- SCOREBOARD MODAL (TAB) -->
   <div class="scoreboard-modal" id="scoreboardModal" style="display:none;">
@@ -568,6 +727,7 @@
   <script src="js/hud.js"></script>
   <script src="js/leagueUI.js"></script>
   <script src="js/rosterManager.js"></script>
+  <script src="js/dashboardUI.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
