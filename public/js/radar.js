@@ -232,6 +232,17 @@ class RadarRenderer {
         ctx.fillStyle = `rgba(230, 80, 20, ${0.6 * (1 - g.detonateProgress)})`;
         ctx.fill();
       }
+    } else if (g.type === 'smoke') {
+      if (!g.detonated) {
+        // Flying smoke canister
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#95a5a6';
+        ctx.fill();
+        ctx.strokeStyle = '#ecf0f1';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }

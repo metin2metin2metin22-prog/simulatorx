@@ -42,7 +42,7 @@ class BotTactics {
             closestT.y = ny;
           }
         } else {
-          const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
+          const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
           if (!closestT.path || closestT.path.length === 0 || closestT.path[closestT.path.length - 1] !== bombNode) {
             match.setPlayerPath(closestT, bombNode);
           }
@@ -198,7 +198,7 @@ class BotTactics {
             });
 
             // Reposition CTs to guard the dropped bomb
-            const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
+            const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
             aliveCTs.forEach(mate => {
               if (!mate.targetEnemyId) {
                 const d = Math.hypot(mate.x - match.bomb.x, mate.y - match.bomb.y);
@@ -305,7 +305,7 @@ class BotTactics {
     const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
     if (aliveCTs.length === 0) return;
 
-    const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
+    const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
 
     // 1. Identify the Primary Defuser (already defusing, or closest CT / one with kit)
     let bestDefuser = aliveCTs.find(ct => ct.state === 'defusing');
@@ -444,19 +444,21 @@ class BotTactics {
   }
 
   throwSmoke(match, player, targetX, targetY) {
-    match.smokes.push({
-      id: Math.random().toString(36).substr(2, 9),
-      x: targetX,
-      y: targetY,
-      radius: 46,
-      duration: 18,
-      remainingTime: 18
-    });
-    match.events.push({ type: 'smoke_pop', x: targetX, y: targetY });
+    this.throwGrenade(match, player, 'smoke', targetX, targetY);
   }
 
   detonateGrenade(match, g) {
-    if (g.type === 'flash') {
+    if (g.type === 'smoke') {
+      match.smokes.push({
+        id: Math.random().toString(36).substr(2, 9),
+        x: g.x,
+        y: g.y,
+        radius: 46,
+        duration: 18,
+        remainingTime: 18
+      });
+      match.events.push({ type: 'smoke_pop', x: g.x, y: g.y });
+    } else if (g.type === 'flash') {
       match.events.push({ type: 'flash_pop', x: g.x, y: g.y });
       const thrower = match.players[g.throwerId];
 

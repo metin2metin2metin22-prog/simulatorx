@@ -15,10 +15,14 @@ class CombatSystem {
 
     const angleToEnemy = Math.atan2(enemy.y - shooter.y, enemy.x - shooter.x);
     const angleDiff = Math.abs(this.collision.normalizeAngle(shooter.angle - angleToEnemy));
-    if (dist > 48 && angleDiff > 0.72) return false;
 
-    // In CS:GO, point-blank contact (<40 units) inside smoke is visible
-    if (dist > 40 && this.collision.isLineBlockedBySmoke(smokes, shooter.x, shooter.y, enemy.x, enemy.y)) return false;
+    // Realistic human visual cone (~94 degrees FOV). If point-blank (<28 units), allow peripheral up to 1.35 rad.
+    // Under NO circumstances can a player see an enemy behind their back (angleDiff > 1.4) without turning!
+    const maxFov = dist < 28 ? 1.35 : 0.82;
+    if (angleDiff > maxFov) return false;
+
+    // Point-blank contact (<36 units) inside smoke is visible
+    if (dist > 36 && this.collision.isLineBlockedBySmoke(smokes, shooter.x, shooter.y, enemy.x, enemy.y)) return false;
     if (this.collision.isLineBlockedByWall(shooter.x, shooter.y, enemy.x, enemy.y)) return false;
     return true;
   }
@@ -34,6 +38,7 @@ class CombatSystem {
       let bestTarget = null;
       let closestDist = Infinity;
 
+      // 1. Trade target priority (avenging a teammate kill)
       if (p.tradeTargetId && match.players[p.tradeTargetId] && match.players[p.tradeTargetId].alive) {
         const tradeEnemy = match.players[p.tradeTargetId];
         if (this.canSeeEnemy(p, tradeEnemy, match.smokes)) {
@@ -42,6 +47,16 @@ class CombatSystem {
         }
       }
 
+      // 2. Target stickiness: commit to ongoing duel to prevent crosshair dithering / twitching
+      if (!bestTarget && p.targetEnemyId && match.players[p.targetEnemyId] && match.players[p.targetEnemyId].alive) {
+        const currentTarget = match.players[p.targetEnemyId];
+        if (this.canSeeEnemy(p, currentTarget, match.smokes)) {
+          bestTarget = currentTarget;
+          closestDist = Math.hypot(currentTarget.x - p.x, currentTarget.y - p.y);
+        }
+      }
+
+      // 3. Scan visible enemies and lock nearest
       if (!bestTarget) {
         for (const enemy of enemies) {
           if (this.canSeeEnemy(p, enemy, match.smokes)) {
@@ -139,10 +154,19 @@ class CombatSystem {
       const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor) : (0.12 + hsSkillFactor * 0.5));
       isHeadshot = Math.random() < baseHsChance;
 
-      damage = weapon.damage * (isHeadshot ? weapon.hsMult : 1.0);
-      if (target.armor > 0 && !isHeadshot && weapon.type !== 'sniper') {
-        damage = damage * 0.72;
+      if (isHeadshot) {
+        let hsDamage = weapon.damage * weapon.hsMult;
+        // Helmet absorbs ~28% headshot damage for non-1-tap weapons (AK-47 and AWP still 1-tap kill)
+        if (target.hasHelmet && weapon.name !== 'AK-47' && weapon.name !== 'AWP') {
+          hsDamage *= 0.72;
+          target.armor = Math.max(0, target.armor - 18);
+        }
+        damage = hsDamage;
+      } else if (target.armor > 0 && weapon.type !== 'sniper') {
+        damage = weapon.damage * 0.72;
         target.armor = Math.max(0, target.armor - 12);
+      } else {
+        damage = weapon.damage;
       }
 
       damage = Math.round(damage);
@@ -184,6 +208,9 @@ class CombatSystem {
       shooter.burstPauseTimer = 0.26;
     } else if (weapon.type === 'sniper') {
       shooter.burstPauseTimer = 1.35;
+    } else if (weapon.type === 'pistol' && shooter.burstCount >= 2) {
+      shooter.burstCount = 0;
+      shooter.burstPauseTimer = 0.18;
     }
 
     if (!weapon.silenced) {
@@ -371,7 +398,7 @@ class CombatSystem {
 
         // Nearby CTs establish defense over the dropped bomb
         const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
-        const bombNode = getClosestNode(victim.x, victim.y, match.mapData.nodes);
+        const bombNode = getClosestNode(victim.x, victim.y, match.mapData.nodes, match.collision);
         aliveCTs.forEach(ct => {
           if (!ct.targetEnemyId) {
             const d = Math.hypot(ct.x - victim.x, ct.y - victim.y);

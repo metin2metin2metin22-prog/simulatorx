@@ -4,7 +4,7 @@ const { DUST2_DATA } = require('../../public/js/mapData');
 const { WEAPONS } = require('../config/weapons');
 const { ROSTERS } = require('../config/rosters');
 const { T_STRATS, CT_STRATS, DEFAULT_COACHES } = require('../config/constants');
-const { findPath, getClosestNode } = require('../navigation/pathfinding');
+const { findPath, getClosestNode, expandWaypoints } = require('../navigation/pathfinding');
 const { CollisionSystem } = require('./CollisionSystem');
 const { CombatSystem } = require('./CombatSystem');
 const { BotTactics } = require('./BotTactics');
@@ -88,7 +88,7 @@ class PureCoachMatch {
   }
 
   setPlayerPath(player, targetNodeKey) {
-    const currentNodeKey = getClosestNode(player.x, player.y, this.mapData.nodes);
+    const currentNodeKey = getClosestNode(player.x, player.y, this.mapData.nodes, this.collision);
     player.path = findPath(currentNodeKey, targetNodeKey, this.mapData.nodes);
     player.pathIndex = 0;
     player.holdTimer = 0;
@@ -297,6 +297,8 @@ class PureCoachMatch {
       p.sprintTimer = 3.5;
       p.droppedBombSmoked = false;
       p.hasKit = false;
+      p.armor = 0;
+      p.hasHelmet = false;
       p.damageHistory = {};
 
       const spawnList = p.team === 'ct' ? this.mapData.spawns.CT : this.mapData.spawns.T;
@@ -336,10 +338,14 @@ class PureCoachMatch {
       if (Math.random() < 0.35 && p.money >= 700) {
         p.weapon = 'deagle';
         p.money -= 700;
-      }
-      if (p.team === 'ct' && p.money >= 400 && Math.random() < 0.5) {
+      } else if (p.team === 'ct' && p.money >= 400 && Math.random() < 0.45) {
         p.hasKit = true;
         p.money -= 400;
+      } else if (p.money >= 650 && Math.random() < 0.65) {
+        // Kevlar vest buy in pistol round
+        p.armor = 100;
+        p.hasHelmet = false;
+        p.money -= 650;
       }
       return;
     }
@@ -363,14 +369,17 @@ class PureCoachMatch {
         p.hasKit = true;
         p.money -= 400;
       }
-    } else if (p.money >= 1800 && Math.random() < 0.4) {
-      // Occasional force buy
+    } else if (p.money >= 2400) {
+      // Force buy
       p.weapon = p.team === 'ct' ? 'famas' : 'galil';
       p.money -= (p.team === 'ct' ? 2050 : 1800);
       p.armor = 100;
+      p.hasHelmet = false;
     } else {
       // Eco save
       p.weapon = p.team === 'ct' ? 'usp' : 'glock';
+      p.armor = 0;
+      p.hasHelmet = false;
       if (p.money >= 1400 && Math.random() < 0.3) {
         p.weapon = 'deagle';
         p.money -= 700;
@@ -391,7 +400,7 @@ class PureCoachMatch {
     tStrat.assignments.forEach(asg => {
       const p = tPlayers[asg.slot];
       if (p) {
-        p.path = [...asg.path];
+        p.path = expandWaypoints(asg.path, this.mapData.nodes);
         p.pathIndex = 0;
         p.holdTimer = 0;
       }
@@ -402,14 +411,14 @@ class PureCoachMatch {
     if (carrier) {
       const targetNode = this.tTargetSite === 'B' ? 'b_site' : 'a_site';
       if (!carrier.path || carrier.path.length === 0 || carrier.path[carrier.path.length - 1] !== targetNode) {
-        carrier.path.push(targetNode);
+        carrier.path = expandWaypoints((carrier.path || []).concat([targetNode]), this.mapData.nodes);
       }
     }
 
     ctStrat.assignments.forEach(asg => {
       const p = ctPlayers[asg.slot];
       if (p) {
-        p.path = [...asg.path];
+        p.path = expandWaypoints(asg.path, this.mapData.nodes);
         p.pathIndex = 0;
         p.holdTimer = 0;
       }
@@ -499,6 +508,7 @@ class PureCoachMatch {
         const dy = g.targetY - g.y;
         g.x += dx * 6 * dt;
         g.y += dy * 6 * dt;
+        g.timer -= dt;
         if (g.timer <= 0) {
           g.detonated = true;
           g.detonateProgress = 0;
@@ -619,6 +629,10 @@ class PureCoachMatch {
         if (this.isWalkable(nx, ny)) {
           p.x = nx;
           p.y = ny;
+        } else if (this.isWalkable(nx, p.y)) {
+          p.x = nx;
+        } else if (this.isWalkable(p.x, ny)) {
+          p.y = ny;
         }
       }
     }
@@ -707,7 +721,9 @@ class PureCoachMatch {
 
       let baseSpeed = 75; // Pro realistic movement speed for 1:30+ min round duration
       if (p.weapon === 'awp') baseSpeed = 62;
+      else if (p.weapon === 'usp' || p.weapon === 'glock' || p.weapon === 'deagle') baseSpeed = 82;
       if (p.sprintTimer > 0) baseSpeed = 95;
+      if (p.flashDuration > 0.4) baseSpeed *= 0.45;
 
       const nextX = p.x + Math.cos(p.angle) * baseSpeed * dt;
       const nextY = p.y + Math.sin(p.angle) * baseSpeed * dt;

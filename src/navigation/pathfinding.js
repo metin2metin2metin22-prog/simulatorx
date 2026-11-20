@@ -24,20 +24,47 @@ function findPath(startKey, targetKey, nodes) {
   return [targetKey];
 }
 
-function getClosestNode(x, y, nodes) {
+function getClosestNode(x, y, nodes, collisionSystem) {
   let bestKey = 'ct_spawn';
   let minDist = Infinity;
+  let bestVisibleKey = null;
+  let minVisibleDist = Infinity;
+
   for (const [key, node] of Object.entries(nodes)) {
     const d = Math.hypot(node.x - x, node.y - y);
     if (d < minDist) {
       minDist = d;
       bestKey = key;
     }
+    if (collisionSystem && d < 380) {
+      if (!collisionSystem.isLineBlockedByWall(x, y, node.x, node.y)) {
+        if (d < minVisibleDist) {
+          minVisibleDist = d;
+          bestVisibleKey = key;
+        }
+      }
+    }
   }
-  return bestKey;
+  return bestVisibleKey || bestKey;
+}
+
+// Expands any waypoint list into a 100% continuous neighbor-to-neighbor path
+// Guarantees zero gaps and eliminates bots walking straight into solid black walls
+function expandWaypoints(waypointList, nodes) {
+  if (!waypointList || waypointList.length === 0) return [];
+  let fullPath = [waypointList[0]];
+  for (let i = 0; i < waypointList.length - 1; i++) {
+    const from = waypointList[i];
+    const to = waypointList[i + 1];
+    if (from === to) continue;
+    const segment = findPath(from, to, nodes);
+    fullPath = fullPath.concat(segment.slice(1));
+  }
+  return fullPath;
 }
 
 module.exports = {
   findPath,
-  getClosestNode
+  getClosestNode,
+  expandWaypoints
 };
