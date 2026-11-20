@@ -569,7 +569,8 @@ class PureCoachMatch {
 
   tick() {
     const now = Date.now();
-    const dt = ((now - this.lastTick) / 1000) * this.simSpeed;
+    // Strictly 1.0x real-time delta (no speed warp or time skips in online multiplayer)
+    const dt = (now - this.lastTick) / 1000;
     this.lastTick = now;
 
     this.events = [];
@@ -909,6 +910,7 @@ class PureCoachMatch {
       isPaused: this.isPaused,
       score: this.score,
       coaches: this.coaches,
+      onlineCount: Object.keys(this.connectedSockets).length,
       currentRosters: this.currentRosters,
       activeStrategies: this.activeStrategies,
       timeoutState: this.timeoutState,

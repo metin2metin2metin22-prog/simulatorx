@@ -4,6 +4,9 @@ const { ROSTERS, DEFAULT_ROSTERS, PRO_PLAYER_POOL, PERK_DEFINITIONS, ROSTER_PRES
 
 function registerSocketHandlers(io, match) {
   io.on('connection', (socket) => {
+    match.connectedSockets[socket.id] = { connectedAt: Date.now() };
+    const onlineCount = Object.keys(match.connectedSockets).length;
+
     socket.emit('init_data', {
       mapData: match.mapData,
       weapons: WEAPONS,
@@ -13,10 +16,14 @@ function registerSocketHandlers(io, match) {
       perks: PERK_DEFINITIONS,
       presets: ROSTER_PRESETS,
       league: match.league ? match.league.getLeagueData() : null,
-      userClub: match.league ? match.league.userClub : null
+      userClub: match.league ? match.league.userClub : null,
+      coaches: match.coaches,
+      onlineCount
     });
 
-    // LEAGUE: PLAY NEXT MATCH
+    io.emit('online_count', onlineCount);
+
+    // LEAGUE: PLAY NEXT MATCH (Strictly live real-time simulation)
     socket.on('play_league_match', () => {
       const loaded = match.loadLeagueMatch();
       if (loaded) {
@@ -25,25 +32,6 @@ function registerSocketHandlers(io, match) {
           text: `🏆 ${match.matchInfo.weekName.toUpperCase()} BAŞLADI: ${match.matchInfo.userClub.name} vs ${match.matchInfo.opponent.name}!`
         });
       }
-    });
-
-    // LEAGUE: QUICK SIMULATE MATCH
-    socket.on('quick_sim_league_match', () => {
-      if (!match.league) return;
-      const nextMatch = match.league.getUserNextMatch();
-      if (!nextMatch) return;
-      const userTeam = match.league.getTeamById(match.league.userClub.id);
-      const opponentTeam = nextMatch.opponent;
-      const sim = match.league.simulateBotMatch(userTeam, opponentTeam);
-      
-      const homeScore = nextMatch.isHome ? sim.homeScore : sim.awayScore;
-      const awayScore = nextMatch.isHome ? sim.awayScore : sim.homeScore;
-      match.league.advanceWeekWithUserResult(homeScore, awayScore);
-      io.emit('league_data', match.league.getLeagueData());
-      io.emit('chat_message', {
-        sender: 'LİG HAKEMİ',
-        text: `⚡ ${nextMatch.weekName} Simüle Edildi: ${userTeam.name} ${homeScore} : ${awayScore} ${opponentTeam.name}`
-      });
     });
 
     // LEAGUE: UPDATE USER CLUB
@@ -96,15 +84,19 @@ function registerSocketHandlers(io, match) {
       io.emit('chat_message', { sender: 'HAKEM', text: 'Maç sıfırlandı, lobiye dönüldü.' });
     });
 
-    // BECOME COACH
+    // BECOME COACH / CLAIM TEAM (Multiplayer Online)
     socket.on('join_coach', ({ team, coachName }) => {
       if (team === 'ct' || team === 't') {
-        match.coaches[team].name = coachName || `${team.toUpperCase()} Koçu`;
+        match.coaches[team].name = coachName || `${team.toUpperCase()} Sahibi / Koçu`;
         match.coaches[team].isHuman = true;
         match.coaches[team].socketId = socket.id;
-        match.connectedSockets[socket.id] = { team, coachName };
-        socket.emit('coach_joined_ack', { team, coachName });
-        io.emit('chat_message', { sender: 'SİSTEM', text: `${coachName} artık ${team.toUpperCase()} Takımı Koçu!` });
+        match.connectedSockets[socket.id] = { team, coachName: match.coaches[team].name };
+        socket.emit('coach_joined_ack', { team, coachName: match.coaches[team].name });
+        io.emit('coaches_updated', match.coaches);
+        io.emit('chat_message', { 
+          sender: 'LİG YÖNETİMİ', 
+          text: `🟢 ${match.coaches[team].name} (${team.toUpperCase()}) çevrimiçi oldu ve takımının yönetimini devraldı!` 
+        });
       }
     });
 
@@ -157,17 +149,20 @@ function registerSocketHandlers(io, match) {
       io.emit('chat_message', { sender: sender || 'İzleyici', text, time: Date.now() });
     });
 
-    socket.on('set_speed', ({ speed }) => {
-      match.simSpeed = speed;
-    });
-
+    // Real-Time Online Disconnect Handler
     socket.on('disconnect', () => {
       const user = match.connectedSockets[socket.id];
-      if (user && match.coaches[user.team]) {
+      if (user && user.team && match.coaches[user.team]) {
         match.coaches[user.team].isHuman = false;
         match.coaches[user.team].socketId = null;
-        delete match.connectedSockets[socket.id];
+        io.emit('coaches_updated', match.coaches);
+        io.emit('chat_message', { 
+          sender: 'LİG YÖNETİMİ', 
+          text: `⚪ ${user.coachName || user.team.toUpperCase()} ayrıldı. Takım otonom moda geçti.` 
+        });
       }
+      delete match.connectedSockets[socket.id];
+      io.emit('online_count', Object.keys(match.connectedSockets).length);
     });
   });
 }

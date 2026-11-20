@@ -80,6 +80,16 @@
         <div class="current-role-badge">
           Aktif Rol: <strong id="activeCoachRole">Kulüp Sahibi & Koç</strong>
         </div>
+        <div class="online-team-claim-box" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+          <div style="font-size:10px; color:#8b9bb4; font-weight:800; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎮 ÇEVRİMİÇİ TAKIMINI SEÇ:</span>
+            <span id="myClaimedSideTag" style="color:#f1c40f; font-size:9px;">İzleyici / Tarafsız</span>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+            <button class="btn btn-ctrl btn-claim-team" id="btnClaimCT" style="background:#132338; border-color:#00d2ff; color:#00d2ff; font-weight:bold; font-size:10px; padding:6px 4px; border-radius:4px;">🛡️ CT Takımını Yönet</button>
+            <button class="btn btn-ctrl btn-claim-team" id="btnClaimT" style="background:#361618; border-color:#e74c3c; color:#e74c3c; font-weight:bold; font-size:10px; padding:6px 4px; border-radius:4px;">💣 T Takımını Yönet</button>
+          </div>
+        </div>
       </section>
 
       <!-- 2. THE ONLY IN-GAME POWER: TACTICAL TIMEOUT -->
@@ -167,11 +177,10 @@
           <button class="btn btn-ctrl" id="btnToggleScoreboard">TAB (Skor Tablosu)</button>
           <button class="btn btn-ctrl" id="btnTogglePlayerCards">🃏 Oyuncu Kartları (10)</button>
           <button class="btn btn-ctrl" id="btnSoundToggle">🔊 Ses: Açık</button>
-          <div class="speed-btns">
-            <span class="speed-label">Simülasyon Hızı:</span>
-            <button class="btn btn-speed active" data-speed="1.0">1x</button>
-            <button class="btn btn-speed" data-speed="2.0">2x</button>
-            <button class="btn btn-speed" data-speed="3.0">3x</button>
+          <div class="online-sync-badge">
+            <span class="live-dot-pulse"></span>
+            <span class="sync-title">CANLI SENKRON MAÇ YAYINI (1.0x)</span>
+            <span class="online-count-pill" id="onlineCountPill">👥 <strong id="onlineUsersCountDisplay">1</strong> Çevrimiçi</span>
           </div>
         </div>
       </div>

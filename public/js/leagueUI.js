@@ -136,10 +136,18 @@ class LeagueUI {
         : `${opponent.icon} ${opponent.name} <small>(T)</small>`;
     }
     if (ctCoach) {
-      ctCoach.innerText = userIsCTNow ? `Koç (Siz)` : `${opponent.coachName || 'Koç'} (AI)`;
+      if (state && state.coaches && state.coaches.ct && state.coaches.ct.isHuman) {
+        ctCoach.innerHTML = `<strong style="color:#00d2ff;">${state.coaches.ct.name}</strong> <small style="color:#2ecc71;">(🟢 Çevrimiçi)</small>`;
+      } else {
+        ctCoach.innerText = userIsCTNow ? `Koç (Siz)` : `${opponent.coachName || 'Koç'} (AI)`;
+      }
     }
     if (tCoach) {
-      tCoach.innerText = !userIsCTNow ? `Koç (Siz)` : `${opponent.coachName || 'Koç'} (AI)`;
+      if (state && state.coaches && state.coaches.t && state.coaches.t.isHuman) {
+        tCoach.innerHTML = `<strong style="color:#e74c3c;">${state.coaches.t.name}</strong> <small style="color:#2ecc71;">(🟢 Çevrimiçi)</small>`;
+      } else {
+        tCoach.innerText = !userIsCTNow ? `Koç (Siz)` : `${opponent.coachName || 'Koç'} (AI)`;
+      }
     }
   }
 
@@ -214,10 +222,7 @@ class LeagueUI {
       <!-- MATCH ACTION BUTTONS -->
       <div class="lh-actions-row">
         <button class="btn btn-primary btn-play-match" id="btnHeroPlayMatch">
-          🔥 Canlı Maça Çık (Oyna)
-        </button>
-        <button class="btn btn-secondary btn-quick-sim" id="btnHeroQuickSim">
-          ⚡ Hızlı Simüle Et (Atla)
+          🔥 Canlı Maça Çık (Gerçek Zamanlı İzle)
         </button>
       </div>
     `;
@@ -225,10 +230,6 @@ class LeagueUI {
     document.getElementById('btnHeroPlayMatch')?.addEventListener('click', () => {
       this.socket.emit('play_league_match');
       this.closeModal();
-    });
-
-    document.getElementById('btnHeroQuickSim')?.addEventListener('click', () => {
-      this.socket.emit('quick_sim_league_match');
     });
   }
 

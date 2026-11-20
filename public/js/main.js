@@ -198,40 +198,74 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.emit('restart_match');
   });
 
-  // 4. BECOME COACH (Optional fallback if buttons exist)
-  const btnCoachCT = document.getElementById('btnCoachCT');
-  if (btnCoachCT) {
-    btnCoachCT.addEventListener('click', () => {
+  // 4. MULTIPLAYER ONLINE: CLAIM CT OR T TEAM
+  const btnClaimCT = document.getElementById('btnClaimCT');
+  const btnClaimT = document.getElementById('btnClaimT');
+  const myClaimedSideTag = document.getElementById('myClaimedSideTag');
+  const activeCoachRole = document.getElementById('activeCoachRole');
+
+  if (btnClaimCT) {
+    btnClaimCT.addEventListener('click', () => {
       initAudio();
+      const defaultName = window.rosterManager?.userClub?.name || "🐺 Anadolu Wolves";
+      coachName = prompt("CT Takımını Yöneten İsim / Kulüp Adı:", defaultName) || "CT Sahibi";
       localTeam = 'ct';
-      coachName = prompt("CT Takımı Koçu İsminiz:", "B1ad3") || "B1ad3";
       socket.emit('join_coach', { team: 'ct', coachName });
-      const el = document.getElementById('activeCoachRole');
-      if (el) el.innerText = `CT Koçu (${coachName})`;
+      if (myClaimedSideTag) myClaimedSideTag.innerText = `🛡️ CT (${coachName})`;
+      if (activeCoachRole) activeCoachRole.innerText = `🛡️ CT Sahibi & Koçu (${coachName})`;
+      btnClaimCT.classList.add('active');
+      if (btnClaimT) btnClaimT.classList.remove('active');
     });
   }
 
-  const btnCoachT = document.getElementById('btnCoachT');
-  if (btnCoachT) {
-    btnCoachT.addEventListener('click', () => {
+  if (btnClaimT) {
+    btnClaimT.addEventListener('click', () => {
       initAudio();
+      const defaultName = "💣 Rakip Espor Kulübü";
+      coachName = prompt("T Takımını Yöneten İsim / Kulüp Adı:", defaultName) || "T Sahibi";
       localTeam = 't';
-      coachName = prompt("T Takımı Koçu İsminiz:", "zonic") || "zonic";
       socket.emit('join_coach', { team: 't', coachName });
-      const el = document.getElementById('activeCoachRole');
-      if (el) el.innerText = `T Koçu (${coachName})`;
+      if (myClaimedSideTag) myClaimedSideTag.innerText = `💣 T (${coachName})`;
+      if (activeCoachRole) activeCoachRole.innerText = `💣 T Sahibi & Koçu (${coachName})`;
+      btnClaimT.classList.add('active');
+      if (btnClaimCT) btnClaimCT.classList.remove('active');
     });
   }
 
-  const btnCoachSpec = document.getElementById('btnCoachSpec');
-  if (btnCoachSpec) {
-    btnCoachSpec.addEventListener('click', () => {
-      initAudio();
-      localTeam = null;
-      const el = document.getElementById('activeCoachRole');
-      if (el) el.innerText = 'İzleyici';
-    });
+  // ONLINE COACHES & SPECTATORS SYNC
+  function updateCoachesUI(coaches) {
+    if (!coaches) return;
+    const ctNameEl = document.getElementById('ctCoachName');
+    const tNameEl = document.getElementById('tCoachName');
+
+    if (ctNameEl && coaches.ct) {
+      ctNameEl.innerHTML = coaches.ct.isHuman
+        ? `<strong style="color:#00d2ff;">${coaches.ct.name}</strong> <small style="color:#2ecc71;">(🟢 Çevrimiçi)</small>`
+        : `${coaches.ct.name} <small style="color:#8b9bb4;">(AI)</small>`;
+    }
+    if (tNameEl && coaches.t) {
+      tNameEl.innerHTML = coaches.t.isHuman
+        ? `<strong style="color:#e74c3c;">${coaches.t.name}</strong> <small style="color:#2ecc71;">(🟢 Çevrimiçi)</small>`
+        : `${coaches.t.name} <small style="color:#8b9bb4;">(AI)</small>`;
+    }
   }
+
+  socket.on('init_data', (data) => {
+    if (data.coaches) updateCoachesUI(data.coaches);
+    if (data.onlineCount) {
+      const el = document.getElementById('onlineUsersCountDisplay');
+      if (el) el.innerText = data.onlineCount;
+    }
+  });
+
+  socket.on('coaches_updated', (coaches) => {
+    updateCoachesUI(coaches);
+  });
+
+  socket.on('online_count', (count) => {
+    const el = document.getElementById('onlineUsersCountDisplay');
+    if (el) el.innerText = count;
+  });
 
   // 5. THE ONLY IN-GAME INTERVENTION: TACTICAL TIMEOUT (MOLA AL)
   const btnTimeout = document.getElementById('btnCallTimeout');
@@ -266,17 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scoreboardModal.style.display = 'none';
   });
 
-  // 7. SIMULATION SPEED
-  document.querySelectorAll('.btn-speed').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const speed = parseFloat(btn.dataset.speed);
-      socket.emit('set_speed', { speed });
-    });
-  });
-
-  // 8. SOUND TOGGLE
+  // 7. SOUND TOGGLE
   const btnSound = document.getElementById('btnSoundToggle');
   btnSound.addEventListener('click', () => {
     window.soundEngine.enabled = !window.soundEngine.enabled;
