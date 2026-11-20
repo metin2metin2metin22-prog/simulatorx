@@ -73,6 +73,9 @@ class PureCoachMatch {
     this.fires = [];
     this.bMollyStage = 0;
     this.bMolly1Time = 0;
+    this.midToBCrossSmoked = false;
+    this.fakeAExecuted = false;
+    this.fakeBHitCalled = false;
     this.killfeed = [];
     this.events = [];
     this.radioMessages = [];
@@ -240,6 +243,9 @@ class PureCoachMatch {
     this.fires = [];
     this.bMollyStage = 0;
     this.bMolly1Time = 0;
+    this.midToBCrossSmoked = false;
+    this.fakeAExecuted = false;
+    this.fakeBHitCalled = false;
     this.droppedKits = []; // Clear dropped kits for fresh round
     this.events.push({ type: 'round_freeze', round: this.round });
 
@@ -357,27 +363,50 @@ class PureCoachMatch {
 
   executeTeamAutonomousBuy(team) {
     const teamPlayers = Object.values(this.players).filter(p => p.team === team);
+
+    // CS:GO PISTOL ROUND META: Round 1 & Round 13 (Starting halves, max $800)
     if (this.round === 1 || this.round === 13) {
-      teamPlayers.forEach(p => {
+      teamPlayers.forEach((p, idx) => {
         p.weapon = team === 'ct' ? 'usp' : 'glock';
         p.armor = 0;
         p.hasHelmet = false;
         p.hasKit = false;
-        if (Math.random() < 0.60 && p.money >= 650) {
+        p.isDeagleEcoTrap = false;
+
+        // 3 Players Buy Kevlar Armor ($650): Slots 0, 1, 2
+        if (idx <= 2 && p.money >= 650) {
           p.armor = 100;
           p.hasHelmet = false;
           p.money -= 650;
-        } else if (team === 'ct' && p.money >= 400 && Math.random() < 0.45) {
-          p.hasKit = true;
-          p.money -= 400;
-        } else if (p.money >= 700 && Math.random() < 0.35) {
-          p.weapon = 'deagle';
-          p.money -= 700;
+        } else {
+          // 2 Players (IGL & Support) Buy Utility & Kits ($600-$700): Slots 3, 4
+          if (team === 'ct') {
+            if (idx === 3 && p.money >= 600) {
+              p.hasKit = true;
+              p.money -= 600; // Kit ($400) + Flash ($200)
+            } else if (p.money >= 500) {
+              p.money -= 500; // Smoke ($300) + Flash ($200)
+            }
+          } else {
+            if (idx === 3 && p.money >= 700) {
+              p.weapon = 'deagle'; // Firepower upgrade
+              p.money -= 700;
+            } else if (p.money >= 500) {
+              p.money -= 500; // Smoke ($300) + Flash ($200)
+            }
+          }
         }
         const w = WEAPONS[p.weapon] || WEAPONS.ak47;
         p.ammo = w.clipSize || 30;
         p.reserveAmmo = w.maxReserve || 90;
       });
+
+      const igl = teamPlayers.find(p => p.slot === 0 || p.slot === 1) || teamPlayers[0];
+      if (team === 'ct') {
+        this.addRadioMessage('ct', igl.name, "TABANCA RAUNDU: 3 kişi yelek aldı, 2 kişi flaş ve sisle girişleri tutuyor!");
+      } else {
+        this.addRadioMessage('t', igl.name, "TABANCA RAUNDU: Yelekli oyuncular önden çıkacak, arkadan flaş ve sisle açıyoruz!");
+      }
       return;
     }
 
@@ -456,12 +485,15 @@ class PureCoachMatch {
           p.money -= 650;
         }
       } else {
-        // ECO SAVE
+        // ECO BUY: 2 players with high aim skill buy Deagles and set up the 1-tap ambush!
+        p.isDeagleEcoTrap = false;
         if (!hasRifleOrAwp) {
           p.weapon = team === 'ct' ? 'usp' : 'glock';
-          if (p.money >= 1800 && Math.random() < 0.35) {
+          const deagleWorthy = (p.slot === 0 || p.slot === 1 || (p.skills && p.skills.aim >= 95));
+          if (deagleWorthy && p.money >= 1700 && Math.random() < 0.85) {
             p.weapon = 'deagle';
             p.money -= 700;
+            p.isDeagleEcoTrap = true;
           }
         }
       }
@@ -473,7 +505,12 @@ class PureCoachMatch {
 
     const igl = teamPlayers.find(p => p.slot === 0 || p.slot === 1) || teamPlayers[0];
     if (teamStrat === 'eco') {
-      this.addRadioMessage(team, igl.name, 'ECO RAUND! Para biriktiriyoruz, sonraki raunt tam alım yapacağız.');
+      const hasDeagles = teamPlayers.some(p => p.weapon === 'deagle' && p.isDeagleEcoTrap);
+      if (hasDeagles) {
+        this.addRadioMessage(team, igl.name, "ECO RAUND: Deagle tuzağı kurduk, dar açıda bekliyoruz! Tek mermiyle silah çalacağız!");
+      } else {
+        this.addRadioMessage(team, igl.name, "ECO RAUND! Para biriktiriyoruz, sonraki raunt tam alım yapacağız.");
+      }
     } else if (teamStrat === 'force_buy') {
       this.addRadioMessage(team, igl.name, 'FORCE BUY! Kırılma raundu, elimizdeki parayla yükleneceğiz!');
     } else {

@@ -5,6 +5,7 @@ const STRAT_NAMES = {
   long_a_execute: "Long A Execute",
   a_split: "A Split (Short & Long)",
   mid_to_b: "Mid to B Split",
+  fake_a_to_b: "Sahte A -> B Execute (Fake)",
   default_pick: "Default (Harita Kontrolü)",
   standard_212: "Standart 2-1-2",
   aggressive_long: "Agresif Long Baskısı",

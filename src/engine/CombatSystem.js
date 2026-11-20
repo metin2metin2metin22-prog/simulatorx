@@ -355,6 +355,12 @@ class CombatSystem {
     const smokeExitShooterPenalty = (shooter.smokeExitTimer > 0) ? -0.18 : 0;
     const smokeExitTargetBonus = (target.smokeExitTimer > 0) ? 0.15 : 0;
 
+    // 8. DEAGLE 1-TAP ECO AMBUSH MECHANIC:
+    let deagleOneTapHsBonus = 0;
+    if (weapon.name === 'Desert Eagle' && shooter.isDeagleEcoTrap && shooter.burstCount === 1 && shooterInCover && dist <= 480) {
+      deagleOneTapHsBonus = 0.28;
+    }
+
     // Crosshair alignment check: If shooter's angle has not settled onto target yet (<0.15 rad ~8 deg), apply flick penalty
     const angleToTarget = Math.atan2(target.y - shooter.y, target.x - shooter.x);
     const aimSettlingDiff = Math.abs(this.collision.normalizeAngle(shooter.angle - angleToTarget));
@@ -377,13 +383,15 @@ class CombatSystem {
       const coverHsBonus = (shooterInCover && shooter.burstCount === 1) ? 0.08 : 0;
       const crouchTargetHsPenalty = target.isCrouching ? -0.06 : 0;
       const hsSkillFactor = (aim / 100) * 0.30;
-      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor + coverHsBonus + crouchTargetHsPenalty) : (0.12 + hsSkillFactor * 0.5 + crouchTargetHsPenalty));
+      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor + coverHsBonus + crouchTargetHsPenalty + deagleOneTapHsBonus) : (0.12 + hsSkillFactor * 0.5 + crouchTargetHsPenalty));
       isHeadshot = Math.random() < Math.max(0.04, baseHsChance);
 
       if (isHeadshot) {
         let hsDamage = weapon.damage * weapon.hsMult;
-        // Helmet absorbs ~28% headshot damage for non-1-tap weapons (AK-47 and AWP still 1-tap kill)
-        if (target.hasHelmet && weapon.name !== 'AK-47' && weapon.name !== 'AWP') {
+        // CS:GO Desert Eagle Fatal 1-Tap Kill (even with helmet at close-medium range <= 450 units)
+        if (weapon.name === 'Desert Eagle' && dist <= 480) {
+          hsDamage = Math.max(105, hsDamage);
+        } else if (target.hasHelmet && weapon.name !== 'AK-47' && weapon.name !== 'AWP') {
           hsDamage *= 0.72;
           target.armor = Math.max(0, target.armor - 18);
         }
@@ -497,6 +505,22 @@ class CombatSystem {
 
     killer.kills++;
     killer.money += (weapon.type === 'sniper' ? 100 : 300);
+
+    // CS:GO WEAPON STEAL / UPGRADE MECHANIC:
+    // If killer holds a pistol/deagle and victim drops a primary rifle or AWP, killer immediately grabs it!
+    const victimW = victim.weapon;
+    const isVictimRifleOrAwp = victimW === 'ak47' || victimW === 'm4a1' || victimW === 'm4a4' || victimW === 'awp';
+    const isKillerOnPistol = killer.weapon === 'usp' || killer.weapon === 'glock' || killer.weapon === 'deagle';
+
+    if (isKillerOnPistol && isVictimRifleOrAwp && killer.alive) {
+      killer.weapon = victimW;
+      killer.isDeagleEcoTrap = false;
+      const wDef = WEAPONS[killer.weapon] || WEAPONS.ak47;
+      killer.ammo = wDef.clipSize || 30;
+      killer.reserveAmmo = wDef.maxReserve || 90;
+      match.events.push({ type: 'weapon_steal', killerId: killer.id, weapon: victimW });
+      match.addRadioMessage(killer.team, killer.name, `[SİLAH ÇALINDI] Yerdeki ${victimW.toUpperCase()}'ı aldım, raundu çevirebiliriz!`);
+    }
 
     // CS:GO Defuse Kit Drop Mechanics
     if (victim.team === 'ct' && victim.hasKit) {

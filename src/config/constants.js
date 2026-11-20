@@ -2,7 +2,7 @@
 const PORT = process.env.PORT || 3000;
 
 // Autonomous IGL Strategy Identifiers
-const T_STRATS = ['rush_b', 'a_short_rush', 'long_a_execute', 'a_split', 'mid_to_b'];
+const T_STRATS = ['rush_b', 'a_short_rush', 'long_a_execute', 'a_split', 'mid_to_b', 'fake_a_to_b'];
 const CT_STRATS = ['standard_212', 'aggressive_long', 'b_stack', 'cat_control', 'retake_defense'];
 
 // Default AI Coaches for both sides

@@ -156,6 +156,18 @@ const DUST2_DATA = {
           { slot: 3, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_car", "b_site"], role: "tunnel_trade" },
           { slot: 4, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "mid_palm", "mid_doors_t", "mid_doors_ct", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_site"], role: "rearguard" }
         ]
+      },
+      fake_a_to_b: {
+        name: "Tactical Fake A -> B Execute",
+        description: "1 T Long A'ya sis/flaş yağdırıp sahte hücum başlatır, CT'leri A'ya çeker. Bomba taşıyan 4 T boşalan B'ye dalar.",
+        targetSite: "B",
+        assignments: [
+          { slot: 0, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site"], role: "b_entry" },
+          { slot: 1, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_car", "b_site"], role: "b_planter" },
+          { slot: 2, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site"], role: "b_trade" },
+          { slot: 3, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_cross_hall", "b_doors"], role: "b_flank_cut" },
+          { slot: 4, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit"], role: "a_faker" }
+        ]
       }
     },
     CT: {

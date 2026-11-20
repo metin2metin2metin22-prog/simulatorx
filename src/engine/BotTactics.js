@@ -102,6 +102,18 @@ class BotTactics {
     // 1.5. Fire Obstruction & Pro Smoke Extinguish Counter:
     this.handleTFireObstructionAndSmokeExtinguish(match, aliveTs, dt);
 
+    // 1.8. Tactical Fake A -> B Execute:
+    if (match.activeStrategies.t === 'fake_a_to_b' && match.timer <= 87 && !match.fakeBHitCalled) {
+      match.fakeBHitCalled = true;
+      match.addRadioMessage('t', 'electronic (IGL)', "CT'ler A'ya kaydı, B bomboş! B'ye girin ve kurun!");
+      aliveTs.forEach(t => {
+        if (t.slot !== 4 && !t.targetEnemyId) {
+          match.setPlayerPath(t, 'b_site');
+          t.sprintTimer = 3.5;
+        }
+      });
+    }
+
     // 2. Coordinated Team Execute Call after 10-12 seconds of round start:
     // IGL issues all-out push command and all alive Ts flood the bombsite together
     if (match.timer <= 88 && !match.tExecuteCalled) {
@@ -568,6 +580,45 @@ class BotTactics {
     if (match.smokes.length + match.grenades.length > 7) return;
 
     if (p.team === 't') {
+      // 1. MID TO B SPLIT: Throw CT Spawn cross smoke to block snipers from A!
+      if (match.activeStrategies.t === 'mid_to_b' && (nodeKey === 'mid_palm' || nodeKey === 'mid_doors_t' || nodeKey === 'top_mid') && !match.midToBCrossSmoked) {
+        match.midToBCrossSmoked = true;
+        this.throwSmoke(match, p, 580, 340);
+        match.addRadioMessage('t', p.name, "CT Spawn'a perdeleme sisi attım! Mid'den B'ye geçiş temiz, akın!");
+      }
+
+      // 2. TACTICAL FAKE A -> B EXECUTE:
+      if (match.activeStrategies.t === 'fake_a_to_b' && p.slot === 4 && (nodeKey === 'long_doors_t' || nodeKey === 'outside_long') && !match.fakeAExecuted) {
+        match.fakeAExecuted = true;
+        this.throwSmoke(match, p, 830, 240); // Smoke Long Cross
+        setTimeout(() => {
+          if (p.alive && match.phase === 'live') {
+            this.throwGrenade(match, p, 'flash', 800, 200); // Flash A Site
+            match.events.push({ type: 'fake_shots', x: p.x, y: p.y });
+          }
+        }, 500);
+        match.addRadioMessage('t', p.name, "A Long'a sis ve flaş attım, çatışma başlattım! Bütün dikkatleri A'ya çekiyorum!");
+
+        // Trigger CT A Anchor panic call & B CT rotation!
+        const aliveCTs = Object.values(match.players).filter(ct => ct.team === 'ct' && ct.alive);
+        const aCT = aliveCTs.find(ct => ct.x > 650);
+        if (aCT) {
+          setTimeout(() => {
+            if (aCT.alive && match.phase === 'live') {
+              match.addRadioMessage('ct', aCT.name, "A'YA BASIYORLAR! Long'a sis ve flaş yağdı, acil desteğe gelin!");
+              match.ctRushIntel = { detected: true, site: 'A', lastCallTime: Date.now(), count: 3 };
+              // Pull 1 CT from B to rotate towards A Goose!
+              const bCTs = aliveCTs.filter(ct => ct.x < 400);
+              if (bCTs.length >= 2) {
+                const rotatingB = bCTs[1];
+                match.setPlayerPath(rotatingB, 'goose');
+                match.addRadioMessage('ct', rotatingB.name, "B'den A'ya desteğe koşuyorum, dayanın!");
+              }
+            }
+          }, 1200);
+        }
+      }
+
       if (nodeKey === 'long_doors_t' && Math.random() < 0.75) {
         this.throwGrenade(match, p, 'flash', 760, 700);
       } else if (nodeKey === 'long_doors_exit' && Math.random() < 0.7) {

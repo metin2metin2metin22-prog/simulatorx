@@ -45,6 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
         radar.addTracer(evt.fromX, evt.fromY, evt.toX, evt.toY, evt.weapon, evt.isHit, evt.isHeadshot);
         window.soundEngine.playShoot(evt.weapon);
         break;
+      case 'fake_shots':
+        window.soundEngine.playShoot('ak47');
+        if (radar && radar.addPing) {
+          radar.addPing(evt.x, evt.y, 'Ateş!', 'warning');
+        }
+        break;
+      case 'weapon_steal':
+        hud.addChatMessage('SİLAH', `Silah ele geçirildi: ${evt.weapon.toUpperCase()}`, 'system');
+        break;
       case 'headshot':
         window.soundEngine.playHeadshot();
         break;
