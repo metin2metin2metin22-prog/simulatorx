@@ -11,7 +11,7 @@ class BombManager {
       const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
       for (const t of aliveTs) {
         const dist = Math.hypot(t.x - match.bomb.x, t.y - match.bomb.y);
-        if (dist < 32) {
+        if (dist <= 48) {
           match.bomb.dropped = false;
           match.bomb.carried = true;
           match.bomb.carrierId = t.id;
@@ -38,9 +38,15 @@ class BombManager {
 
         const distA = Math.hypot(carrier.x - match.mapData.sites.A.x, carrier.y - match.mapData.sites.A.y);
         const distB = Math.hypot(carrier.x - match.mapData.sites.B.x, carrier.y - match.mapData.sites.B.y);
-        const onSite = distA <= match.mapData.sites.A.radius ? 'A' : (distB <= match.mapData.sites.B.radius ? 'B' : null);
+        const onSite = distA <= match.mapData.sites.A.radius + 15 ? 'A' : (distB <= match.mapData.sites.B.radius + 15 ? 'B' : null);
 
-        if (onSite && !carrier.targetEnemyId) {
+        const canPlant = onSite && (!carrier.targetEnemyId || (carrier.state === 'planting' && match.bomb.plantProgress >= 0.5));
+
+        if (canPlant) {
+          if (!carrier.plantingAnnounced) {
+            carrier.plantingAnnounced = true;
+            match.addRadioMessage('t', carrier.name, `Bombayı kuruyorum! Girişleri tutun, beni koruyun!`);
+          }
           carrier.state = 'planting';
           match.bomb.planterId = carrier.id;
           match.bomb.plantProgress += dt / 3.5;
@@ -56,6 +62,7 @@ class BombManager {
             carrier.hasBomb = false;
             carrier.state = 'idle';
             carrier.plantProgress = 0;
+            carrier.plantingAnnounced = false;
             match.events.push({ type: 'bomb_planted', site: onSite, x: match.bomb.x, y: match.bomb.y });
 
             Object.values(match.players).filter(p => p.team === 't').forEach(p => p.money += 800);
@@ -66,6 +73,7 @@ class BombManager {
             carrier.state = 'idle';
             match.bomb.plantProgress = 0;
             carrier.plantProgress = 0;
+            carrier.plantingAnnounced = false;
           }
         }
       }
@@ -74,11 +82,13 @@ class BombManager {
     // 3. Defusal logic
     if (match.bomb.planted) {
       const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
+      const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
       let activeDefuser = null;
 
       for (const ct of aliveCTs) {
         const dist = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
-        if (dist <= 48 && !ct.targetEnemyId) {
+        const canDefuse = dist <= 56 && (aliveTs.length === 0 || !ct.targetEnemyId || ct.state === 'defusing');
+        if (canDefuse) {
           activeDefuser = ct;
           break;
         }
@@ -97,11 +107,14 @@ class BombManager {
 
         if (match.bomb.defuseProgress >= 1.0) {
           match.bomb.planted = false;
+          match.bomb.defusing = false;
+          match.bomb.defuseProgress = 0;
           activeDefuser.state = 'idle';
           activeDefuser.mvps++;
           activeDefuser.defusingAnnounced = false;
           match.events.push({ type: 'bomb_defused', defuserName: activeDefuser.name });
-          match.endRound('ct', 'Counter-Terrorists bombayı imha etti!');
+          match.endRound('ct', `Bomba ${activeDefuser.name} tarafından imha edildi! Counter-Terrorists kazandı!`);
+          return;
         }
       } else {
         if (match.bomb.defusing) {

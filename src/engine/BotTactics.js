@@ -307,58 +307,66 @@ class BotTactics {
 
     const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
 
-    // 1. If all Ts are dead, ALL CTs swarm the bomb immediately
-    if (aliveTs.length === 0) {
+    // 1. Identify the Primary Defuser (already defusing, or closest CT / one with kit)
+    let bestDefuser = aliveCTs.find(ct => ct.state === 'defusing');
+    if (!bestDefuser) {
+      let minDist = Infinity;
       aliveCTs.forEach(ct => {
-        if (!ct.targetEnemyId && ct.state !== 'defusing') {
-          const distToBomb = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
-          if (distToBomb > 35 && (!ct.path || ct.pathIndex >= ct.path.length || ct.path[ct.path.length - 1] !== bombNode)) {
-            match.setPlayerPath(ct, bombNode);
-          }
+        let d = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
+        if (ct.hasKit) d -= 60; // Kit priority
+        if (d < minDist) {
+          minDist = d;
+          bestDefuser = ct;
         }
       });
-      return;
     }
 
-    // 2. Identify the Primary Defuser (closest CT or one with kit)
-    let bestDefuser = null;
-    let minDist = Infinity;
-    aliveCTs.forEach(ct => {
-      let d = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
-      if (ct.hasKit) d -= 60; // Kit priority
-      if (d < minDist) {
-        minDist = d;
-        bestDefuser = ct;
-      }
-    });
-
-    if (bestDefuser && !bestDefuser.targetEnemyId && bestDefuser.state !== 'defusing') {
+    // 2. Defuser physical steering straight onto bomb coordinates
+    if (bestDefuser && bestDefuser.state !== 'defusing') {
       const distToBomb = Math.hypot(bestDefuser.x - match.bomb.x, bestDefuser.y - match.bomb.y);
-      if (distToBomb <= 75 && distToBomb > 25) {
-        // Direct steering onto planted bomb coordinates to begin defuse
+      if (distToBomb <= 95) {
+        // Direct physical steering straight onto planted bomb coordinates
         const angleToBomb = Math.atan2(match.bomb.y - bestDefuser.y, match.bomb.x - bestDefuser.x);
         bestDefuser.targetAngle = angleToBomb;
         bestDefuser.angle = angleToBomb;
-        const step = 80 * dt;
+        const step = 85 * dt;
         const nx = bestDefuser.x + Math.cos(angleToBomb) * step;
         const ny = bestDefuser.y + Math.sin(angleToBomb) * step;
         if (match.isWalkable(nx, ny)) {
           bestDefuser.x = nx;
           bestDefuser.y = ny;
+        } else if (match.isWalkable(nx, bestDefuser.y)) {
+          bestDefuser.x = nx;
+        } else if (match.isWalkable(bestDefuser.x, ny)) {
+          bestDefuser.y = ny;
         }
-      } else if (distToBomb > 40 && (!bestDefuser.path || bestDefuser.pathIndex >= bestDefuser.path.length || bestDefuser.path[bestDefuser.path.length - 1] !== bombNode)) {
+      } else if (!bestDefuser.path || bestDefuser.pathIndex >= bestDefuser.path.length || bestDefuser.path[bestDefuser.path.length - 1] !== bombNode) {
         match.setPlayerPath(bestDefuser, bombNode);
       }
     }
 
-    // 3. Supporting CTs push onto site to cover
+    // 3. Supporting CTs Movement (Swarm and Defend)
     aliveCTs.forEach(ct => {
       if (bestDefuser && ct.id === bestDefuser.id) return;
-      if (!ct.targetEnemyId && (ct.state === 'idle' || !ct.path || ct.pathIndex >= ct.path.length)) {
-        const siteNode = match.bomb.site === 'B' ? 'b_site' : 'a_site';
-        const dSite = Math.hypot(ct.x - match.mapData.sites[match.bomb.site].x, ct.y - match.mapData.sites[match.bomb.site].y);
-        if (dSite > 60) {
-          match.setPlayerPath(ct, siteNode);
+      if (ct.targetEnemyId) return;
+
+      const distToBomb = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
+
+      if (aliveTs.length === 0) {
+        // All Ts dead -> swarm right to the bomb
+        if (distToBomb > 50 && (!ct.path || ct.pathIndex >= ct.path.length || ct.path[ct.path.length - 1] !== bombNode)) {
+          match.setPlayerPath(ct, bombNode);
+        }
+      } else {
+        // Ts alive -> establish defensive hold around the bombsite
+        if (ct.state === 'idle' || !ct.path || ct.pathIndex >= ct.path.length) {
+          const siteKey = (match.bomb.site === 'B' || match.bomb.site === 'A') ? match.bomb.site : (match.bomb.x < 500 ? 'B' : 'A');
+          const siteData = match.mapData.sites[siteKey] || match.mapData.sites.A;
+          const siteNode = siteKey === 'B' ? 'b_site' : 'a_site';
+          const dSite = Math.hypot(ct.x - siteData.x, ct.y - siteData.y);
+          if (dSite > 65) {
+            match.setPlayerPath(ct, siteNode);
+          }
         }
       }
     });
@@ -374,10 +382,10 @@ class BotTactics {
           nearestT = t;
         }
       });
-      if (nearestT && minTDist < 380 && !nearestT.targetEnemyId) {
+      if (nearestT && minTDist < 420 && !nearestT.targetEnemyId) {
         nearestT.holdTimer = 0;
         nearestT.targetAngle = Math.atan2(match.bomb.y - nearestT.y, match.bomb.x - nearestT.x);
-        if (minTDist > 60 && (!nearestT.path || nearestT.pathIndex >= nearestT.path.length)) {
+        if (minTDist > 55 && (!nearestT.path || nearestT.pathIndex >= nearestT.path.length)) {
           match.setPlayerPath(nearestT, bombNode);
         }
       }
@@ -520,13 +528,13 @@ class BotTactics {
     match.addRadioMessage('t', 'electronic (IGL)', 'Bomba kuruldu! Crossfire açın ve açıları koruyun!');
 
     if (site === 'A') {
-      const aSpots = ['long_pit', 'goose', 'a_ramp', 'a_short', 'a_site'];
+      const aSpots = ['a_site', 'goose', 'a_ramp', 'ct_elevator', 'a_short_site'];
       aliveTs.forEach((t, idx) => {
         const spot = aSpots[idx % aSpots.length];
         match.setPlayerPath(t, spot);
       });
     } else {
-      const bSpots = ['b_platform', 'b_car', 'b_window', 'b_doors', 'b_site'];
+      const bSpots = ['b_platform', 'b_site', 'b_back_site', 'b_car', 'b_cross_hall'];
       aliveTs.forEach((t, idx) => {
         const spot = bSpots[idx % bSpots.length];
         match.setPlayerPath(t, spot);

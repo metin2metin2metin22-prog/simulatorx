@@ -219,6 +219,12 @@ class CombatSystem {
     victim.state = 'dead';
     victim.deaths++;
 
+    // Immediately clear references so other bots stop targeting the dead player
+    Object.values(match.players).forEach(p => {
+      if (p.targetEnemyId === victim.id) p.targetEnemyId = null;
+      if (p.tradeTargetId === victim.id) p.tradeTargetId = null;
+    });
+
     killer.kills++;
     killer.money += (weapon.type === 'sniper' ? 100 : 300);
 

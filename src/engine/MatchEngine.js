@@ -228,7 +228,7 @@ class PureCoachMatch {
 
   startRound() {
     this.phase = 'freeze';
-    this.timer = 10;
+    this.timer = 2.5; // Fast, snappy freeze buy time (2.5s instead of 10s)
     this.smokes = [];
     this.grenades = [];
     this.events.push({ type: 'round_freeze', round: this.round });
@@ -432,7 +432,7 @@ class PureCoachMatch {
       this.timeoutState.timer -= dt;
       if (this.timeoutState.timer <= 0) {
         this.phase = 'freeze';
-        this.timer = 5;
+        this.timer = 2.5;
         this.timeoutState.active = false;
         this.events.push({ type: 'timeout_end' });
       }
@@ -541,18 +541,25 @@ class PureCoachMatch {
     // Check Clutch moments
     this.tactics.checkClutchSituation(this);
 
-    // Check Alive Counts
+    // Check Alive Counts & Instant Round Termination (NO UNNECESSARY WAITING!)
     const ctAlive = Object.values(this.players).filter(p => p.team === 'ct' && p.alive).length;
     const tAlive = Object.values(this.players).filter(p => p.team === 't' && p.alive).length;
 
-    if (tAlive === 0 && !this.bomb.planted) {
-      this.endRound('ct', 'Counter-Terrorists tüm düşmanları etkisiz hale getirdi!');
-    } else if (ctAlive === 0 && !this.bomb.planted) {
-      this.endRound('t', 'Terrorists tüm savunmayı düşürdü!');
-    } else if (tAlive === 0 && this.bomb.planted) {
-      if (ctAlive === 0) {
-        this.bombManager.bombExploded(this);
+    // 1. If ALL CTs are dead, T WINS IMMEDIATELY! Never wait for bomb or round timer!
+    if (ctAlive === 0) {
+      this.endRound('t', 'Counter-Terrorist takımının tamamı etkisiz hale getirildi! Terrorists kazandı.');
+      return;
+    }
+
+    // 2. If ALL Ts are dead:
+    if (tAlive === 0) {
+      if (!this.bomb.planted) {
+        // Bomb is not planted -> CT wins immediately!
+        this.endRound('ct', 'Counter-Terrorists tüm düşmanları etkisiz hale getirdi!');
+        return;
       }
+      // If bomb IS planted, CTs still have to defuse before bomb.timer reaches 0!
+      // In updateRetakeAndPostPlantTactics, CTs immediately swarm and defuse.
     }
   }
 
@@ -722,13 +729,31 @@ class PureCoachMatch {
           }
         }
       }
+
+      // Anti-stuck watchdog: detects if player hasn't moved more than 2px while trying to move
+      if (p.lastPosX !== undefined) {
+        const moved = Math.hypot(p.x - p.lastPosX, p.y - p.lastPosY);
+        if (moved < 1.0) {
+          p.stuckTimer = (p.stuckTimer || 0) + dt;
+          if (p.stuckTimer > 1.2) {
+            p.stuckTimer = 0;
+            if (p.pathIndex < p.path.length - 1) {
+              p.pathIndex++;
+            }
+          }
+        } else {
+          p.stuckTimer = 0;
+        }
+      }
+      p.lastPosX = p.x;
+      p.lastPosY = p.y;
       p.state = 'moving';
     }
   }
 
   endRound(winner, reason) {
     this.phase = 'round_end';
-    this.timer = 5.5;
+    this.timer = 2.8; // Snappy 2.8s round end banner (no waiting)
     this.score[winner]++;
 
     const aliveWinners = Object.values(this.players).filter(p => p.team === winner && p.alive);

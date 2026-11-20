@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'bomb_defused':
         window.soundEngine.playBombDefused();
         hud.addChatMessage('C4', `Bomba ${evt.defuserName || 'CT'} tarafından imha edildi!`, 'ct');
+        hud.showTacticalBanner('✂️ BOMBA İMHA EDİLDİ!', `${evt.defuserName || 'CT'} bombayı başarıyla imha etti! CT raundu kazandı!`, 'a');
         break;
       case 'bomb_explode':
         window.soundEngine.playBombExplosion();

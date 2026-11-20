@@ -417,7 +417,7 @@ class HUDManager {
 
     setTimeout(() => {
       this.roundEndOverlay.style.display = 'none';
-    }, 4500);
+    }, 2500);
   }
 
   showMatchOverModal(winner, state) {
