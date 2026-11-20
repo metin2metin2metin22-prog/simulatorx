@@ -1,8 +1,9 @@
 // SimulatorX - Socket.io Real-Time Networking & Event Dispatcher
 const { WEAPONS } = require('../config/weapons');
 const { ROSTERS, DEFAULT_ROSTERS, PRO_PLAYER_POOL, PERK_DEFINITIONS, ROSTER_PRESETS, calculateTeamStats } = require('../config/rosters');
-const { db } = require('../storage/db');
+const { db, TRAINING_DRILLS } = require('../storage/db');
 const { LEAGUE_TIERS } = require('../config/multiLeague');
+const { ALL_100_TEAMS } = require('../config/massiveTeams');
 
 function registerSocketHandlers(io, match, scheduleEngine, tournamentEngine, replayManager) {
   io.on('connection', (socket) => {
@@ -18,6 +19,8 @@ function registerSocketHandlers(io, match, scheduleEngine, tournamentEngine, rep
       perks: PERK_DEFINITIONS,
       presets: ROSTER_PRESETS,
       leagueTiers: LEAGUE_TIERS,
+      trainingDrills: TRAINING_DRILLS,
+      scrimTeams: ALL_100_TEAMS.map(t => ({ id: t.id, name: t.name, icon: t.icon, tier: t.tier, rating: t.rating })),
       league: match.league ? match.league.getLeagueData() : null,
       userClub: match.league ? match.league.userClub : null,
       coaches: match.coaches,
@@ -166,6 +169,80 @@ function registerSocketHandlers(io, match, scheduleEngine, tournamentEngine, rep
       if (!user) return;
       const replays = replayManager.getReplaysForUser(user.club.id);
       if (typeof callback === 'function') callback(replays);
+    });
+
+    // --- CALENDAR & DAILY MATCH LIMIT (MAX 2 PER DAY) ---
+    socket.on('advance_season_day', ({ username }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const updatedUser = db.advanceToNextDay(userToUse);
+      if (updatedUser) {
+        socket.emit('user_updated', updatedUser);
+        io.emit('chat_message', {
+          sender: 'LİG YÖNETİMİ',
+          text: `🌅 ${updatedUser.club.name} yeni güne başladı! (Gün ${updatedUser.leagueData.seasonDay} - 2 Yeni Lig Maçı Hazır)`
+        });
+        if (typeof callback === 'function') callback({ success: true, user: updatedUser });
+      }
+    });
+
+    // --- PLAYER TRAINING FACILITY ---
+    socket.on('start_player_training', ({ username, playerId, drillKey }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.startPlayerTraining(userToUse, playerId, drillKey);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('claim_player_training', ({ username, playerId }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.claimPlayerTraining(userToUse, playerId);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+        io.emit('chat_message', {
+          sender: 'ANTRENÖR',
+          text: `💪 ${res.player.name} özel kampını tamamladı ve yeteneklerini geliştirdi!`
+        });
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    // --- HAZIRLIK & SCRIM MAÇLARI ---
+    socket.on('start_scrim_match', ({ username, opponentId, tacticalFocus, liveArena }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+
+      if (liveArena) {
+        const opponent = ALL_100_TEAMS.find(t => t.id === opponentId) || ALL_100_TEAMS[0];
+        const userRecord = db.getUserRecordByUsername(userToUse);
+        if (!userRecord) return;
+
+        const scrimMatchInfo = {
+          matchId: `scrim_${Date.now()}`,
+          week: 0,
+          weekName: `Hazırlık Maçı • ${tacticalFocus || 'Taktik Denemesi'}`,
+          isHome: true,
+          userClub: userRecord.club,
+          opponent,
+          isScrim: true
+        };
+        match.loadUserMatch(scrimMatchInfo, userToUse);
+        io.emit('chat_message', {
+          sender: 'ANTRENÖR',
+          text: `🥊 HAZIRLIK MAÇI ARENASI AÇILDI: ${userRecord.club.name} vs ${opponent.name} (${tacticalFocus || 'Taktik Denemesi'})`
+        });
+        if (typeof callback === 'function') callback({ success: true, isLive: true });
+      } else {
+        const res = db.startScrimMatch(userToUse, { opponentId, tacticalFocus });
+        if (res && res.success) {
+          socket.emit('user_updated', res.user);
+          if (typeof callback === 'function') callback(res);
+        }
+      }
     });
 
     // --- LEAGUE MATCH START (Live Real-Time Simulation) ---

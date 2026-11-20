@@ -6,9 +6,64 @@ const path = require('path');
 const { generateStarterRoster } = require('../utils/playerGenerator');
 const { LEAGUE_TIERS, AMATEUR_BOT_TEAMS } = require('../config/multiLeague');
 const { calculateTeamStats, PRO_PLAYER_POOL } = require('../config/rosters');
-const { MASSIVE_TEAMS_CATALOG } = require('../config/massiveTeams');
+const { MASSIVE_TEAMS_CATALOG, ALL_100_TEAMS } = require('../config/massiveTeams');
+const { backgroundMatchSimulator } = require('../engine/BackgroundMatchSimulator');
+const { replayManager } = require('../engine/ReplayManager');
 
 const DB_PATH = path.join(__dirname, '../../data/database.json');
+
+const TRAINING_DRILLS = {
+  aim_headshot: {
+    id: 'aim_headshot',
+    name: '🎯 Aim & Headshot Özel Kampı',
+    desc: 'Nişangah hakimiyeti, spray kontrolü ve 1-tap kafa vuruşu refleks antrenmanı.',
+    targetStat: 'aim',
+    secondaryStat: 'headshot',
+    cost: 1500,
+    durationMinutes: 10,
+    gains: { aim: 2, headshot: 2 }
+  },
+  reflex_reaction: {
+    id: 'reflex_reaction',
+    name: '⚡ Reaksiyon & Refleks Reaktörü',
+    desc: 'Açılış düellolarında düşmanı ilk gören ve tetiğe ilk basan olma antrenmanı.',
+    targetStat: 'reflex',
+    secondaryStat: null,
+    cost: 1500,
+    durationMinutes: 10,
+    gains: { reflex: 3 }
+  },
+  demo_tactics: {
+    id: 'demo_tactics',
+    name: '🧠 Taktik Demo & Oyun Okuma Analizi',
+    desc: 'Harita kontrolü, rotasyon zamanlamaları ve rakip ekoyu analiz etme eğitimi.',
+    targetStat: 'gamesense',
+    secondaryStat: null,
+    cost: 1200,
+    durationMinutes: 10,
+    gains: { gamesense: 3 }
+  },
+  clutch_mastery: {
+    id: 'clutch_mastery',
+    name: '🔥 1vX Clutch & Soğukkanlılık Kampı',
+    desc: 'Zaman kısıtlı gergin pozisyonlarda ve bomba alanında tek başına raunt çevirme tecrübesi.',
+    targetStat: 'clutch',
+    secondaryStat: null,
+    cost: 2000,
+    durationMinutes: 15,
+    gains: { clutch: 3 }
+  },
+  utility_lineups: {
+    id: 'utility_lineups',
+    name: '💨 Sis & Flaş Bomba Lineup Kampı',
+    desc: 'Kör etmeyen flaşlar, Mid to B perdeleme sisleri ve molotof yayılışlarını ezberleme.',
+    targetStat: 'utility',
+    secondaryStat: null,
+    cost: 1000,
+    durationMinutes: 8,
+    gains: { utility: 4 }
+  }
+};
 
 class Database {
   constructor() {
@@ -58,49 +113,49 @@ class Database {
   }
 
   /**
-   * Generates a 7-week round-robin schedule for 8 teams
+   * Generates a 14-match double round-robin schedule for 8 teams across 7 days (2 matches per day max)
    */
   generateFixtures(userTeamId, botTeams) {
     const allTeamIds = [userTeamId, ...botTeams.map(t => t.id)];
-    // Standard 8-team 7-week pairing table
-    const pairings = [
-      // Week 1
+    // Standard 8-team 7-round pairing table
+    const basePairings = [
       [[0, 1], [2, 3], [4, 5], [6, 7]],
-      // Week 2
       [[0, 2], [1, 4], [3, 6], [5, 7]],
-      // Week 3
       [[0, 3], [1, 2], [4, 7], [5, 6]],
-      // Week 4
       [[0, 4], [1, 3], [2, 5], [6, 7]],
-      // Week 5
       [[0, 5], [1, 7], [2, 6], [3, 4]],
-      // Week 6
       [[0, 6], [1, 5], [2, 7], [3, 4]],
-      // Week 7
       [[0, 7], [1, 6], [2, 4], [3, 5]]
     ];
 
-    const weekTitles = [
-      'Hafta 1: Açılış Mücadeleleri',
-      'Hafta 2: Klasik Rekabet',
-      'Hafta 3: Liderlik Savaşı',
-      'Hafta 4: Kritik Viraj',
-      'Hafta 5: Zirve Mücadelesi',
-      'Hafta 6: Playoff Randevusu',
-      'Hafta 7: Şampiyonluk Final Haftası'
-    ];
+    const sessionNames = ['1. Seans (Öğle Maçı)', '2. Seans (Akşam Maçı)'];
 
-    return pairings.map((weekPairs, wIdx) => ({
-      week: wIdx + 1,
-      name: weekTitles[wIdx] || `Hafta ${wIdx + 1}`,
-      matches: weekPairs.map((pair, mIdx) => ({
-        id: `w${wIdx + 1}_m${mIdx + 1}`,
-        homeTeamId: allTeamIds[pair[0]],
-        awayTeamId: allTeamIds[pair[1]],
-        completed: false,
-        score: null
-      }))
-    }));
+    // 14 Rounds (Double Round Robin: Leg 1 and Leg 2 reversed)
+    const allRounds = [];
+    for (let r = 0; r < 14; r++) {
+      const isLeg2 = r >= 7;
+      const baseIdx = r % 7;
+      const pairs = basePairings[baseIdx];
+      const day = Math.floor(r / 2) + 1; // Days 1 to 7
+      const session = (r % 2) + 1; // Session 1 or Session 2
+
+      allRounds.push({
+        week: r + 1,
+        day,
+        session,
+        name: `Gün ${day} • ${sessionNames[session - 1]} (${r + 1}. Fikstür)`,
+        matches: pairs.map((pair, mIdx) => ({
+          id: `w${r + 1}_m${mIdx + 1}`,
+          homeTeamId: isLeg2 ? allTeamIds[pair[1]] : allTeamIds[pair[0]],
+          awayTeamId: isLeg2 ? allTeamIds[pair[0]] : allTeamIds[pair[1]],
+          completed: false,
+          score: null,
+          replayId: null
+        }))
+      });
+    }
+
+    return allRounds;
   }
 
   /**
@@ -157,6 +212,10 @@ class Database {
       tierBadge: tierConfig.badge,
       season: 1,
       currentWeek: 1,
+      seasonDay: 1,
+      matchesPlayedToday: 0,
+      maxDailyMatches: 2,
+      isDailyQuotaCompleted: false,
       isSeasonFinished: false,
       champion: null,
       standings,
@@ -201,11 +260,13 @@ class Database {
       budget: 25000,
       tier: 'amateur',
       roster: starterRoster,
+      training: {},
       stats: {
         played: 0,
         won: 0,
         lost: 0,
-        trophies: 0
+        trophies: 0,
+        scrimsPlayed: 0
       }
     };
 
@@ -337,10 +398,20 @@ class Database {
       roster: []
     };
 
+    const matchesPlayedToday = league.matchesPlayedToday || 0;
+    const maxDailyMatches = league.maxDailyMatches || 2;
+    const isDailyQuotaCompleted = Boolean(matchesPlayedToday >= maxDailyMatches);
+
     return {
       matchId: userMatch.id,
       week: league.currentWeek,
       weekName: weekSchedule.name,
+      day: weekSchedule.day || Math.floor((league.currentWeek - 1) / 2) + 1,
+      session: weekSchedule.session || ((league.currentWeek - 1) % 2) + 1,
+      seasonDay: league.seasonDay || 1,
+      matchesPlayedToday,
+      maxDailyMatches,
+      isDailyQuotaCompleted,
       isHome,
       userClub: {
         id: user.club.id,
@@ -360,29 +431,18 @@ class Database {
         stats: opponent.stats || { rating: opponent.rating || 1.0 }
       },
       completed: Boolean(userMatch.completed),
-      score: userMatch.score || null
+      score: userMatch.score || null,
+      replayId: userMatch.replayId || null
     };
   }
 
   /**
-   * Simulates a bot-vs-bot match realistically
+   * Simulates a bot-vs-bot match realistically using authentic BackgroundMatchSimulator
    */
-  simulateBotMatch(homeRating = 1.0, awayRating = 1.0) {
-    const diff = homeRating - awayRating;
-    const homeWinProb = Math.max(0.20, Math.min(0.80, 0.50 + diff * 1.2));
-    const homeWon = Math.random() < homeWinProb;
-    let winnerScore = 13;
-    let loserScore = 4 + Math.floor(Math.random() * 8);
-
-    if (Math.abs(diff) < 0.05 && Math.random() < 0.20) {
-      winnerScore = 16;
-      loserScore = 13 + Math.floor(Math.random() * 2);
-    }
-
-    return {
-      homeScore: homeWon ? winnerScore : loserScore,
-      awayScore: homeWon ? loserScore : winnerScore
-    };
+  simulateBotMatch(homeTeam, awayTeam) {
+    if (!homeTeam || !awayTeam) return { homeScore: 13, awayScore: 7 };
+    const sim = backgroundMatchSimulator.simulateFullMatch(homeTeam, awayTeam);
+    return sim.score;
   }
 
   /**
@@ -404,6 +464,16 @@ class Database {
     if (userMatch && !userMatch.completed) {
       userMatch.completed = true;
       userMatch.score = { homeScore, awayScore };
+
+      const rep = replayManager.createReplay({
+        matchId: userMatch.id,
+        homeTeam: nextMatch.isHome ? nextMatch.userClub : nextMatch.opponent,
+        awayTeam: nextMatch.isHome ? nextMatch.opponent : nextMatch.userClub,
+        score: { homeScore, awayScore },
+        tierName: league.tierName,
+        weekName: weekSchedule.name
+      });
+      userMatch.replayId = rep.replayId;
 
       const homeStanding = league.standings.find(s => s.teamId === userMatch.homeTeamId);
       const awayStanding = league.standings.find(s => s.teamId === userMatch.awayTeamId);
@@ -436,31 +506,43 @@ class Database {
       else user.club.stats.lost += 1;
     }
 
-    // 2. Simulate remaining bot matches of this week
+    // 2. Simulate remaining bot matches of this week using real simulation engine
     weekSchedule.matches.forEach(m => {
       if (!m.completed) {
         const homeBot = league.botTeams.find(t => t.id === m.homeTeamId);
         const awayBot = league.botTeams.find(t => t.id === m.awayTeamId);
-        const homeRating = homeBot?.stats?.rating || homeBot?.rating || 1.0;
-        const awayRating = awayBot?.stats?.rating || awayBot?.rating || 1.0;
-        const sim = this.simulateBotMatch(homeRating, awayRating);
+        
+        let simScore = { homeScore: 13, awayScore: 9 };
+        if (homeBot && awayBot) {
+          const sim = backgroundMatchSimulator.simulateFullMatch(homeBot, awayBot);
+          simScore = sim.score;
+          const rep = replayManager.createReplay({
+            matchId: m.id,
+            homeTeam: homeBot,
+            awayTeam: awayBot,
+            score: simScore,
+            tierName: league.tierName,
+            weekName: weekSchedule.name
+          });
+          m.replayId = rep.replayId;
+        }
 
         m.completed = true;
-        m.score = sim;
+        m.score = simScore;
 
         const homeStanding = league.standings.find(s => s.teamId === m.homeTeamId);
         const awayStanding = league.standings.find(s => s.teamId === m.awayTeamId);
         if (homeStanding && awayStanding) {
           homeStanding.played += 1;
           awayStanding.played += 1;
-          homeStanding.roundsWon += sim.homeScore;
-          homeStanding.roundsLost += sim.awayScore;
-          awayStanding.roundsWon += sim.awayScore;
-          awayStanding.roundsLost += sim.homeScore;
+          homeStanding.roundsWon += simScore.homeScore;
+          homeStanding.roundsLost += simScore.awayScore;
+          awayStanding.roundsWon += simScore.awayScore;
+          awayStanding.roundsLost += simScore.homeScore;
           homeStanding.roundDiff = homeStanding.roundsWon - homeStanding.roundsLost;
           awayStanding.roundDiff = awayStanding.roundsWon - awayStanding.roundsLost;
 
-          if (sim.homeScore > sim.awayScore) {
+          if (simScore.homeScore > simScore.awayScore) {
             homeStanding.won += 1;
             homeStanding.points += 3;
             awayStanding.lost += 1;
@@ -473,7 +555,13 @@ class Database {
       }
     });
 
-    // 3. Sort standings
+    // 3. Daily Match Counter (Max 2 matches per day)
+    league.matchesPlayedToday = (league.matchesPlayedToday || 0) + 1;
+    if (league.matchesPlayedToday >= (league.maxDailyMatches || 2)) {
+      league.isDailyQuotaCompleted = true;
+    }
+
+    // 4. Sort standings
     league.standings.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.roundDiff !== a.roundDiff) return b.roundDiff - a.roundDiff;
@@ -481,7 +569,7 @@ class Database {
       return a.name.localeCompare(b.name);
     });
 
-    // 4. Advance week or finish season
+    // 5. Advance week or finish season
     if (league.currentWeek < league.fixtures.length) {
       league.currentWeek += 1;
     } else {
@@ -508,7 +596,6 @@ class Database {
           user.club.tier = 'global';
           user.leagueData = this.initTierLeague(user.club, 'global');
         } else if (league.tierKey === 'global') {
-          // Legend status: stay in global and celebrate
           user.leagueData = this.initTierLeague(user.club, 'global');
         }
       }
@@ -516,6 +603,164 @@ class Database {
 
     this.save();
     return this.sanitizeUser(user);
+  }
+
+  /**
+   * Advances calendar to the next day, resetting the 2-match daily limit
+   */
+  advanceToNextDay(username) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return null;
+
+    const league = user.leagueData;
+    league.seasonDay = Math.min(7, (league.seasonDay || 1) + 1);
+    league.matchesPlayedToday = 0;
+    league.isDailyQuotaCompleted = false;
+
+    // Check completed player trainings
+    if (user.club.training) {
+      const now = Date.now();
+      Object.keys(user.club.training).forEach(pId => {
+        const tr = user.club.training[pId];
+        if (now >= tr.endTime) {
+          tr.isReady = true;
+        }
+      });
+    }
+
+    this.save();
+    return this.sanitizeUser(user);
+  }
+
+  /**
+   * Starts targeted training for a specific player
+   */
+  startPlayerTraining(username, playerId, drillKey) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    const drill = TRAINING_DRILLS[drillKey];
+    if (!drill) return { success: false, error: 'Geçersiz antrenman programı.' };
+
+    const player = user.club.roster.find(p => p.id === playerId);
+    if (!player) return { success: false, error: 'Oyuncu kadroda bulunamadı.' };
+
+    user.club.training = user.club.training || {};
+    if (user.club.training[playerId]) {
+      return { success: false, error: `${player.name} zaten aktif bir antrenmanda!` };
+    }
+
+    if ((user.club.budget || 0) < drill.cost) {
+      return { success: false, error: `Yetersiz bütçe! Bu kamp için $${drill.cost.toLocaleString()} gereklidir.` };
+    }
+
+    // Deduct budget
+    user.club.budget -= drill.cost;
+
+    const now = Date.now();
+    const durationMs = drill.durationMinutes * 60 * 1000;
+    user.club.training[playerId] = {
+      drillKey,
+      drillName: drill.name,
+      targetStat: drill.targetStat,
+      secondaryStat: drill.secondaryStat,
+      cost: drill.cost,
+      startTime: now,
+      endTime: now + durationMs,
+      durationMinutes: drill.durationMinutes,
+      gains: drill.gains,
+      isReady: false
+    };
+
+    this.save();
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      message: `${player.name} "${drill.name}" kampına başladı! (${drill.durationMinutes} dk)`
+    };
+  }
+
+  /**
+   * Claims completed training gains and permanently boosts player skills
+   */
+  claimPlayerTraining(username, playerId) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    user.club.training = user.club.training || {};
+    const tr = user.club.training[playerId];
+    if (!tr) return { success: false, error: 'Bu oyuncu için aktif antrenman bulunamadı.' };
+
+    const now = Date.now();
+    if (now < tr.endTime && !tr.isReady) {
+      const remainingSec = Math.ceil((tr.endTime - now) / 1000);
+      return { success: false, error: `Antrenman henüz bitmedi! Kalan süre: ${Math.floor(remainingSec / 60)}dk ${remainingSec % 60}s` };
+    }
+
+    const player = user.club.roster.find(p => p.id === playerId);
+    if (!player) return { success: false, error: 'Oyuncu kadroda bulunamadı.' };
+
+    // Apply stat gains
+    player.skills = player.skills || { aim: 60, reflex: 60, headshot: 55, gamesense: 60, clutch: 55, utility: 50 };
+    Object.keys(tr.gains).forEach(stat => {
+      const gain = tr.gains[stat];
+      player.skills[stat] = Math.min(99, (player.skills[stat] || 50) + gain);
+    });
+
+    // Recalculate player rating
+    const sk = player.skills;
+    player.rating = Number((((sk.aim * 0.25) + (sk.reflex * 0.25) + ((sk.headshot || sk.aim) * 0.15) + (sk.gamesense * 0.20) + (sk.clutch * 0.15)) / 65).toFixed(2));
+
+    delete user.club.training[playerId];
+    this.save();
+
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      player,
+      gains: tr.gains,
+      message: `🎉 Tebrikler! ${player.name} antrenmanı tamamladı ve yeteneklerini geliştirdi!`
+    };
+  }
+
+  /**
+   * Simulates an authentic Hazırlık / Antrenman Maçı (Scrim)
+   */
+  startScrimMatch(username, { opponentId, tacticalFocus }) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return null;
+
+    const opponent = ALL_100_TEAMS.find(t => t.id === opponentId) || ALL_100_TEAMS[0];
+    const userTeam = {
+      id: user.club.id,
+      name: user.club.name,
+      icon: user.club.icon,
+      color: user.club.color,
+      roster: user.club.roster
+    };
+
+    const sim = backgroundMatchSimulator.simulateFullMatch(userTeam, opponent, { tacticalFocus });
+
+    user.club.stats.scrimsPlayed = (user.club.stats.scrimsPlayed || 0) + 1;
+
+    const rep = replayManager.createReplay({
+      matchId: `scrim_${Date.now()}`,
+      homeTeam: userTeam,
+      awayTeam: opponent,
+      score: sim.score,
+      tierName: 'Hazırlık / Scrim Maçı',
+      weekName: tacticalFocus || 'Özel Taktiksel Hazırlık'
+    });
+
+    this.save();
+
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      scrimResult: sim,
+      replayId: rep.replayId,
+      tacticalFocus: tacticalFocus || 'Standart Taktik'
+    };
   }
 
   /**
@@ -555,5 +800,6 @@ class Database {
 const db = new Database();
 
 module.exports = {
-  db
+  db,
+  TRAINING_DRILLS
 };

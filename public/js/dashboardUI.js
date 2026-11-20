@@ -1,5 +1,6 @@
 // SimulatorX - Main Dashboard & Authentication Controller
-// Manages Auth Screen, Club Dashboard Hub, Multi-Tier Leagues, Squad Cards, Live Matches (Espor TV), Tournaments, and Replay Theater.
+// Manages Auth Screen, Club Dashboard Hub, Multi-Tier Leagues, Squad Cards,
+// Live Matches (Espor TV), Player Training Facility, Scrims, Tournaments, and Replay Theater.
 
 class DashboardUI {
   constructor() {
@@ -7,11 +8,13 @@ class DashboardUI {
     this.currentUser = null;
     this.token = localStorage.getItem('simulatorx_token') || null;
     this.activeScreen = 'auth'; // 'auth' | 'dashboard' | 'simulation'
-    this.activeTab = 'match'; // 'match' | 'live' | 'tournaments' | 'squad' | 'leagues' | 'replays' | 'market'
+    this.activeTab = 'match'; // 'match' | 'training' | 'scrim' | 'live' | 'tournaments' | 'squad' | 'leagues' | 'replays' | 'market'
     this.selectedTier = 'amateur';
     this.tierOverviewCache = {};
     this.playerPool = [];
     this.perks = {};
+    this.trainingDrills = {};
+    this.scrimTeams = [];
     this.isMatchActive = false;
     this.userSchedule = null;
     this.cachedLiveMatches = [];
@@ -46,9 +49,10 @@ class DashboardUI {
 
   tickClientTimers() {
     if (this.activeScreen !== 'dashboard' || !this.currentUser) return;
+    const now = Date.now();
 
-    // Tick User Scheduled Match Countdown
-    if (this.userSchedule && this.userSchedule.countdownSeconds > 0) {
+    // 1. Tick User Scheduled Match Countdown
+    if (this.userSchedule && this.userSchedule.countdownSeconds > 0 && !this.userSchedule.isDailyQuotaCompleted) {
       this.userSchedule.countdownSeconds--;
       const timerDisplay = document.getElementById('dashCountdownVal');
       const startBtn = document.getElementById('btnStartMatchFromDash');
@@ -67,7 +71,25 @@ class DashboardUI {
       }
     }
 
-    // Tick Tournaments timers if currently on tournaments tab
+    // 2. Tick Player Training Timers
+    const trainingCountdowns = document.querySelectorAll('.training-countdown-val');
+    trainingCountdowns.forEach(el => {
+      const endTime = parseInt(el.getAttribute('data-end') || '0', 10);
+      const remSec = Math.max(0, Math.ceil((endTime - now) / 1000));
+      if (remSec > 0) {
+        const m = Math.floor(remSec / 60);
+        const s = remSec % 60;
+        el.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      } else {
+        el.innerText = 'TAMAMLANDI';
+        if (this.activeTab === 'training' && !el.classList.contains('ready-rendered')) {
+          el.classList.add('ready-rendered');
+          this.renderTrainingTab();
+        }
+      }
+    });
+
+    // 3. Tick Tournaments timers if currently on tournaments tab
     if (this.activeTab === 'tournaments') {
       const tournTimers = document.querySelectorAll('.tourn-timer-val');
       tournTimers.forEach(el => {
@@ -232,6 +254,8 @@ class DashboardUI {
     this.socket.on('init_data', (data) => {
       if (data.playerPool) this.playerPool = [...data.playerPool];
       if (data.perks) this.perks = { ...data.perks };
+      if (data.trainingDrills) this.trainingDrills = { ...data.trainingDrills };
+      if (data.scrimTeams) this.scrimTeams = [...data.scrimTeams];
     });
 
     this.socket.on('user_updated', (updatedUser) => {
@@ -356,6 +380,8 @@ class DashboardUI {
     this.activeTab = tabName;
     [
       'tabContentMatch',
+      'tabContentTraining',
+      'tabContentScrim',
       'tabContentLive',
       'tabContentTournaments',
       'tabContentSquad',
@@ -370,7 +396,17 @@ class DashboardUI {
     const activeEl = document.getElementById(`tabContent${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
     if (activeEl) activeEl.style.display = 'block';
 
+    // Update active nav button
+    const dashNav = document.getElementById('dashNavTabs');
+    if (dashNav) {
+      dashNav.querySelectorAll('.dash-tab-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-tab') === tabName);
+      });
+    }
+
     if (tabName === 'match') this.renderMatchCenterTab();
+    if (tabName === 'training') this.renderTrainingTab();
+    if (tabName === 'scrim') this.renderScrimTab();
     if (tabName === 'live') this.renderLiveMatchesTab();
     if (tabName === 'tournaments') this.renderTournamentsTab();
     if (tabName === 'squad') this.renderSquadTab();
@@ -404,7 +440,7 @@ class DashboardUI {
   }
 
   // ==========================================
-  // TAB 1: MATCH CENTER & SCHEDULED TIMETABLE
+  // TAB 1: MATCH CENTER & SCHEDULED TIMETABLE (MAX 2 PER DAY)
   // ==========================================
   renderMatchCenterTab() {
     const container = document.getElementById('dashMatchHero');
@@ -435,7 +471,6 @@ class DashboardUI {
       if (!sched) return;
       this.userSchedule = sched;
 
-      const userMatch = sched;
       const isHome = sched.isHome;
       const opponent = sched.opponent;
 
@@ -447,15 +482,28 @@ class DashboardUI {
       let actionBtnHtml = '';
       let noteHtml = '';
 
-      if (sched.status === 'COMPLETED') {
-        const userWon = isHome ? (sched.score.homeScore > sched.score.awayScore) : (sched.score.awayScore > sched.score.homeScore);
+      if (sched.status === 'DAILY_LIMIT_REACHED' || sched.isDailyQuotaCompleted) {
+        statusBadgeHtml = `<span class="dm-status-badge daily-done">✅ GÜNLÜK RESMİ LİG KOTASI DOLDU (2/2)</span>`;
+        actionBtnHtml = `
+          <div class="daily-done-banner">
+            <div class="ddb-title">📅 Gün ${sched.seasonDay} Resmi Lig Maçları Tamamlandı</div>
+            <p>Kulübünüz bugün çıkabileceği maksimum 2 resmi lig maçını oynadı. Lig puan tablosu güncellendi.</p>
+            <div class="ddb-actions-row">
+              <button class="btn btn-advance-day" id="btnAdvanceSeasonDay">🌅 Yeni Güne Başla (Gün ${sched.seasonDay + 1})</button>
+              <button class="btn btn-scrim-shortcut" id="btnGoScrimTab">🥊 Hazırlık / Scrim Maçı Yap</button>
+              <button class="btn btn-train-shortcut" id="btnGoTrainTab">🏋️ Oyuncuları Antrenmana Al</button>
+            </div>
+          </div>
+        `;
+        noteHtml = `<p class="dm-schedule-note">ℹ️ <strong>Lig Disiplin Kuralı:</strong> Takımlar günde en fazla 2 resmi lig maçı yapabilir. Maç aralarında takımınızı hazırlık maçlarıyla test edebilir veya antrenman tesisinde geliştirebilirsiniz.</p>`;
+      } else if (sched.status === 'COMPLETED') {
         statusBadgeHtml = `<span class="dm-status-badge completed">📼 MAÇ TAMAMLANDI (${sched.score.homeScore} - ${sched.score.awayScore})</span>`;
         actionBtnHtml = `
           <button class="btn btn-hero-start-match btn-replay-open" id="btnOpenHeroReplay" data-replay-id="${sched.replayId}">
             📼 MAÇ TEKRARINI VE HLTV ÖZETİNİ İZLE
           </button>
         `;
-        noteHtml = `<p class="dm-schedule-note">✅ Bu haftanın resmi mücadelesi tamamlandı. Lig puan tablosu güncellendi. Yukarıdaki butona tıklayarak maçı raund raund inceleyebilirsiniz.</p>`;
+        noteHtml = `<p class="dm-schedule-note">✅ Bu seansın resmi maçı tamamlandı. Skor puan tablosuna işlendi. Maç tekrarını izleyebilir veya günün 2. maçına hazırlanabilirsiniz.</p>`;
       } else if (sched.status === 'LIVE' || sched.canWatchLive) {
         statusBadgeHtml = `<span class="dm-status-badge live pulse">🔴 ŞU AN CANLI OYNANIYOR</span>`;
         actionBtnHtml = `
@@ -474,7 +522,7 @@ class DashboardUI {
         `;
         noteHtml = `
           <p class="dm-schedule-note">
-            ℹ️ <strong>Resmi Espor Takvimi:</strong> Maçlar "basıp hemen başlat" şeklinde değil, belirlenen fikstür saatinde (${sched.scheduledTime}) otomatik oynanır. Geri sayım bittiğinde canlı yayını buradan anlık izleyebilirsiniz.
+            ℹ️ <strong>Resmi Espor Takvimi:</strong> Günlük en fazla 2 resmi maç oynanır (Günün ${sched.session}. Maçı). Fikstür saatinde (${sched.scheduledTime}) canlı yayın otomatik başlar.
           </p>
         `;
       }
@@ -482,8 +530,9 @@ class DashboardUI {
       container.innerHTML = `
         <div class="dm-hero-card">
           <div class="dm-top-tag">
-            <span>📅 ${sched.weekName.toUpperCase()} • ${league.tierName.toUpperCase()}</span>
+            <span>📅 GÜN ${sched.seasonDay || 1} • ${sched.weekName.toUpperCase()} • ${league.tierName.toUpperCase()}</span>
             <div class="dm-tag-right">
+              <span class="dm-daily-pill">Günün Maçları: [${sched.matchesPlayedToday || 0} / ${sched.maxDailyMatches || 2}]</span>
               ${statusBadgeHtml}
               <span class="dm-side-badge">${isHome ? 'EV SAHİBİ (CT)' : 'DEPLASMAN (T)'}</span>
             </div>
@@ -500,11 +549,11 @@ class DashboardUI {
             <div class="dm-vs-col">
               <span class="dm-vs-title">VS</span>
               <div class="dm-schedule-clock">
-                <span class="clock-label">MAÇ SAATİ</span>
+                <span class="clock-label">FİKSTÜR SAATİ</span>
                 <span class="clock-time">${sched.scheduledTime}</span>
                 <span class="clock-countdown" id="dashCountdownVal">${timeStr}</span>
               </div>
-              <span class="dm-format-badge">MR12 RESMİ FİKSTÜR</span>
+              <span class="dm-format-badge">MR12 RESMİ LİG MAÇI</span>
             </div>
 
             <!-- RAKİP KULÜP -->
@@ -544,6 +593,22 @@ class DashboardUI {
         const repId = e.currentTarget.getAttribute('data-replay-id');
         this.openReplayModal(repId);
       });
+
+      document.getElementById('btnAdvanceSeasonDay')?.addEventListener('click', () => {
+        this.socket.emit('advance_season_day', { username: this.currentUser.username }, (res) => {
+          if (res && res.success) {
+            this.renderAllDashboard();
+          }
+        });
+      });
+
+      document.getElementById('btnGoScrimTab')?.addEventListener('click', () => {
+        this.switchTab('scrim');
+      });
+
+      document.getElementById('btnGoTrainTab')?.addEventListener('click', () => {
+        this.switchTab('training');
+      });
     });
   }
 
@@ -558,7 +623,282 @@ class DashboardUI {
   }
 
   // ==========================================
-  // TAB 2: LIVE MATCHES (ESPOR TV - CANLI MAÇLAR)
+  // TAB 2: PLAYER TRAINING FACILITY (BİREYSEL GELİŞİM KAMP)
+  // ==========================================
+  renderTrainingTab() {
+    const container = document.getElementById('dashTrainingContainer');
+    if (!container || !this.currentUser) return;
+
+    const club = this.currentUser.club;
+    const roster = club.roster || [];
+    const activeTrainings = club.training || {};
+    const drills = this.trainingDrills || {};
+    const now = Date.now();
+
+    container.innerHTML = `
+      <div class="training-intro-bar">
+        <div>
+          <h3>🏋️ OYUNCU GELİŞİM & ÖZEL KAMP MERKEZİ</h3>
+          <p>Oyuncularınızı Aim, Refleks, Demo Analizi, 1vX Clutch veya Utility kamplarına sokarak becerilerini kalıcı olarak artırın.</p>
+        </div>
+        <div class="training-budget">
+          Kasa Bütçesi: <strong>$${(club.budget || 25000).toLocaleString()}</strong>
+        </div>
+      </div>
+
+      <div class="training-players-grid">
+        ${roster.map((player, idx) => {
+          const currentTr = activeTrainings[player.id];
+          let statusBlock = '';
+
+          if (currentTr) {
+            const remSec = Math.max(0, Math.ceil((currentTr.endTime - now) / 1000));
+            const isCompleted = remSec <= 0 || currentTr.isReady;
+            const m = Math.floor(remSec / 60);
+            const s = remSec % 60;
+            const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+            if (isCompleted) {
+              statusBlock = `
+                <div class="tr-active-box ready">
+                  <span class="tr-badge-ready">✅ KAMP TAMAMLANDI!</span>
+                  <div class="tr-name">${currentTr.drillName}</div>
+                  <button class="btn btn-claim-training" data-player-id="${player.id}">
+                    🏆 Gelişimi Uygula (+${Object.values(currentTr.gains).join(', ')} Puan)
+                  </button>
+                </div>
+              `;
+            } else {
+              const totalSec = currentTr.durationMinutes * 60;
+              const progressPct = Math.min(100, Math.max(0, Math.round(((totalSec - remSec) / totalSec) * 100)));
+
+              statusBlock = `
+                <div class="tr-active-box in-progress">
+                  <div class="tr-header-row">
+                    <span class="tr-drill-tag">⏳ ${currentTr.drillName}</span>
+                    <strong class="training-countdown-val" data-end="${currentTr.endTime}">${timeStr}</strong>
+                  </div>
+                  <div class="tr-progress-bar">
+                    <div class="tr-progress-fill" style="width:${progressPct}%"></div>
+                  </div>
+                  <small class="tr-note">Oyuncu kampta antrenman yapıyor...</small>
+                </div>
+              `;
+            }
+          } else {
+            statusBlock = `
+              <div class="tr-select-box">
+                <label>Hedef Kamp Seçin:</label>
+                <select class="tr-drill-select" id="drillSelect_${player.id}">
+                  <option value="aim_headshot">🎯 Aim & Headshot Kampı ($1,500 - 10 dk - +2 Aim, +2 HS)</option>
+                  <option value="reflex_reaction">⚡ Reaksiyon & Refleks Odası ($1,500 - 10 dk - +3 Reflex)</option>
+                  <option value="demo_tactics">🧠 Taktik Demo Analizi ($1,200 - 10 dk - +3 Gamesense)</option>
+                  <option value="clutch_mastery">🔥 1vX Clutch Kampı ($2,000 - 15 dk - +3 Clutch)</option>
+                  <option value="utility_lineups">💨 Sis & Flaş Lineup Kampı ($1,000 - 8 dk - +4 Utility)</option>
+                </select>
+                <button class="btn btn-start-training" data-player-id="${player.id}">
+                  🚀 Kampa Başlat
+                </button>
+              </div>
+            `;
+          }
+
+          const sk = player.skills || { aim: 50, reflex: 50, headshot: 50, gamesense: 50, clutch: 50, utility: 50 };
+
+          return `
+            <div class="training-player-card">
+              <div class="tpc-top">
+                <span class="tpc-role">SLOT ${idx + 1} • ${player.role}</span>
+                <span class="tpc-rating">⭐ ${Number(player.rating || 1.0).toFixed(2)}</span>
+              </div>
+              <div class="tpc-main">
+                <div class="tpc-avatar">${player.name.slice(0, 2).toUpperCase()}</div>
+                <div>
+                  <h4 class="tpc-name">${player.name}</h4>
+                  <small class="tpc-sub">${player.tier || 'Amatör Yetenek'}</small>
+                </div>
+              </div>
+
+              <div class="tpc-skills-overview">
+                <div><span>AIM:</span><strong>${sk.aim}</strong></div>
+                <div><span>REFLX:</span><strong>${sk.reflex}</strong></div>
+                <div><span>HS%:</span><strong>${sk.headshot || sk.aim}</strong></div>
+                <div><span>GS:</span><strong>${sk.gamesense || 50}</strong></div>
+                <div><span>CLUTCH:</span><strong>${sk.clutch || 50}</strong></div>
+                <div><span>UTILITY:</span><strong>${sk.utility || 50}</strong></div>
+              </div>
+
+              ${statusBlock}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // Bind Start Training Buttons
+    container.querySelectorAll('.btn-start-training').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const playerId = btn.getAttribute('data-player-id');
+        const selectEl = document.getElementById(`drillSelect_${playerId}`);
+        const drillKey = selectEl ? selectEl.value : 'aim_headshot';
+
+        this.socket.emit('start_player_training', {
+          username: this.currentUser.username,
+          playerId,
+          drillKey
+        }, (res) => {
+          if (res && res.success) {
+            this.renderAllDashboard();
+          } else {
+            alert(res?.error || 'Antrenman başlatılamadı!');
+          }
+        });
+      });
+    });
+
+    // Bind Claim Training Buttons
+    container.querySelectorAll('.btn-claim-training').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const playerId = btn.getAttribute('data-player-id');
+        this.socket.emit('claim_player_training', {
+          username: this.currentUser.username,
+          playerId
+        }, (res) => {
+          if (res && res.success) {
+            alert(res.message);
+            this.renderAllDashboard();
+          } else {
+            alert(res?.error || 'Gelişim alınamadı!');
+          }
+        });
+      });
+    });
+  }
+
+  // ==========================================
+  // TAB 3: HAZIRLIK & SCRIM MAÇI ARENASI
+  // ==========================================
+  renderScrimTab() {
+    const container = document.getElementById('dashScrimContainer');
+    if (!container || !this.currentUser) return;
+
+    const club = this.currentUser.club;
+    const botTeams = this.scrimTeams || [];
+
+    container.innerHTML = `
+      <div class="scrim-setup-card">
+        <div class="scrim-hero-top">
+          <div>
+            <h3>🥊 ÖZEL HAZIRLIK & TAKTİKSEL SCRIM MAÇI</h3>
+            <p>Resmi lig maçı dışındaki boş vaktinizde takımınızı istediğiniz bir rakibe karşı canlı 2D radarda test edin veya hızlı simüle ederek performans analizini inceleyin.</p>
+          </div>
+          <div class="scrim-stat-chip">
+            Oynanan Scrim: <strong>${club.stats?.scrimsPlayed || 0} Maç</strong>
+          </div>
+        </div>
+
+        <div class="scrim-form-grid">
+          <div class="scrim-field">
+            <label>🛡️ Rakip Espor Kulübü Seçin (100+ Takım):</label>
+            <select id="scrimOpponentSelect" class="scrim-select">
+              <optgroup label="🌍 Dünya Şampiyonlar Ligi">
+                <option value="glob_eternal_fire">🔥 Eternal Fire (TR)</option>
+                <option value="glob_vitality">🐝 Team Vitality (FR)</option>
+                <option value="glob_spirit">🐉 Team Spirit (CIS)</option>
+                <option value="glob_faze">🛡️ FaZe Clan (EU)</option>
+                <option value="glob_navi">🇺🇦 Natus Vincere (UA)</option>
+                <option value="glob_g2">⚔️ G2 Esports (EU)</option>
+              </optgroup>
+              <optgroup label="🇹🇷 Ülke Espor Süper Ligi">
+                <option value="nat_sangal">🔴 Sangal Esports (TR)</option>
+                <option value="nat_bbl">🦁 BBL Esports (TR)</option>
+                <option value="nat_fut">🐺 FUT Esports (TR)</option>
+                <option value="nat_fire_flux">☄️ Fire Flux (TR)</option>
+                <option value="nat_supermassive">🌀 SuperMassive (TR)</option>
+              </optgroup>
+              <optgroup label="🌊 Bölge Ligi">
+                <option value="reg_marmara_predators">🦈 Marmara Predators</option>
+                <option value="reg_ege_thunder">⚡ Ege Thunder</option>
+                <option value="reg_toros_kaplanlari">🐯 Toros Kaplanları</option>
+                <option value="reg_karadeniz_firtinasi">🌊 Karadeniz Fırtınası</option>
+              </optgroup>
+              <optgroup label="🏙️ Şehir Ligi">
+                <option value="city_kadikoy_bulls">🐂 Kadıköy Bulls (İstanbul)</option>
+                <option value="city_besiktas_esports">🦅 Beşiktaş Esports (İstanbul)</option>
+                <option value="city_cankaya_titans">🏛️ Çankaya Titans (Ankara)</option>
+                <option value="city_kordon_sharks">🦈 Kordon Sharks (İzmir)</option>
+                <option value="city_nilufer_crocs">🐊 Nilüfer Crocs (Bursa)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="scrim-field">
+            <label>🎯 Taktiksel Odak & Hazırlık Türü:</label>
+            <select id="scrimTacticalFocus" class="scrim-select">
+              <option value="Standart Taktiksel Hazırlık">🔹 Standart Rekabetçi Taktik</option>
+              <option value="Rush B & Short Split Çalışması">🔹 Rush B & Catwalk Baskını Testi</option>
+              <option value="Long A Execute & Cross Smoke">🔹 Long A Execute & Mid to B Cross Smoke</option>
+              <option value="Eco & Deagle Pusma Tuzağı">🔹 Eco & Deagle Tabanca Pusma Tuzağı</option>
+              <option value="Retake & Çapraz AWP Açısı">🔹 Pasif Retake & Çapraz Savunma</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="scrim-actions-row">
+          <button class="btn btn-scrim-live" id="btnStartScrimLive">
+            🔴 CANLI RADARDA OYNA (5v5 Minimap)
+          </button>
+          <button class="btn btn-scrim-fast" id="btnStartScrimFast">
+            ⚡ HIZLI SİMÜLE ET & HLTV ANALİZİNİ GÖR
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Bind Scrim Actions
+    document.getElementById('btnStartScrimLive')?.addEventListener('click', () => {
+      const oppSelect = document.getElementById('scrimOpponentSelect');
+      const focusSelect = document.getElementById('scrimTacticalFocus');
+      const opponentId = oppSelect ? oppSelect.value : 'city_kadikoy_bulls';
+      const tacticalFocus = focusSelect ? focusSelect.value : 'Standart Taktik';
+
+      this.socket.emit('start_scrim_match', {
+        username: this.currentUser.username,
+        opponentId,
+        tacticalFocus,
+        liveArena: true
+      }, (res) => {
+        if (res && res.success) {
+          this.showScreen('simulation');
+        } else {
+          alert('Hazırlık maçı başlatılamadı!');
+        }
+      });
+    });
+
+    document.getElementById('btnStartScrimFast')?.addEventListener('click', () => {
+      const oppSelect = document.getElementById('scrimOpponentSelect');
+      const focusSelect = document.getElementById('scrimTacticalFocus');
+      const opponentId = oppSelect ? oppSelect.value : 'city_kadikoy_bulls';
+      const tacticalFocus = focusSelect ? focusSelect.value : 'Standart Taktik';
+
+      this.socket.emit('start_scrim_match', {
+        username: this.currentUser.username,
+        opponentId,
+        tacticalFocus,
+        liveArena: false
+      }, (res) => {
+        if (res && res.success && res.replayId) {
+          this.openReplayModal(res.replayId);
+        } else {
+          alert('Hazırlık maçı simüle edilemedi!');
+        }
+      });
+    });
+  }
+
+  // ==========================================
+  // TAB 4: LIVE MATCHES (ESPOR TV - CANLI MAÇLAR)
   // ==========================================
   renderLiveMatchesTab() {
     const grid = document.getElementById('dashLiveMatchesGrid');
@@ -627,7 +967,7 @@ class DashboardUI {
   }
 
   // ==========================================
-  // TAB 3: TOURNAMENTS & CUPS (KUPALAR)
+  // TAB 5: TOURNAMENTS & CUPS (KUPALAR)
   // ==========================================
   renderTournamentsTab() {
     const grid = document.getElementById('dashTournamentsGrid');
@@ -771,7 +1111,7 @@ class DashboardUI {
   }
 
   // ==========================================
-  // TAB 4: SQUAD & PLAYERS
+  // TAB 6: SQUAD & PLAYERS
   // ==========================================
   renderSquadTab() {
     const container = document.getElementById('dashSquadGrid');
@@ -840,7 +1180,7 @@ class DashboardUI {
   }
 
   // ==========================================
-  // TAB 5: MULTI-TIER LEAGUES (5 TIERS)
+  // TAB 7: MULTI-TIER LEAGUES (5 TIERS)
   // ==========================================
   renderLeaguesTab() {
     const tierSelector = document.getElementById('dashTierSelector');
@@ -880,7 +1220,7 @@ class DashboardUI {
       <div class="dash-league-header-card">
         <div>
           <h3>${leagueData.tierBadge || '🌱'} ${leagueData.tierName}</h3>
-          <p>Aktif Hafta: <strong>Hafta ${leagueData.currentWeek} / 7</strong> • Format: MR12 5v5 Espor Standartları</p>
+          <p>Aktif Gün: <strong>Gün ${leagueData.seasonDay || 1} / 7</strong> • Fikstür: <strong>${leagueData.currentWeek} / ${leagueData.fixtures?.length || 14}</strong> • Kural: Günde Maks. 2 Maç</p>
         </div>
         <div class="dash-league-reward">
           🏆 Şampiyonluk Primi: <strong>+$${(leagueData.tierKey === 'global' ? 600000 : (leagueData.tierKey === 'national' ? 250000 : (leagueData.tierKey === 'regional' ? 125000 : (leagueData.tierKey === 'city' ? 75000 : 40000)))).toLocaleString()}</strong>
@@ -960,7 +1300,7 @@ class DashboardUI {
   }
 
   // ==========================================
-  // TAB 6: MATCH REPLAYS (TEKRARLAR)
+  // TAB 8: MATCH REPLAYS (TEKRARLAR)
   // ==========================================
   renderReplaysTab() {
     const container = document.getElementById('dashReplaysList');
@@ -972,7 +1312,7 @@ class DashboardUI {
           <div class="empty-replays-box">
             <span class="empty-icon">📼</span>
             <h3>Henüz Kaydedilmiş Maç Tekrarı Yok</h3>
-            <p>Kulübünüzün fikstür saatinde oynanan maçları otomatik olarak buraya kaydedilir ve kaçırsanız bile dilediğiniz zaman tekrarını izleyebilirsiniz.</p>
+            <p>Kulübünüzün resmi lig veya hazırlık maçları otomatik olarak buraya kaydedilir ve kaçırsanız bile dilediğiniz zaman tekrarını inceleyebilirsiniz.</p>
           </div>
         `;
         return;
@@ -1133,7 +1473,7 @@ class DashboardUI {
   }
 
   // ==========================================
-  // TAB 7: TRANSFER MARKET & SCOUT
+  // TAB 9: TRANSFER MARKET & SCOUT
   // ==========================================
   renderMarketTab() {
     const container = document.getElementById('dashMarketContainer');

@@ -1,8 +1,10 @@
 // SimulatorX - Global Schedule & Live Esports TV Engine
-// Manages real-time wall-clock match timetable, 100+ bot ongoing live matches, and match replay transitions.
+// Manages real-time wall-clock match timetable, authentic background round simulation,
+// daily match quotas (max 2 official matches per day), and match replay transitions.
 
 const { MASSIVE_TEAMS_CATALOG, ALL_100_TEAMS } = require('../config/massiveTeams');
 const { replayManager } = require('./ReplayManager');
+const { backgroundMatchSimulator } = require('./BackgroundMatchSimulator');
 
 class GlobalScheduleEngine {
   constructor(dbInstance, matchInstance, io) {
@@ -46,9 +48,16 @@ class GlobalScheduleEngine {
     const awayTeam = shuffled[1];
 
     const targetWins = 13;
-    const initialRound = 1 + Math.floor(Math.random() * 8); // Start mid-game for immediate excitement
+    const initialRound = 1 + Math.floor(Math.random() * 6);
     const homeInitial = Math.min(initialRound - 1, Math.floor(Math.random() * initialRound));
     const awayInitial = initialRound - 1 - homeInitial;
+
+    // Initialize round economy and stats
+    const economy = {
+      ct: { money: [3200, 3200, 3200, 3200, 3200], lossStreak: 0 },
+      t: { money: [3200, 3200, 3200, 3200, 3200], lossStreak: 0 }
+    };
+    const stats = {};
 
     return {
       id,
@@ -81,17 +90,20 @@ class GlobalScheduleEngine {
       },
       round: initialRound,
       targetWins,
-      phase: 'live', // 'freeze', 'live', 'bomb_planted', 'round_end'
-      roundTimer: 75,
+      phase: 'live',
+      roundTimer: 35,
       status: 'CANLI',
       latestAction: `${homeTeam.name} ve ${awayTeam.name} ${initialRound}. raunt için taktik hazırlığında.`,
       viewers: 25 + Math.floor(Math.random() * 180),
-      spectatingSocketIds: new Set()
+      spectatingSocketIds: new Set(),
+      economy,
+      stats,
+      roundsHistory: []
     };
   }
 
   /**
-   * Evaluates user's scheduled next match timing
+   * Evaluates user's scheduled next match timing and daily match limits
    */
   getUserSchedule(username) {
     if (!username) return null;
@@ -102,18 +114,19 @@ class GlobalScheduleEngine {
     if (!nextMatch) return null;
 
     const now = Date.now();
-    // Compute scheduled match time based on global cycle
     let timeRemaining = Math.max(0, Math.floor((this.cycleEndTime - now) / 1000));
     const cycleProgress = 1 - (timeRemaining / this.cycleDuration);
 
-    const isMatchLive = (timeRemaining <= 90 && timeRemaining > 0); // Active in second half of cycle
+    const isMatchLive = (timeRemaining <= 90 && timeRemaining > 0);
     const isCompleted = nextMatch.completed;
 
     const scheduledDate = new Date(this.cycleEndTime);
     const timeFormatted = scheduledDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    let status = 'SCHEDULED'; // 'SCHEDULED', 'LIVE', 'COMPLETED'
-    if (isCompleted) {
+    let status = 'SCHEDULED'; // 'SCHEDULED', 'LIVE', 'COMPLETED', 'DAILY_LIMIT_REACHED'
+    if (nextMatch.isDailyQuotaCompleted) {
+      status = 'DAILY_LIMIT_REACHED';
+    } else if (isCompleted) {
       status = 'COMPLETED';
     } else if (isMatchLive) {
       status = 'LIVE';
@@ -125,6 +138,12 @@ class GlobalScheduleEngine {
       matchId: nextMatch.matchId,
       week: nextMatch.week,
       weekName: nextMatch.weekName,
+      day: nextMatch.day,
+      session: nextMatch.session,
+      seasonDay: nextMatch.seasonDay,
+      matchesPlayedToday: nextMatch.matchesPlayedToday,
+      maxDailyMatches: nextMatch.maxDailyMatches,
+      isDailyQuotaCompleted: nextMatch.isDailyQuotaCompleted,
       isHome: nextMatch.isHome,
       userClub: nextMatch.userClub,
       opponent: nextMatch.opponent,
@@ -134,8 +153,8 @@ class GlobalScheduleEngine {
       scheduledTime: timeFormatted,
       countdownSeconds: timeRemaining,
       cycleProgress,
-      canWatchLive: status === 'LIVE' || (!isCompleted && timeRemaining < 120),
-      replayId: nextMatch.completed ? `rep_${nextMatch.matchId}` : null
+      canWatchLive: (status === 'LIVE') && !nextMatch.isDailyQuotaCompleted,
+      replayId: nextMatch.completed ? (nextMatch.replayId || `rep_${nextMatch.matchId}`) : null
     };
   }
 
@@ -154,46 +173,46 @@ class GlobalScheduleEngine {
       this.autoResolvePendingUserMatches();
     }
 
-    // Tick all live ongoing bot matches
+    // Tick all live ongoing bot matches using authentic BackgroundMatchSimulator
     this.tickLiveMatches();
   }
 
   tickLiveMatches() {
-    const ACTION_TEMPLATES = [
-      '{h} ekibi Mid kontrolünü ele geçiriyor.',
-      '{a} hızlı B baskını (Rush B) deniyor!',
-      'Kritik AWP düellosu: Uzun (Long A) temizlendi.',
-      'Duman perdesi atıldı: AWP görüşü kesildi.',
-      'C4 B Alanına kuruldu! Geri sayım başladı: 40s',
-      'CT savunması geriden retake pozisyonuna geçti.',
-      '1v1 Gergin raunt sonu mücadelesi!',
-      '{h} koçu telsizden taktiksel hatırlatma yaptı.',
-      'Mükemmel flashbang kör etmesiyle 2 oyuncu düşürüldü.'
-    ];
-
     this.liveMatches.forEach(m => {
       m.roundTimer--;
-      if (m.roundTimer % 12 === 0) {
-        // Update live commentary line
-        const tmpl = ACTION_TEMPLATES[Math.floor(Math.random() * ACTION_TEMPLATES.length)];
-        m.latestAction = tmpl.replace('{h}', m.homeTeam.name).replace('{a}', m.awayTeam.name);
+
+      // Mid-round commentary updates
+      if (m.roundTimer === 18) {
+        m.latestAction = `${m.homeTeam.name} ve ${m.awayTeam.name} arasında kritik site düelloları yaşanıyor!`;
       }
 
-      // Round concludes
+      // Round concludes: Run authentic simulation round!
       if (m.roundTimer <= 0) {
-        const homeDiff = (m.homeTeam.rating || 1.0) - (m.awayTeam.rating || 1.0);
-        const homeWinProb = Math.max(0.25, Math.min(0.75, 0.50 + homeDiff * 0.9));
-        const homeWon = Math.random() < homeWinProb;
+        // Authentically simulate the round using player skills, weapons, and tactics
+        const simRound = backgroundMatchSimulator.simulateRound({
+          roundNum: m.round,
+          ctTeam: m.homeTeam,
+          tTeam: m.awayTeam,
+          ctRoster: m.homeTeam.roster,
+          tRoster: m.awayTeam.roster,
+          economy: m.economy,
+          stats: m.stats
+        });
 
-        if (homeWon) m.score.home++;
-        else m.score.away++;
+        if (simRound.winnerSide === 'ct') {
+          m.score.home++;
+        } else {
+          m.score.away++;
+        }
 
+        m.roundsHistory.push(simRound);
+        m.latestAction = `${simRound.winningTeamIcon} ${simRound.highlight} (MVP: ${simRound.mvp})`;
         m.round++;
-        m.roundTimer = 45; // Reset round duration
+        m.roundTimer = 35; // 35-second snappy round cycles
 
         // Check Match Finish (First to 13 wins)
         if (m.score.home >= m.targetWins || m.score.away >= m.targetWins) {
-          // Save replay
+          // Save real replay
           replayManager.createReplay({
             matchId: m.id,
             homeTeam: m.homeTeam,
@@ -203,7 +222,7 @@ class GlobalScheduleEngine {
             weekName: `${m.round}. Raund Sonu`
           });
 
-          // Smoothly generate next scheduled matchup for this slot
+          // Smoothly generate next scheduled matchup for this slot from the 106 bot teams catalog
           Object.assign(m, this.generateLiveMatch(m.id, m.tierKey, m.tierName, m.badge));
         }
       }
@@ -217,28 +236,23 @@ class GlobalScheduleEngine {
 
   /**
    * If a user was offline or did not click start, automatically resolve match cleanly on schedule
+   * using authentic background simulation.
    */
   autoResolvePendingUserMatches() {
     if (!this.db || !this.db.data || !this.db.data.users) return;
 
     Object.keys(this.db.data.users).forEach(username => {
       const nextMatch = this.db.getUserNextMatch(username);
-      if (nextMatch && !nextMatch.completed) {
-        const homeRating = nextMatch.isHome ? nextMatch.userClub.stats.rating : nextMatch.opponent.stats.rating;
-        const awayRating = nextMatch.isHome ? nextMatch.opponent.stats.rating : nextMatch.userClub.stats.rating;
-        const sim = this.db.simulateBotMatch(homeRating, awayRating);
+      if (nextMatch && !nextMatch.completed && !nextMatch.isDailyQuotaCompleted) {
+        const homeTeam = nextMatch.isHome ? nextMatch.userClub : nextMatch.opponent;
+        const awayTeam = nextMatch.isHome ? nextMatch.opponent : nextMatch.userClub;
 
-        this.db.recordUserMatchResult(username, sim.homeScore, sim.awayScore);
+        // Run authentic simulation
+        const sim = backgroundMatchSimulator.simulateFullMatch(homeTeam, awayTeam);
+        const homeScore = nextMatch.isHome ? sim.score.homeScore : sim.score.awayScore;
+        const awayScore = nextMatch.isHome ? sim.score.awayScore : sim.score.homeScore;
 
-        // Save match replay
-        replayManager.createReplay({
-          matchId: nextMatch.matchId,
-          homeTeam: nextMatch.isHome ? nextMatch.userClub : nextMatch.opponent,
-          awayTeam: nextMatch.isHome ? nextMatch.opponent : nextMatch.userClub,
-          score: sim,
-          tierName: 'Fikstür Ligi',
-          weekName: nextMatch.weekName
-        });
+        this.db.recordUserMatchResult(username, homeScore, awayScore);
       }
     });
   }

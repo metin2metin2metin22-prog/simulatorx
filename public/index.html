@@ -117,7 +117,9 @@
 
     <!-- DASHBOARD NAVIGATION TABS -->
     <nav class="dash-nav-bar" id="dashNavTabs">
-      <button class="dash-tab-btn active" data-tab="match">⚔️ Sıradaki Maç Merkezi</button>
+      <button class="dash-tab-btn active" data-tab="match">⚔️ Resmi Lig Maçı</button>
+      <button class="dash-tab-btn" data-tab="training">🏋️ Oyuncu Antrenmanı</button>
+      <button class="dash-tab-btn" data-tab="scrim">🥊 Hazırlık Maçı (Scrim)</button>
       <button class="dash-tab-btn" data-tab="live">📺 Canlı Maçlar (Espor TV)</button>
       <button class="dash-tab-btn" data-tab="tournaments">🏆 Turnuvalar (Kupalar)</button>
       <button class="dash-tab-btn" data-tab="squad">👔 Kulüp Kadrom (İlk 5)</button>
@@ -135,7 +137,31 @@
         </div>
       </section>
 
-      <!-- 2. LIVE MATCHES (ESPOR TV) TAB -->
+      <!-- 2. PLAYER TRAINING TAB -->
+      <section id="tabContentTraining" class="dash-tab-content" style="display:none;">
+        <div class="dash-training-hero-header">
+          <div class="training-badge">🏋️ BİREYSEL GELİŞİM & KAMP TESİSİ</div>
+          <h2>🏋️ Oyuncu Özel Antrenman Tesisleri</h2>
+          <p>Oyuncularınızı Aim, Refleks, Demo Analizi, 1vX Clutch ve Lineup kamplarına sokarak kalıcı yetenek artışı sağlayın.</p>
+        </div>
+        <div id="dashTrainingContainer" class="dash-training-grid">
+          <!-- Injected via DashboardUI -->
+        </div>
+      </section>
+
+      <!-- 3. SCRIM / FRIENDLY MATCH TAB -->
+      <section id="tabContentScrim" class="dash-tab-content" style="display:none;">
+        <div class="dash-scrim-hero-header">
+          <div class="scrim-badge">🥊 ÖZEL HAZIRLIK & TAKTİKSEL SCRIM</div>
+          <h2>🥊 Hazırlık & Antrenman Maçı Arenası</h2>
+          <p>Resmi lig maçı saatini beklerken veya günlük 2 lig maçını bitirdikten sonra 100+ bot takımdan birini seçip taktiksel hazırlık maçı atın.</p>
+        </div>
+        <div id="dashScrimContainer" class="dash-scrim-wrap">
+          <!-- Injected via DashboardUI -->
+        </div>
+      </section>
+
+      <!-- 4. LIVE MATCHES (ESPOR TV) TAB -->
       <section id="tabContentLive" class="dash-tab-content" style="display:none;">
         <div class="dash-live-hero-header">
           <div class="live-pulse-badge">🔴 CANLI YAYIN HAVUZU</div>
