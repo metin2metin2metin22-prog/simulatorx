@@ -53,9 +53,13 @@ class RadarRenderer {
     }
 
     if (!gameState) return;
+    this.currentGameState = gameState;
 
     // 2. Draw Bomb Sites
     this.drawBombSites(ctx, gameState.mapData || DUST2_DATA);
+
+    // 2.5. Draw Footstep Sound Waves
+    this.drawFootsteps(ctx);
 
     // 3. Draw Tactical Smokes
     if (gameState.smokes) {
@@ -70,6 +74,11 @@ class RadarRenderer {
     // 5. Draw Bomb (Planted or Dropped)
     if (gameState.bomb) {
       this.drawBomb(ctx, gameState.bomb);
+    }
+
+    // 5.5. Draw Dropped Defuse Kits
+    if (gameState.droppedKits && gameState.droppedKits.length > 0) {
+      gameState.droppedKits.forEach(kit => this.drawDroppedKit(ctx, kit));
     }
 
     // 6. Draw Bullet Tracers
@@ -138,6 +147,61 @@ class RadarRenderer {
 
       ctx.restore();
     }
+  }
+
+  addFootstep(x, y, team) {
+    this.footsteps = this.footsteps || [];
+    this.footsteps.push({
+      x,
+      y,
+      team,
+      createdAt: Date.now(),
+      duration: 600
+    });
+  }
+
+  drawFootsteps(ctx) {
+    if (!this.footsteps || this.footsteps.length === 0) return;
+    const now = Date.now();
+    for (let i = this.footsteps.length - 1; i >= 0; i--) {
+      const f = this.footsteps[i];
+      const elapsed = now - f.createdAt;
+      if (elapsed > f.duration) {
+        this.footsteps.splice(i, 1);
+        continue;
+      }
+      const progress = elapsed / f.duration;
+      const alpha = (1 - progress) * 0.40;
+      const radius = 5 + progress * 20;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = f.team === 'ct' ? `rgba(77, 166, 255, ${alpha})` : `rgba(255, 159, 67, ${alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  drawDroppedKit(ctx, kit) {
+    ctx.save();
+    ctx.translate(kit.x, kit.y);
+    ctx.fillStyle = '#16a085';
+    ctx.fillRect(-7, -5, 14, 10);
+    ctx.strokeStyle = '#2ecc71';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-7, -5, 14, 10);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-1.5, -3, 3, 6);
+    ctx.fillRect(-3, -1.5, 6, 3);
+
+    ctx.fillStyle = '#2ecc71';
+    ctx.font = 'bold 8px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('KIT', 0, 12);
+    ctx.restore();
   }
 
   drawBombSites(ctx, mapData) {
@@ -410,8 +474,9 @@ class RadarRenderer {
       ctx.textAlign = 'center';
       ctx.fillText('KURUYOR...', 0, -22);
     } else if (player.state === 'defusing') {
+      const dProg = (this.currentGameState && this.currentGameState.bomb && this.currentGameState.bomb.defuseProgress) || 0;
       ctx.beginPath();
-      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.arc(0, 0, 18, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * dProg);
       ctx.strokeStyle = '#3498db';
       ctx.lineWidth = 3.5;
       ctx.stroke();
@@ -419,7 +484,14 @@ class RadarRenderer {
       ctx.fillStyle = '#3498db';
       ctx.font = 'bold 9px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('ÇÖZÜYOR...', 0, -22);
+      ctx.fillText(`ÇÖZÜYOR (${Math.round(dProg * 100)}%)...`, 0, -22);
+    }
+
+    if (player.isReloading) {
+      ctx.fillStyle = '#e67e22';
+      ctx.font = 'bold 9px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('RELOAD...', 0, 24);
     }
 
     // 4. Main Player Dot Body

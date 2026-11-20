@@ -81,6 +81,17 @@ document.addEventListener('DOMContentLoaded', () => {
         window.soundEngine.playBombDefused();
         hud.addChatMessage('C4', `Bomba ${evt.defuserName || 'CT'} tarafından imha edildi!`, 'ct');
         break;
+      case 'fake_defuse':
+        hud.addChatMessage('CT', `${evt.defuserName || 'CT'} Fake Defuse yaptı!`, 'ct');
+        break;
+      case 'kit_pickup':
+        hud.addChatMessage('CT', `İmha kiti yerden alındı!`, 'ct');
+        break;
+      case 'footstep':
+        if (radar && radar.addFootstep) {
+          radar.addFootstep(evt.x, evt.y, evt.team);
+        }
+        break;
       case 'kill':
         hud.addKillfeedItem(evt);
         if (evt.isHeadshot) {

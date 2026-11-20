@@ -50,12 +50,76 @@ class CombatSystem {
       if (!p.alive) return; // Dead player in current frame cannot act
       if (p.burstPauseTimer > 0) p.burstPauseTimer -= dt;
 
+      // Handle Reloading Logic
+      if (p.isReloading) {
+        p.reloadTimer -= dt;
+        if (p.reloadTimer <= 0) {
+          p.isReloading = false;
+          const currentW = WEAPONS[p.weapon] || WEAPONS.ak47;
+          const clip = currentW.clipSize || 30;
+          const needed = clip - (p.ammo || 0);
+          const reserve = p.reserveAmmo !== undefined ? p.reserveAmmo : 90;
+          const added = Math.min(needed, reserve);
+          p.ammo = (p.ammo || 0) + added;
+          p.reserveAmmo = Math.max(0, reserve - added);
+          match.events.push({ type: 'reload_end', playerId: p.id, weapon: p.weapon });
+        }
+        return; // Cannot shoot while reloading!
+      }
+
       const enemies = Object.values(match.players).filter(e => e.team !== p.team && e.alive);
+
+      // PRO CS:GO RULE: Players CANNOT shoot while actively defusing or planting!
+      if (p.state === 'planting') {
+        const visibleEnemy = enemies.find(e => this.canSeeEnemy(p, e, match.smokes));
+        if (visibleEnemy && match.bomb.plantProgress < 0.65) {
+          // Cancel plant to fight!
+          p.state = 'idle';
+          match.bomb.plantProgress = 0;
+          p.plantProgress = 0;
+          p.plantingAnnounced = false;
+        } else {
+          // Stick the plant, cannot shoot!
+          return;
+        }
+      }
+
+      if (p.state === 'defusing') {
+        const visibleEnemy = enemies.find(e => this.canSeeEnemy(p, e, match.smokes));
+        const isCriticalTime = match.bomb.timer <= (p.hasKit ? 5.2 : 10.2);
+        if (visibleEnemy && !isCriticalTime && (match.bomb.defuseProgress || 0) < 0.70) {
+          // Fake Defuse! Let go of defuse and turn to engage!
+          p.state = 'idle';
+          match.bomb.defusing = false;
+          match.bomb.defuserId = null;
+          match.bomb.defuseProgress = 0;
+          p.defusingAnnounced = false;
+          match.events.push({ type: 'fake_defuse', playerId: p.id, defuserName: p.name });
+          match.addRadioMessage('ct', p.name, 'Fake defuse yaptım, çıkmasını bekliyorum!');
+        } else {
+          // Stick the defuse! Cannot shoot while defusing!
+          return;
+        }
+      }
+
       let bestTarget = null;
       let closestDist = Infinity;
 
-      // 1. Trade target priority (avenging a teammate kill)
-      if (p.tradeTargetId && match.players[p.tradeTargetId] && match.players[p.tradeTargetId].alive) {
+      // 1. Immediate Point-Blank Threat Priority (< 105 units):
+      // Even if tradeTargetId is set elsewhere, a point-blank attacker takes top priority (fixes tunnel vision!)
+      for (const enemy of enemies) {
+        if (!enemy.alive) continue;
+        const d = Math.hypot(enemy.x - p.x, enemy.y - p.y);
+        if (d < 105 && this.canSeeEnemy(p, enemy, match.smokes)) {
+          if (d < closestDist) {
+            closestDist = d;
+            bestTarget = enemy;
+          }
+        }
+      }
+
+      // 2. Trade target priority (avenging a teammate kill)
+      if (!bestTarget && p.tradeTargetId && match.players[p.tradeTargetId] && match.players[p.tradeTargetId].alive) {
         const tradeEnemy = match.players[p.tradeTargetId];
         if (this.canSeeEnemy(p, tradeEnemy, match.smokes)) {
           bestTarget = tradeEnemy;
@@ -63,7 +127,7 @@ class CombatSystem {
         }
       }
 
-      // 2. Target stickiness: commit to ongoing duel to prevent crosshair dithering / twitching
+      // 3. Target stickiness: commit to ongoing duel to prevent crosshair dithering / twitching
       if (!bestTarget && p.targetEnemyId && match.players[p.targetEnemyId] && match.players[p.targetEnemyId].alive) {
         const currentTarget = match.players[p.targetEnemyId];
         if (this.canSeeEnemy(p, currentTarget, match.smokes)) {
@@ -72,7 +136,7 @@ class CombatSystem {
         }
       }
 
-      // 3. Scan visible enemies and lock nearest
+      // 4. Scan visible enemies and lock nearest
       if (!bestTarget) {
         for (const enemy of enemies) {
           if (!enemy.alive) continue;
@@ -90,22 +154,46 @@ class CombatSystem {
         // Immediately face the spotted target
         p.targetAngle = Math.atan2(bestTarget.y - p.y, bestTarget.x - p.x);
 
+        // AWP CLOSE-RANGE LOGIC:
+        // If AWPer is engaged at point-blank range (< 105 units) with enemy closing in, switch to pistol!
+        let activeWeaponKey = p.weapon;
+        if (p.weapon === 'awp' && closestDist < 105) {
+          activeWeaponKey = p.team === 'ct' ? 'usp' : 'glock';
+        }
+
+        const weapon = WEAPONS[activeWeaponKey] || WEAPONS.ak47;
+
+        // Check Ammo & Reload
+        if (p.ammo === undefined) p.ammo = weapon.clipSize || 30;
+        if (p.reserveAmmo === undefined) p.reserveAmmo = weapon.maxReserve || 90;
+
+        if (p.ammo <= 0) {
+          if (p.reserveAmmo > 0) {
+            p.isReloading = true;
+            p.reloadTimer = weapon.reloadTime || 2.4;
+            p.burstCount = 0;
+            match.events.push({ type: 'reload_start', playerId: p.id, weapon: activeWeaponKey });
+          } else {
+            // Out of reserve ammo -> fallback to pistol
+            p.weapon = p.team === 'ct' ? 'usp' : 'glock';
+            p.ammo = 12;
+            p.reserveAmmo = 24;
+          }
+          return;
+        }
+
         if (p.targetEnemyId !== bestTarget.id) {
           p.targetEnemyId = bestTarget.id;
 
           // Pure Skill-Based Reaction Time:
-          // Player's Reflex attribute directly dictates reaction latency (e.g. 100 reflex -> ~130ms; 90 reflex -> ~200ms)
           const reflex = (p.skills && p.skills.reflex) || 94;
           let baseReaction = 0.27 - (reflex / 100) * 0.14 + (Math.random() * 0.02);
 
-          // SİPER & AÇI TUTMA AVANTAJI:
-          // Savunmada açı tutan veya siper arkasında bekleyen oyuncu hedefe crosshair'i önceden yerleştirdiği için %30 daha hızlı tepki verir!
           const isHoldingAngle = (p.state === 'holding' || this.isCoverPosition(p.x, p.y, match));
           if (isHoldingAngle) {
             baseReaction *= 0.70;
           }
 
-          // TRADE FRAG AVANTAJI: Arkadaşı vurulduğu an intikam hedefi seçen oyuncu anında ateş açar!
           if (p.tradeTargetId === bestTarget.id) {
             baseReaction = 0.08;
           }
@@ -121,16 +209,70 @@ class CombatSystem {
         if (p.flashDuration > 0.4) return;
         if (p.burstPauseTimer > 0) return;
 
-        const weapon = WEAPONS[p.weapon] || WEAPONS.ak47;
         if (now - (p.lastShotTime || 0) >= weapon.fireRate * 1000) {
           p.lastShotTime = now;
+          p.ammo--; // Decrement ammo with each shot
           this.resolveProShot(match, p, bestTarget, weapon, closestDist);
         }
       } else {
         p.targetEnemyId = null;
         p.burstCount = 0;
+        this.checkSmokeSpam(match, p, dt, now);
       }
     });
+  }
+
+  checkSmokeSpam(match, p, dt, now) {
+    if (!p.soundAlert || now - p.soundAlert.time > 1400) return;
+    if (p.isReloading || p.burstPauseTimer > 0) return;
+    const dist = Math.hypot(p.soundAlert.x - p.x, p.soundAlert.y - p.y);
+    const weapon = WEAPONS[p.weapon] || WEAPONS.ak47;
+    if (dist > weapon.maxRange || dist < 35) return;
+
+    // Check if line passes through smoke and is NOT blocked by a solid wall
+    const blockedBySmoke = this.collision.isLineBlockedBySmoke(match.smokes, p.x, p.y, p.soundAlert.x, p.soundAlert.y);
+    const blockedByWall = this.collision.isLineBlockedByWall(p.x, p.y, p.soundAlert.x, p.soundAlert.y);
+
+    if (blockedBySmoke && !blockedByWall) {
+      if (Math.random() < 0.35 && now - (p.lastShotTime || 0) >= weapon.fireRate * 1000 * 1.6) {
+        p.lastShotTime = now;
+        p.targetAngle = Math.atan2(p.soundAlert.y - p.y, p.soundAlert.x - p.x);
+        p.angle = p.targetAngle;
+        if (p.ammo !== undefined && p.ammo > 0) p.ammo--;
+
+        const enemies = Object.values(match.players).filter(e => e.team !== p.team && e.alive);
+        let hitEnemy = null;
+        for (const e of enemies) {
+          const dToLine = this.collision.distToSegment({ x: e.x, y: e.y }, { x: p.x, y: p.y }, { x: p.soundAlert.x, y: p.soundAlert.y });
+          if (dToLine < 20) {
+            hitEnemy = e;
+            break;
+          }
+        }
+
+        if (hitEnemy) {
+          const dmg = Math.round(weapon.damage * 0.72);
+          hitEnemy.hp = Math.max(0, hitEnemy.hp - dmg);
+          p.damage += dmg;
+          match.events.push({ type: 'hit', shooterId: p.id, targetId: hitEnemy.id, damage: dmg, isHeadshot: false });
+          if (hitEnemy.hp <= 0 && hitEnemy.alive) {
+            this.handleKill(match, p, hitEnemy, weapon, false);
+          }
+        }
+
+        match.events.push({
+          type: 'shoot',
+          weapon: p.weapon,
+          shooterId: p.id,
+          fromX: p.x,
+          fromY: p.y,
+          toX: p.soundAlert.x + (Math.random() - 0.5) * 30,
+          toY: p.soundAlert.y + (Math.random() - 0.5) * 30,
+          isHit: !!hitEnemy,
+          isHeadshot: false
+        });
+      }
+    }
   }
 
   resolveProShot(match, shooter, target, weapon, dist) {
@@ -327,6 +469,18 @@ class CombatSystem {
 
     killer.kills++;
     killer.money += (weapon.type === 'sniper' ? 100 : 300);
+
+    // CS:GO Defuse Kit Drop Mechanics
+    if (victim.team === 'ct' && victim.hasKit) {
+      victim.hasKit = false;
+      match.droppedKits = match.droppedKits || [];
+      match.droppedKits.push({
+        id: Math.random().toString(36).substr(2, 9),
+        x: victim.x,
+        y: victim.y
+      });
+      match.events.push({ type: 'kit_dropped', x: victim.x, y: victim.y });
+    }
 
     // Official CS:GO Assist System: Teammate dealing >= 41 damage gets assist
     let assister = null;

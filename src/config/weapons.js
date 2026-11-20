@@ -10,7 +10,10 @@ const WEAPONS = {
     maxRange: 420,
     cost: 2700,
     team: 't',
-    silenced: false
+    silenced: false,
+    clipSize: 30,
+    maxReserve: 90,
+    reloadTime: 2.4
   },
   m4a1: {
     name: 'M4A1-S',
@@ -22,7 +25,10 @@ const WEAPONS = {
     maxRange: 420,
     cost: 2900,
     team: 'ct',
-    silenced: true
+    silenced: true,
+    clipSize: 20,
+    maxReserve: 80,
+    reloadTime: 3.1
   },
   awp: {
     name: 'AWP',
@@ -34,7 +40,10 @@ const WEAPONS = {
     maxRange: 680,
     cost: 4750,
     team: 'both',
-    silenced: false
+    silenced: false,
+    clipSize: 5,
+    maxReserve: 30,
+    reloadTime: 3.6
   },
   galil: {
     name: 'Galil AR',
@@ -46,7 +55,10 @@ const WEAPONS = {
     maxRange: 380,
     cost: 1800,
     team: 't',
-    silenced: false
+    silenced: false,
+    clipSize: 35,
+    maxReserve: 90,
+    reloadTime: 2.8
   },
   famas: {
     name: 'FAMAS',
@@ -58,7 +70,10 @@ const WEAPONS = {
     maxRange: 380,
     cost: 2050,
     team: 'ct',
-    silenced: false
+    silenced: false,
+    clipSize: 25,
+    maxReserve: 90,
+    reloadTime: 3.0
   },
   deagle: {
     name: 'Desert Eagle',
@@ -70,7 +85,10 @@ const WEAPONS = {
     maxRange: 340,
     cost: 700,
     team: 'both',
-    silenced: false
+    silenced: false,
+    clipSize: 7,
+    maxReserve: 35,
+    reloadTime: 2.2
   },
   usp: {
     name: 'USP-S',
@@ -82,7 +100,10 @@ const WEAPONS = {
     maxRange: 280,
     cost: 200,
     team: 'ct',
-    silenced: true
+    silenced: true,
+    clipSize: 12,
+    maxReserve: 24,
+    reloadTime: 2.2
   },
   glock: {
     name: 'Glock-18',
@@ -94,7 +115,10 @@ const WEAPONS = {
     maxRange: 260,
     cost: 200,
     team: 't',
-    silenced: false
+    silenced: false,
+    clipSize: 20,
+    maxReserve: 120,
+    reloadTime: 2.1
   }
 };
 

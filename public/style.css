@@ -896,6 +896,23 @@ body.theme-cs {
   background: #2980b9;
   color: #fff;
 }
+.badge-helmet {
+  background: #27ae60;
+  color: #fff;
+}
+.badge-armor {
+  background: #16a085;
+  color: #fff;
+}
+.badge-reload {
+  background: #d35400;
+  color: #fff;
+  animation: pulseReload 0.8s infinite;
+}
+@keyframes pulseReload {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 .state-badge {
   font-size: 8px;
   font-weight: 700;

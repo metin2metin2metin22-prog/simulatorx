@@ -383,6 +383,17 @@ class BotTactics {
       }
     }
 
+    // PRO CS:GO SMOKE DEFUSE MECHANIC:
+    // If a CT is actively defusing, a nearby supporting CT throws a smoke onto the bomb for safety!
+    if (bestDefuser && bestDefuser.state === 'defusing' && aliveCTs.length > 1 && match.smokes.length < 3) {
+      const coverCT = aliveCTs.find(ct => ct.id !== bestDefuser.id && Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y) < 280);
+      if (coverCT && !coverCT.bombSmoked) {
+        coverCT.bombSmoked = true;
+        this.throwSmoke(match, coverCT, match.bomb.x, match.bomb.y);
+        match.addRadioMessage('ct', coverCT.name, 'Bombaya smoke attım, duman içinde çöz!');
+      }
+    }
+
     // 3. Supporting CTs Movement (Swarm and Defend)
     aliveCTs.forEach(ct => {
       if (bestDefuser && ct.id === bestDefuser.id) return;
@@ -550,6 +561,16 @@ class BotTactics {
 
     const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
 
+    // Coordinated Retake Flashbang
+    if (aliveCTs.length > 0) {
+      const flasher = aliveCTs[0];
+      if (site === 'A') {
+        this.throwGrenade(match, flasher, 'flash', 820, 160);
+      } else {
+        this.throwGrenade(match, flasher, 'flash', 215, 120);
+      }
+    }
+
     if (site === 'A') {
       aliveCTs.forEach((ct, idx) => {
         let targetNode = 'a_site';
@@ -567,12 +588,12 @@ class BotTactics {
       });
     }
 
-    // Terrorist Post-Plant Positioning
+    // Terrorist Post-Plant Positioning (Authentic Crossfire Spots, No elevator suicide)
     const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
     match.addRadioMessage('t', 'electronic (IGL)', 'Bomba kuruldu! Crossfire açın ve açıları koruyun!');
 
     if (site === 'A') {
-      const aSpots = ['a_site', 'goose', 'a_ramp', 'ct_elevator', 'a_short_site'];
+      const aSpots = ['a_site', 'goose', 'a_ramp', 'long_pit', 'a_short_site'];
       aliveTs.forEach((t, idx) => {
         const spot = aSpots[idx % aSpots.length];
         match.setPlayerPath(t, spot);

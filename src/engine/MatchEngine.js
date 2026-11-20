@@ -73,6 +73,7 @@ class PureCoachMatch {
     this.killfeed = [];
     this.events = [];
     this.radioMessages = [];
+    this.droppedKits = [];
 
     this.initPlayers();
     this.lastTick = Date.now();
@@ -233,7 +234,7 @@ class PureCoachMatch {
     this.timer = 2.5; // Fast, snappy freeze buy time (2.5s instead of 10s)
     this.smokes = [];
     this.grenades = [];
-    this.killfeed = []; // Reset killfeed for fresh round
+    this.droppedKits = []; // Clear dropped kits for fresh round
     this.events.push({ type: 'round_freeze', round: this.round });
 
     // Reset Bomb
@@ -283,8 +284,9 @@ class PureCoachMatch {
     this.tTargetSite = (tStrat && tStrat.targetSite) ? tStrat.targetSite : (this.activeStrategies.t === 'rush_b' || this.activeStrategies.t === 'mid_to_b' ? 'B' : 'A');
     this.tExecuteCalled = false;
 
-    // Reset Players & Autonomous Pro CS:GO Buys
+    // Reset Players & Authentic Pro CS:GO Saving / Economy
     Object.values(this.players).forEach(p => {
+      const wasAlive = p.alive; // Player survived the round!
       p.alive = true;
       p.hp = 100;
       p.state = 'idle';
@@ -299,10 +301,10 @@ class PureCoachMatch {
       p.holdTimer = 0;
       p.sprintTimer = 3.5;
       p.droppedBombSmoked = false;
-      p.hasKit = false;
-      p.armor = 0;
-      p.hasHelmet = false;
       p.damageHistory = {};
+      p.isReloading = false;
+      p.reloadTimer = 0;
+      p.footstepTimer = 0;
 
       const spawnList = p.team === 'ct' ? this.mapData.spawns.CT : this.mapData.spawns.T;
       const spawn = spawnList[p.slot % spawnList.length];
@@ -314,8 +316,20 @@ class PureCoachMatch {
       p.targetAngle = p.angle;
       p.hasBomb = (p.id === this.bomb.carrierId);
 
-      this.autonomousPlayerBuy(p);
+      // PRO CS:GO WEAPON SAVING MECHANIC:
+      // If player died last round or it's pistol round, reset equipment.
+      // If player SURVIVED, they KEEP their weapon, armor, and defuse kit for free!
+      if (!wasAlive || this.round === 1 || this.round === 13) {
+        p.armor = 0;
+        p.hasHelmet = false;
+        p.hasKit = false;
+        p.weapon = p.team === 'ct' ? 'usp' : 'glock';
+      }
     });
+
+    // TEAM-COORDINATED BUYING & WEAPON DROPS
+    this.executeTeamAutonomousBuy('ct');
+    this.executeTeamAutonomousBuy('t');
 
     // Sync bomb starting coordinates to carrier
     const initialCarrier = this.players[this.bomb.carrierId];
@@ -335,58 +349,129 @@ class PureCoachMatch {
     }
   }
 
-  autonomousPlayerBuy(p) {
+  executeTeamAutonomousBuy(team) {
+    const teamPlayers = Object.values(this.players).filter(p => p.team === team);
     if (this.round === 1 || this.round === 13) {
-      p.weapon = p.team === 'ct' ? 'usp' : 'glock';
-      if (Math.random() < 0.35 && p.money >= 700) {
-        p.weapon = 'deagle';
-        p.money -= 700;
-      } else if (p.team === 'ct' && p.money >= 400 && Math.random() < 0.45) {
-        p.hasKit = true;
-        p.money -= 400;
-      } else if (p.money >= 650 && Math.random() < 0.65) {
-        // Kevlar vest buy in pistol round
-        p.armor = 100;
+      teamPlayers.forEach(p => {
+        p.weapon = team === 'ct' ? 'usp' : 'glock';
+        p.armor = 0;
         p.hasHelmet = false;
-        p.money -= 650;
-      }
+        p.hasKit = false;
+        if (Math.random() < 0.60 && p.money >= 650) {
+          p.armor = 100;
+          p.hasHelmet = false;
+          p.money -= 650;
+        } else if (team === 'ct' && p.money >= 400 && Math.random() < 0.45) {
+          p.hasKit = true;
+          p.money -= 400;
+        } else if (p.money >= 700 && Math.random() < 0.35) {
+          p.weapon = 'deagle';
+          p.money -= 700;
+        }
+        const w = WEAPONS[p.weapon] || WEAPONS.ak47;
+        p.ammo = w.clipSize || 30;
+        p.reserveAmmo = w.maxReserve || 90;
+      });
       return;
     }
 
-    // Sniper role priority buy
-    if (p.slot === 0 && p.money >= 4750) {
-      p.weapon = 'awp';
-      p.money -= 4750;
-      p.armor = 100;
-      p.hasHelmet = true;
-      return;
-    }
-
-    // Full buy
-    if (p.money >= 3700) {
-      p.weapon = p.team === 'ct' ? 'm4a1' : 'ak47';
-      p.money -= (p.team === 'ct' ? 2900 : 2700);
-      p.armor = 100;
-      p.hasHelmet = true;
-      if (p.team === 'ct' && p.money >= 400) {
-        p.hasKit = true;
-        p.money -= 400;
-      }
-    } else if (p.money >= 2400) {
-      // Force buy
-      p.weapon = p.team === 'ct' ? 'famas' : 'galil';
-      p.money -= (p.team === 'ct' ? 2050 : 1800);
-      p.armor = 100;
-      p.hasHelmet = false;
+    const avgMoney = teamPlayers.reduce((sum, p) => sum + p.money, 0) / teamPlayers.length;
+    let teamStrat = 'full_buy';
+    if (avgMoney < 2200) {
+      teamStrat = 'eco';
+    } else if (avgMoney < 3600) {
+      teamStrat = 'force_buy';
     } else {
-      // Eco save
-      p.weapon = p.team === 'ct' ? 'usp' : 'glock';
-      p.armor = 0;
-      p.hasHelmet = false;
-      if (p.money >= 1400 && Math.random() < 0.3) {
-        p.weapon = 'deagle';
-        p.money -= 700;
+      teamStrat = 'full_buy';
+    }
+
+    // Weapon Drops between teammates:
+    // If a rich player has > $5500 and a teammate who died has < $2700 during a buy round:
+    if (teamStrat === 'full_buy' || teamStrat === 'force_buy') {
+      const rich = teamPlayers.filter(p => p.money >= 5500).sort((a, b) => b.money - a.money);
+      const poor = teamPlayers.filter(p => p.money < 2700 && (p.weapon === 'usp' || p.weapon === 'glock')).sort((a, b) => a.money - b.money);
+
+      for (let i = 0; i < Math.min(rich.length, poor.length); i++) {
+        const donor = rich[i];
+        const receiver = poor[i];
+        const rifleKey = team === 'ct' ? 'm4a1' : 'ak47';
+        const cost = team === 'ct' ? 2900 : 2700;
+        if (donor.money - cost >= 2400) {
+          donor.money -= cost;
+          receiver.weapon = rifleKey;
+          this.addRadioMessage(team, donor.name, `${receiver.name}, sana ${team === 'ct' ? 'M4A1-S' : 'AK-47'} drop attım!`);
+        }
       }
+    }
+
+    // Individual buys according to team strategy
+    teamPlayers.forEach(p => {
+      const hasRifleOrAwp = p.weapon === 'ak47' || p.weapon === 'm4a1' || p.weapon === 'm4a4' || p.weapon === 'awp';
+
+      if (teamStrat === 'full_buy') {
+        if (p.slot === 0 && (p.money >= 4750 || p.weapon === 'awp')) {
+          if (p.weapon !== 'awp' && p.money >= 4750) {
+            p.weapon = 'awp';
+            p.money -= 4750;
+          }
+          if (p.armor < 50 && p.money >= 1000) {
+            p.armor = 100;
+            p.hasHelmet = true;
+            p.money -= 1000;
+          }
+        } else {
+          if (!hasRifleOrAwp && p.money >= (team === 'ct' ? 2900 : 2700)) {
+            p.weapon = team === 'ct' ? 'm4a1' : 'ak47';
+            p.money -= (team === 'ct' ? 2900 : 2700);
+          }
+          if (p.armor < 50 && p.money >= 1000) {
+            p.armor = 100;
+            p.hasHelmet = true;
+            p.money -= 1000;
+          }
+        }
+        if (team === 'ct' && !p.hasKit && p.money >= 400) {
+          p.hasKit = true;
+          p.money -= 400;
+        }
+      } else if (teamStrat === 'force_buy') {
+        if (!hasRifleOrAwp) {
+          if (p.money >= (team === 'ct' ? 2050 : 1800)) {
+            p.weapon = team === 'ct' ? 'famas' : 'galil';
+            p.money -= (team === 'ct' ? 2050 : 1800);
+          } else if (p.money >= 700) {
+            p.weapon = 'deagle';
+            p.money -= 700;
+          }
+        }
+        if (p.armor < 50 && p.money >= 650) {
+          p.armor = 100;
+          p.hasHelmet = false;
+          p.money -= 650;
+        }
+      } else {
+        // ECO SAVE
+        if (!hasRifleOrAwp) {
+          p.weapon = team === 'ct' ? 'usp' : 'glock';
+          if (p.money >= 1800 && Math.random() < 0.35) {
+            p.weapon = 'deagle';
+            p.money -= 700;
+          }
+        }
+      }
+
+      const w = WEAPONS[p.weapon] || WEAPONS.ak47;
+      p.ammo = w.clipSize || 30;
+      p.reserveAmmo = w.maxReserve || 90;
+    });
+
+    const igl = teamPlayers.find(p => p.slot === 0 || p.slot === 1) || teamPlayers[0];
+    if (teamStrat === 'eco') {
+      this.addRadioMessage(team, igl.name, 'ECO RAUND! Para biriktiriyoruz, sonraki raunt tam alım yapacağız.');
+    } else if (teamStrat === 'force_buy') {
+      this.addRadioMessage(team, igl.name, 'FORCE BUY! Kırılma raundu, elimizdeki parayla yükleneceğiz!');
+    } else {
+      this.addRadioMessage(team, igl.name, 'FULL BUY! Ekipmanlar tam, execute için hazır olun.');
     }
   }
 
@@ -503,6 +588,23 @@ class PureCoachMatch {
       this.smokes[i].remainingTime -= dt;
       if (this.smokes[i].remainingTime <= 0) {
         this.smokes.splice(i, 1);
+      }
+    }
+
+    // Update Dropped Defuse Kits Pickup
+    if (this.droppedKits && this.droppedKits.length > 0) {
+      const aliveCTs = Object.values(this.players).filter(p => p.team === 'ct' && p.alive && !p.hasKit);
+      for (let i = this.droppedKits.length - 1; i >= 0; i--) {
+        const kit = this.droppedKits[i];
+        for (const ct of aliveCTs) {
+          if (Math.hypot(ct.x - kit.x, ct.y - kit.y) <= 36) {
+            ct.hasKit = true;
+            this.droppedKits.splice(i, 1);
+            this.events.push({ type: 'kit_pickup', playerId: ct.id, x: kit.x, y: kit.y });
+            this.addRadioMessage('ct', ct.name, 'Yerdeki imha kitini aldım!');
+            break;
+          }
+        }
       }
     }
 
@@ -729,7 +831,35 @@ class PureCoachMatch {
       if (p.weapon === 'awp') baseSpeed = 62;
       else if (p.weapon === 'usp' || p.weapon === 'glock' || p.weapon === 'deagle') baseSpeed = 82;
       if (p.sprintTimer > 0) baseSpeed = 95;
-      if (p.flashDuration > 0.4) baseSpeed *= 0.45;
+
+      // PRO FLASHDOWN RETREAT: Fully blind bots back up away from danger instead of waddling forward into bullets
+      if (p.flashDuration > 1.0) {
+        baseSpeed = 35;
+        if (p.pathIndex > 0) {
+          p.targetAngle = this.collision.normalizeAngle(p.angle + Math.PI);
+        }
+      } else if (p.flashDuration > 0.4) {
+        baseSpeed *= 0.45;
+      }
+
+      // PRO FOOTSTEP AUDIO ENGINE:
+      // Running players emit footsteps every 0.38s audible within 340 units!
+      p.footstepTimer = (p.footstepTimer || 0) + dt;
+      if (baseSpeed >= 65 && p.footstepTimer >= 0.38) {
+        p.footstepTimer = 0;
+        const now = Date.now();
+        Object.values(this.players).forEach(other => {
+          if (!other.alive || other.team === p.team) return;
+          const d = Math.hypot(other.x - p.x, other.y - p.y);
+          if (d <= 340 && !this.collision.isLineBlockedByWall(other.x, other.y, p.x, p.y)) {
+            other.soundAlert = { x: p.x, y: p.y, time: now, isFootstep: true };
+            if (!other.targetEnemyId && other.state === 'holding') {
+              other.targetAngle = Math.atan2(p.y - other.y, p.x - other.x);
+            }
+          }
+        });
+        this.events.push({ type: 'footstep', x: p.x, y: p.y, team: p.team });
+      }
 
       const nextX = p.x + Math.cos(p.angle) * baseSpeed * dt;
       const nextY = p.y + Math.sin(p.angle) * baseSpeed * dt;
@@ -889,6 +1019,7 @@ class PureCoachMatch {
       grenades: this.grenades,
       killfeed: this.killfeed,
       radioMessages: this.radioMessages,
+      droppedKits: this.droppedKits || [],
       events: this.events
     };
 

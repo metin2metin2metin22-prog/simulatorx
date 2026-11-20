@@ -272,9 +272,11 @@ class HUDManager {
                 <span class="pmc-name">${p.name}</span>
                 ${p.hasBomb ? '<span class="badge-item badge-c4">💣 C4</span>' : ''}
                 ${p.hasKit ? '<span class="badge-item badge-kit">✂️ KİT</span>' : ''}
+                ${p.hasHelmet ? '<span class="badge-item badge-helmet">🪖 KASK</span>' : (p.armor > 0 ? '<span class="badge-item badge-armor">🛡️ YELEK</span>' : '')}
+                ${p.isReloading ? '<span class="badge-item badge-reload">🔄 RELOAD</span>' : ''}
                 ${stateTag}
               </div>
-              <div class="pmc-role">${p.role || p.tag || 'Rifler'}</div>
+              <div class="pmc-role">${p.role || p.tag || 'Rifler'} | ${(p.weapon || 'USP').toUpperCase()} ${p.ammo !== undefined ? `(${p.ammo}/${p.reserveAmmo || 0})` : ''}</div>
             </div>
             <div class="pmc-rating-pill" title="HLTV Rating 2.0">★ ${(p.rating || 1.20).toFixed(2)}</div>
           </div>
@@ -306,7 +308,7 @@ class HUDManager {
             </div>
             <div class="pmc-stats-details">
               <span>HP: <strong>${Math.max(0, p.hp)}</strong></span>
-              <span class="pmc-weapon">${(p.weapon || 'USP').toUpperCase()}</span>
+              <span class="pmc-weapon">${(p.weapon || 'USP').toUpperCase()} ${p.ammo !== undefined ? `[${p.ammo}]` : ''}</span>
               <span class="pmc-money">$${p.money}</span>
               <span class="pmc-kda">${p.kills}K / ${p.deaths}D</span>
             </div>
