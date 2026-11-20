@@ -4,8 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 const { generateStarterRoster } = require('../utils/playerGenerator');
-const { LEAGUE_TIERS, AMATEUR_BOT_TEAMS, CHALLENGER_BOT_TEAMS, PRO_BOT_TEAMS } = require('../config/multiLeague');
+const { LEAGUE_TIERS, AMATEUR_BOT_TEAMS } = require('../config/multiLeague');
 const { calculateTeamStats, PRO_PLAYER_POOL } = require('../config/rosters');
+const { MASSIVE_TEAMS_CATALOG } = require('../config/massiveTeams');
 
 const DB_PATH = path.join(__dirname, '../../data/database.json');
 
@@ -495,11 +496,20 @@ class Database {
 
         // Promotion to next tier
         if (league.tierKey === 'amateur') {
-          user.club.tier = 'challenger';
-          user.leagueData = this.initTierLeague(user.club, 'challenger');
-        } else if (league.tierKey === 'challenger') {
-          user.club.tier = 'pro';
-          user.leagueData = this.initTierLeague(user.club, 'pro');
+          user.club.tier = 'city';
+          user.leagueData = this.initTierLeague(user.club, 'city');
+        } else if (league.tierKey === 'city') {
+          user.club.tier = 'regional';
+          user.leagueData = this.initTierLeague(user.club, 'regional');
+        } else if (league.tierKey === 'regional') {
+          user.club.tier = 'national';
+          user.leagueData = this.initTierLeague(user.club, 'national');
+        } else if (league.tierKey === 'national') {
+          user.club.tier = 'global';
+          user.leagueData = this.initTierLeague(user.club, 'global');
+        } else if (league.tierKey === 'global') {
+          // Legend status: stay in global and celebrate
+          user.leagueData = this.initTierLeague(user.club, 'global');
         }
       }
     }

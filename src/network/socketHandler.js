@@ -4,7 +4,7 @@ const { ROSTERS, DEFAULT_ROSTERS, PRO_PLAYER_POOL, PERK_DEFINITIONS, ROSTER_PRES
 const { db } = require('../storage/db');
 const { LEAGUE_TIERS } = require('../config/multiLeague');
 
-function registerSocketHandlers(io, match) {
+function registerSocketHandlers(io, match, scheduleEngine, tournamentEngine, replayManager) {
   io.on('connection', (socket) => {
     match.connectedSockets[socket.id] = { connectedAt: Date.now() };
     const onlineCount = Object.keys(match.connectedSockets).length;
@@ -89,6 +89,83 @@ function registerSocketHandlers(io, match) {
     socket.on('get_tier_overview', ({ tierKey }, callback) => {
       const overview = db.getTierOverview(tierKey);
       if (typeof callback === 'function') callback(overview);
+    });
+
+    // --- SCHEDULE & TIMETABLE EVENTS ---
+    socket.on('get_user_schedule', ({ username }, callback) => {
+      const userToUse = username || socket.username;
+      if (!scheduleEngine) return;
+      const sched = scheduleEngine.getUserSchedule(userToUse);
+      if (typeof callback === 'function') callback(sched);
+    });
+
+    // --- LIVE BOT MATCHES (ESPOR TV) ---
+    socket.on('get_live_matches', (callback) => {
+      if (!scheduleEngine) return;
+      const list = scheduleEngine.getLiveMatchesSummary();
+      if (typeof callback === 'function') callback(list);
+    });
+
+    socket.on('spectate_live_match', ({ matchId }, callback) => {
+      if (!scheduleEngine) return;
+      const liveMatch = scheduleEngine.getLiveMatchById(matchId);
+      if (!liveMatch) {
+        if (typeof callback === 'function') callback({ success: false, error: 'Maç bulunamadı!' });
+        return;
+      }
+
+      // Load into visual match engine so radar displays it in real time
+      match.loadLiveSpectateMatch(liveMatch);
+
+      io.emit('chat_message', {
+        sender: 'ESPOR TV',
+        text: `📡 Canlı Yayın Başladı: ${liveMatch.homeTeam.name} vs ${liveMatch.awayTeam.name} (${liveMatch.tierName})`
+      });
+
+      if (typeof callback === 'function') callback({ success: true, matchInfo: match.matchInfo });
+    });
+
+    // --- TOURNAMENT EVENTS ---
+    socket.on('get_tournaments', (callback) => {
+      if (!tournamentEngine) return;
+      const tournaments = tournamentEngine.getTournamentsList();
+      if (typeof callback === 'function') callback(tournaments);
+    });
+
+    socket.on('register_tournament', ({ tournamentId, username }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse || !tournamentEngine) return;
+      const user = db.getUserRecordByUsername(userToUse);
+      if (!user) {
+        if (typeof callback === 'function') callback({ success: false, error: 'Kullanıcı bulunamadı.' });
+        return;
+      }
+      const res = tournamentEngine.registerUserClub(tournamentId, {
+        id: user.club.id,
+        name: user.club.name,
+        icon: user.club.icon,
+        color: user.club.color,
+        stats: user.club.stats,
+        roster: user.club.roster,
+        username: userToUse
+      });
+      if (typeof callback === 'function') callback(res);
+    });
+
+    // --- REPLAY SYSTEM ---
+    socket.on('get_match_replay', ({ replayId }, callback) => {
+      if (!replayManager) return;
+      const rep = replayManager.getReplay(replayId);
+      if (typeof callback === 'function') callback(rep);
+    });
+
+    socket.on('get_user_replays', ({ username }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse || !replayManager) return;
+      const user = db.getUserRecordByUsername(userToUse);
+      if (!user) return;
+      const replays = replayManager.getReplaysForUser(user.club.id);
+      if (typeof callback === 'function') callback(replays);
     });
 
     // --- LEAGUE MATCH START (Live Real-Time Simulation) ---

@@ -402,6 +402,43 @@ class PureCoachMatch {
     return true;
   }
 
+  loadLiveSpectateMatch(liveMatch) {
+    if (!liveMatch) return false;
+    this.activeUsername = null;
+    const homeRoster = (liveMatch.homeTeam.roster && liveMatch.homeTeam.roster.length === 5) 
+      ? liveMatch.homeTeam.roster 
+      : JSON.parse(JSON.stringify(DEFAULT_ROSTERS.ct));
+    const awayRoster = (liveMatch.awayTeam.roster && liveMatch.awayTeam.roster.length === 5) 
+      ? liveMatch.awayTeam.roster 
+      : JSON.parse(JSON.stringify(DEFAULT_ROSTERS.t));
+
+    this.currentRosters.ct = JSON.parse(JSON.stringify(homeRoster));
+    this.currentRosters.t = JSON.parse(JSON.stringify(awayRoster));
+    this.userSide = 'spectator';
+
+    this.matchInfo = {
+      isSpectating: true,
+      isLeagueMatch: false,
+      tierName: liveMatch.tierName,
+      badge: liveMatch.badge,
+      homeTeam: liveMatch.homeTeam,
+      awayTeam: liveMatch.awayTeam,
+      spectateTitle: `${liveMatch.badge} ${liveMatch.homeTeam.name} vs ${liveMatch.awayTeam.name}`
+    };
+
+    this.round = liveMatch.round || 1;
+    this.score = { ct: liveMatch.score?.home || 0, t: liveMatch.score?.away || 0 };
+    this.coaches.ct.name = liveMatch.homeTeam.coachName || `${liveMatch.homeTeam.name} Koçu`;
+    this.coaches.t.name = liveMatch.awayTeam.coachName || `${liveMatch.awayTeam.name} Koçu`;
+    this.isPaused = false;
+    this.killfeed = [];
+    this.events = [];
+    this.initPlayers();
+    this.startRound();
+    this.broadcastState();
+    return true;
+  }
+
   startMatch() {
     if (this.league && this.league.getUserNextMatch()) {
       return this.loadLeagueMatch();

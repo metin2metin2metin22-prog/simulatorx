@@ -1,0 +1,403 @@
+{
+  "rep_test_match_101": {
+    "replayId": "rep_test_match_101",
+    "matchId": "test_match_101",
+    "tierName": "Şehir Ligi",
+    "weekName": "Hafta 3",
+    "date": "20.11.2026 14:41:43",
+    "homeTeam": {
+      "id": "team_a",
+      "name": "Kadıköy Bulls",
+      "icon": "🐂",
+      "color": "#c0392b"
+    },
+    "awayTeam": {
+      "id": "team_b",
+      "name": "Beşiktaş Esports",
+      "icon": "🦅",
+      "color": "#ffffff"
+    },
+    "score": {
+      "home": 13,
+      "away": 11
+    },
+    "winner": {
+      "id": "team_a",
+      "name": "Kadıköy Bulls",
+      "icon": "🐂"
+    },
+    "matchMvp": {
+      "name": "Oyuncu 2",
+      "team": "Kadıköy Bulls",
+      "kills": 23,
+      "deaths": 14,
+      "rating": 2.31
+    },
+    "homeBox": [
+      {
+        "id": "p_1",
+        "name": "Oyuncu 2",
+        "role": "AWPer",
+        "perk": "onetap_god",
+        "kills": 23,
+        "deaths": 14,
+        "assists": 6,
+        "adr": 99.1,
+        "hsPercent": 50,
+        "rating": 2.31
+      },
+      {
+        "id": "p_2",
+        "name": "Oyuncu 3",
+        "role": "Rifler",
+        "perk": "onetap_god",
+        "kills": 19,
+        "deaths": 10,
+        "assists": 5,
+        "adr": 90.7,
+        "hsPercent": 49,
+        "rating": 2.09
+      },
+      {
+        "id": "p_3",
+        "name": "Oyuncu 4",
+        "role": "Support",
+        "perk": "onetap_god",
+        "kills": 20,
+        "deaths": 12,
+        "assists": 3,
+        "adr": 79,
+        "hsPercent": 51,
+        "rating": 2.07
+      },
+      {
+        "id": "p_0",
+        "name": "Oyuncu 1",
+        "role": "Entry",
+        "perk": "onetap_god",
+        "kills": 19,
+        "deaths": 15,
+        "assists": 5,
+        "adr": 72.8,
+        "hsPercent": 50,
+        "rating": 1.85
+      },
+      {
+        "id": "p_4",
+        "name": "Oyuncu 5",
+        "role": "IGL",
+        "perk": "onetap_god",
+        "kills": 16,
+        "deaths": 15,
+        "assists": 5,
+        "adr": 65,
+        "hsPercent": 45,
+        "rating": 1.56
+      }
+    ],
+    "awayBox": [
+      {
+        "id": "p_1",
+        "name": "Oyuncu 2",
+        "role": "AWPer",
+        "perk": "onetap_god",
+        "kills": 16,
+        "deaths": 14,
+        "assists": 7,
+        "adr": 79.6,
+        "hsPercent": 47,
+        "rating": 1.66
+      },
+      {
+        "id": "p_3",
+        "name": "Oyuncu 4",
+        "role": "Support",
+        "perk": "onetap_god",
+        "kills": 12,
+        "deaths": 17,
+        "assists": 5,
+        "adr": 55,
+        "hsPercent": 55,
+        "rating": 1.07
+      },
+      {
+        "id": "p_4",
+        "name": "Oyuncu 5",
+        "role": "IGL",
+        "perk": "onetap_god",
+        "kills": 12,
+        "deaths": 20,
+        "assists": 5,
+        "adr": 57.3,
+        "hsPercent": 56,
+        "rating": 1.02
+      },
+      {
+        "id": "p_0",
+        "name": "Oyuncu 1",
+        "role": "Entry",
+        "perk": "onetap_god",
+        "kills": 11,
+        "deaths": 19,
+        "assists": 7,
+        "adr": 42.6,
+        "hsPercent": 55,
+        "rating": 0.93
+      },
+      {
+        "id": "p_2",
+        "name": "Oyuncu 3",
+        "role": "Rifler",
+        "perk": "onetap_god",
+        "kills": 10,
+        "deaths": 19,
+        "assists": 6,
+        "adr": 52.2,
+        "hsPercent": 46,
+        "rating": 0.74
+      }
+    ],
+    "rounds": [
+      {
+        "roundNum": 1,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "explosion",
+        "scoreAfter": "0 - 1",
+        "mvp": "Oyuncu 4",
+        "highlight": "Oyuncu 4 AWP ile Mid kapılarında inanılmaz bir açılış vuruşu yaptı!"
+      },
+      {
+        "roundNum": 2,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "elimination",
+        "scoreAfter": "1 - 1",
+        "mvp": "Oyuncu 5",
+        "highlight": "Oyuncu 5 duman içerisinden (smoke spray) 2 rakip oyuncuyu avladı!"
+      },
+      {
+        "roundNum": 3,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "defuse",
+        "scoreAfter": "2 - 1",
+        "mvp": "Oyuncu 4",
+        "highlight": "Oyuncu 4 1v2 gergin clutch pozisyonunda soğukkanlılıkla C4 imha etti!"
+      },
+      {
+        "roundNum": 4,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "defuse",
+        "scoreAfter": "3 - 1",
+        "mvp": "Oyuncu 4",
+        "highlight": "Oyuncu 4 duman içerisinden (smoke spray) 2 rakip oyuncuyu avladı!"
+      },
+      {
+        "roundNum": 5,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "explosion",
+        "scoreAfter": "4 - 1",
+        "mvp": "Oyuncu 4",
+        "highlight": "Organize A Execute: Sis perdesi ve flash kombinasyonuyla site düştü."
+      },
+      {
+        "roundNum": 6,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "defuse",
+        "scoreAfter": "5 - 1",
+        "mvp": "Oyuncu 4",
+        "highlight": "Organize A Execute: Sis perdesi ve flash kombinasyonuyla site düştü."
+      },
+      {
+        "roundNum": 7,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "defuse",
+        "scoreAfter": "6 - 1",
+        "mvp": "Oyuncu 1",
+        "highlight": "Oyuncu 1 duman içerisinden (smoke spray) 2 rakip oyuncuyu avladı!"
+      },
+      {
+        "roundNum": 8,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "defuse",
+        "scoreAfter": "6 - 2",
+        "mvp": "Oyuncu 2",
+        "highlight": "Oyuncu 2 son saniyede defuse kit ile 0.4 saniye kala bombayı çözdü!"
+      },
+      {
+        "roundNum": 9,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "elimination",
+        "scoreAfter": "6 - 3",
+        "mvp": "Oyuncu 3",
+        "highlight": "Oyuncu 3 AWP ile Mid kapılarında inanılmaz bir açılış vuruşu yaptı!"
+      },
+      {
+        "roundNum": 10,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "explosion",
+        "scoreAfter": "7 - 3",
+        "mvp": "Oyuncu 3",
+        "highlight": "Gecikmiş AWP rotasyonu ile A Long temizlendi."
+      },
+      {
+        "roundNum": 11,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "elimination",
+        "scoreAfter": "8 - 3",
+        "mvp": "Oyuncu 4",
+        "highlight": "Gecikmiş AWP rotasyonu ile A Long temizlendi."
+      },
+      {
+        "roundNum": 12,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "elimination",
+        "scoreAfter": "8 - 4",
+        "mvp": "Oyuncu 3",
+        "highlight": "Organize A Execute: Sis perdesi ve flash kombinasyonuyla site düştü."
+      },
+      {
+        "roundNum": 13,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "elimination",
+        "scoreAfter": "8 - 5",
+        "mvp": "Oyuncu 1",
+        "highlight": "Gecikmiş AWP rotasyonu ile A Long temizlendi."
+      },
+      {
+        "roundNum": 14,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "elimination",
+        "scoreAfter": "8 - 6",
+        "mvp": "Oyuncu 3",
+        "highlight": "B Bölgesine şok T baskını (Rush B) CT savunmasını hazırlıksız yakaladı."
+      },
+      {
+        "roundNum": 15,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "explosion",
+        "scoreAfter": "8 - 7",
+        "mvp": "Oyuncu 4",
+        "highlight": "Oyuncu 4 son saniyede defuse kit ile 0.4 saniye kala bombayı çözdü!"
+      },
+      {
+        "roundNum": 16,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "explosion",
+        "scoreAfter": "8 - 8",
+        "mvp": "Oyuncu 1",
+        "highlight": "Oyuncu 1 son saniyede defuse kit ile 0.4 saniye kala bombayı çözdü!"
+      },
+      {
+        "roundNum": 17,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "explosion",
+        "scoreAfter": "8 - 9",
+        "mvp": "Oyuncu 4",
+        "highlight": "Oyuncu 4 1v2 gergin clutch pozisyonunda soğukkanlılıkla C4 imha etti!"
+      },
+      {
+        "roundNum": 18,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "elimination",
+        "scoreAfter": "9 - 9",
+        "mvp": "Oyuncu 4",
+        "highlight": "B Bölgesine şok T baskını (Rush B) CT savunmasını hazırlıksız yakaladı."
+      },
+      {
+        "roundNum": 19,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "explosion",
+        "scoreAfter": "10 - 9",
+        "mvp": "Oyuncu 1",
+        "highlight": "Oyuncu 1 duman içerisinden (smoke spray) 2 rakip oyuncuyu avladı!"
+      },
+      {
+        "roundNum": 20,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "elimination",
+        "scoreAfter": "10 - 10",
+        "mvp": "Oyuncu 1",
+        "highlight": "Oyuncu 1 AWP ile Mid kapılarında inanılmaz bir açılış vuruşu yaptı!"
+      },
+      {
+        "roundNum": 21,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "defuse",
+        "scoreAfter": "11 - 10",
+        "mvp": "Oyuncu 1",
+        "highlight": "Oyuncu 1 son saniyede defuse kit ile 0.4 saniye kala bombayı çözdü!"
+      },
+      {
+        "roundNum": 22,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "defuse",
+        "scoreAfter": "12 - 10",
+        "mvp": "Oyuncu 4",
+        "highlight": "Oyuncu 4 AWP ile Mid kapılarında inanılmaz bir açılış vuruşu yaptı!"
+      },
+      {
+        "roundNum": 23,
+        "winnerSide": "home",
+        "winningTeamName": "Kadıköy Bulls",
+        "winningTeamIcon": "🐂",
+        "winType": "defuse",
+        "scoreAfter": "13 - 10",
+        "mvp": "Oyuncu 2",
+        "highlight": "B Bölgesine şok T baskını (Rush B) CT savunmasını hazırlıksız yakaladı."
+      },
+      {
+        "roundNum": 24,
+        "winnerSide": "away",
+        "winningTeamName": "Beşiktaş Esports",
+        "winningTeamIcon": "🦅",
+        "winType": "explosion",
+        "scoreAfter": "13 - 11",
+        "mvp": "Oyuncu 1",
+        "highlight": "Oyuncu 1 AWP ile Mid kapılarında inanılmaz bir açılış vuruşu yaptı!"
+      }
+    ]
+  }
+}

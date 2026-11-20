@@ -18,6 +18,8 @@ class HUDManager {
   constructor() {
     this.ctCoachName = document.getElementById('ctCoachName');
     this.tCoachName = document.getElementById('tCoachName');
+    this.nameCT = document.getElementById('nameCT');
+    this.nameT = document.getElementById('nameT');
     this.ctAvatars = document.getElementById('ctAvatars');
     this.tAvatars = document.getElementById('tAvatars');
     this.scoreCT = document.getElementById('scoreCT');
@@ -152,6 +154,19 @@ class HUDManager {
     this.scoreT.innerText = state.score.t;
     this.sbScoreCT.innerText = state.score.ct;
     this.sbScoreT.innerText = state.score.t;
+
+    // Team names & Spectating Info
+    if (state.matchInfo) {
+      if (state.matchInfo.isSpectating) {
+        if (this.nameCT) this.nameCT.innerText = `${state.matchInfo.homeTeam?.icon || ''} ${state.matchInfo.homeTeam?.shortTag || 'CT'}`;
+        if (this.nameT) this.nameT.innerText = `${state.matchInfo.awayTeam?.shortTag || 'T'} ${state.matchInfo.awayTeam?.icon || ''}`;
+      } else if (state.matchInfo.isLeagueMatch) {
+        const ctTeam = state.matchInfo.userSide === 'ct' ? state.matchInfo.userClub : state.matchInfo.opponent;
+        const tTeam = state.matchInfo.userSide === 't' ? state.matchInfo.userClub : state.matchInfo.opponent;
+        if (this.nameCT) this.nameCT.innerText = `${ctTeam?.icon || ''} ${ctTeam?.shortTag || 'CT'}`;
+        if (this.nameT) this.nameT.innerText = `${tTeam?.shortTag || 'T'} ${tTeam?.icon || ''}`;
+      }
+    }
 
     // 2. Coach Names & Timeouts Left
     if (state.coaches) {

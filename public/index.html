@@ -118,8 +118,11 @@
     <!-- DASHBOARD NAVIGATION TABS -->
     <nav class="dash-nav-bar" id="dashNavTabs">
       <button class="dash-tab-btn active" data-tab="match">⚔️ Sıradaki Maç Merkezi</button>
+      <button class="dash-tab-btn" data-tab="live">📺 Canlı Maçlar (Espor TV)</button>
+      <button class="dash-tab-btn" data-tab="tournaments">🏆 Turnuvalar (Kupalar)</button>
       <button class="dash-tab-btn" data-tab="squad">👔 Kulüp Kadrom (İlk 5)</button>
-      <button class="dash-tab-btn" data-tab="leagues">🏆 Ligler & Puan Durumu</button>
+      <button class="dash-tab-btn" data-tab="leagues">🥇 Ligler & Puan Durumu</button>
+      <button class="dash-tab-btn" data-tab="replays">📼 Maç Tekrarları</button>
       <button class="dash-tab-btn" data-tab="market">🛒 Transfer Pazarı</button>
     </nav>
 
@@ -132,7 +135,31 @@
         </div>
       </section>
 
-      <!-- 2. SQUAD TAB -->
+      <!-- 2. LIVE MATCHES (ESPOR TV) TAB -->
+      <section id="tabContentLive" class="dash-tab-content" style="display:none;">
+        <div class="dash-live-hero-header">
+          <div class="live-pulse-badge">🔴 CANLI YAYIN HAVUZU</div>
+          <h2>📺 SimulatorX Espor TV • Aktif Canlı Maçlar</h2>
+          <p>100+ espor kulübü arasında fikstüre göre şu an oynanan tüm maçları gerçek zamanlı 5v5 radarından izleyin.</p>
+        </div>
+        <div id="dashLiveMatchesGrid" class="dash-live-grid">
+          <!-- Injected via DashboardUI -->
+        </div>
+      </section>
+
+      <!-- 3. TOURNAMENTS TAB -->
+      <section id="tabContentTournaments" class="dash-tab-content" style="display:none;">
+        <div class="dash-tourn-hero-header">
+          <div class="tourn-pulse-badge">🏆 RESMİ KUPA & ELEME TURNUVALARI</div>
+          <h2>🏆 Sezonluk Espor Kupaları & Şampiyonalar</h2>
+          <p>Belirli sürelerle kayıt alan eleme turnuvalarına kulübünüzü kaydettirin, Çeyrek Final ve Yarı Finalleri geçerek kupayı kaldırın!</p>
+        </div>
+        <div id="dashTournamentsGrid" class="dash-tourn-grid">
+          <!-- Injected via DashboardUI -->
+        </div>
+      </section>
+
+      <!-- 4. SQUAD TAB -->
       <section id="tabContentSquad" class="dash-tab-content" style="display:none;">
         <div class="dash-squad-summary" id="dashSquadSummary">
           <!-- Injected via JS -->
@@ -142,19 +169,33 @@
         </div>
       </section>
 
-      <!-- 3. MULTI-TIER LEAGUES TAB -->
+      <!-- 5. MULTI-TIER LEAGUES TAB (5 TIERS) -->
       <section id="tabContentLeagues" class="dash-tab-content" style="display:none;">
         <div class="dash-tier-selector" id="dashTierSelector">
-          <button class="dash-tier-btn active" data-tier="amateur">🌱 Amatör Çaylak Ligi (Tier 3)</button>
-          <button class="dash-tier-btn" data-tier="challenger">⚡ Challenger Yarı-Pro (Tier 2)</button>
-          <button class="dash-tier-btn" data-tier="pro">🏆 Pro Espor Süper Ligi (Tier 1)</button>
+          <button class="dash-tier-btn active" data-tier="amateur">🌱 Amatör Çaylak (Tier 5)</button>
+          <button class="dash-tier-btn" data-tier="city">🏙️ Şehir Ligi (40 Takım)</button>
+          <button class="dash-tier-btn" data-tier="regional">🌊 Bölge Ligi (30 Takım)</button>
+          <button class="dash-tier-btn" data-tier="national">🇹🇷 Ülke Süper Ligi (20 Takım)</button>
+          <button class="dash-tier-btn" data-tier="global">🌍 Dünya Şampiyonlar Ligi (16 Takım)</button>
         </div>
         <div id="dashLeagueContent">
           <!-- Injected via JS -->
         </div>
       </section>
 
-      <!-- 4. TRANSFER MARKET TAB -->
+      <!-- 6. MATCH REPLAYS TAB -->
+      <section id="tabContentReplays" class="dash-tab-content" style="display:none;">
+        <div class="dash-replays-hero-header">
+          <div class="replays-badge">📼 MAÇ ARŞİVİ & TEKRAR MERKEZİ</div>
+          <h2>📼 Tamamlanan Maç Tekrarları & HLTV Analizleri</h2>
+          <p>Canlı yayın saatinde kaçırdığınız maçların ayrıntılı raunt özetlerini, kutu istatistiklerini (HLTV box score) ve kritik anlarını inceleyin.</p>
+        </div>
+        <div id="dashReplaysList" class="dash-replays-container">
+          <!-- Injected via DashboardUI -->
+        </div>
+      </section>
+
+      <!-- 7. TRANSFER MARKET TAB -->
       <section id="tabContentMarket" class="dash-tab-content" style="display:none;">
         <div id="dashMarketContainer">
           <!-- Injected via JS -->
@@ -715,6 +756,42 @@
       <div class="mo-actions">
         <button class="btn btn-ctrl-start" id="btnRestartFromOver">🔄 Yeniden Başlat (Lobi)</button>
         <button class="btn btn-ctrl" id="btnCloseOverModal">✕ Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPLAY DETAIL MODAL (HLTV BOX SCORE & TIMELINE) -->
+  <div class="replay-modal-overlay" id="replayDetailModal" style="display:none;">
+    <div class="replay-modal-dialog">
+      <div class="replay-modal-header">
+        <div class="rm-title-group">
+          <span class="rm-badge">📼 MAÇ TEKRARI & HLTV ANALİZİ</span>
+          <h2 id="rmModalTitle">Maç Özeti</h2>
+        </div>
+        <button class="rm-close-btn" id="btnCloseReplayModal">✕</button>
+      </div>
+
+      <div class="replay-modal-body">
+        <!-- SCOREBOARD HERO -->
+        <div class="rm-scoreboard-hero" id="rmScoreHero">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- REPLAY TABS -->
+        <div class="rm-tab-bar">
+          <button class="rm-tab-btn active" id="btnRmTabBox">📊 Oyuncu İstatistikleri (HLTV)</button>
+          <button class="rm-tab-btn" id="btnRmTabTimeline">⏱️ Raund Raund Maç Akışı</button>
+        </div>
+
+        <!-- TAB CONTENT 1: BOX SCORE -->
+        <div class="rm-tab-content" id="rmTabBoxScore">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- TAB CONTENT 2: TIMELINE -->
+        <div class="rm-tab-content" id="rmTabTimeline" style="display:none;">
+          <!-- Injected via JS -->
+        </div>
       </div>
     </div>
   </div>
