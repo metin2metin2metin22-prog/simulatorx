@@ -654,50 +654,433 @@ body.theme-cs {
 .btn-speed.active { background: var(--gold-star); color: #000; font-weight: 700; }
 
 /* =========================================
-   RIGHT PANEL: ROSTER & MORALE
+   RIGHT PANEL: ROSTER TABS & MINI PLAYER CARDS
 ========================================= */
-.roster-card {
-  background: #111722;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 6px 8px;
-  margin-bottom: 6px;
-}
-.roster-card.dead { opacity: 0.4; }
-
-.r-head {
+.roster-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
 }
 
-.r-name { font-size: 12px; font-weight: 700; color: #fff; }
-.r-role { font-size: 9px; color: var(--gold-star); }
+.btn-cards-all {
+  background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+  color: #fff;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+}
+.btn-cards-all:hover { filter: brightness(1.2); transform: translateY(-1px); }
 
-.r-bars {
+.roster-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  margin-top: 4px;
+  margin-bottom: 8px;
 }
 
-.r-bar-item { font-size: 8px; color: var(--text-secondary); }
-.r-bar-track {
-  width: 100%;
-  height: 4px;
-  background: #222;
-  border-radius: 2px;
+.r-tab-btn {
+  background: #141d2a;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.r-tab-btn:hover { background: #1e2b3d; color: #fff; }
+.r-tab-btn.active {
+  background: linear-gradient(135deg, #1f3a60 0%, #2980b9 100%);
+  color: #fff;
+  border-color: #3498db;
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.4);
+}
+.r-tab-btn#btnTabT.active {
+  background: linear-gradient(135deg, #6e3e07 0%, #d35400 100%);
+  border-color: #e67e22;
+  box-shadow: 0 0 10px rgba(230, 126, 34, 0.4);
+}
+
+.roster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: calc(100vh - 430px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* MINI PLAYER CARD */
+.player-mini-card {
+  background: linear-gradient(145deg, #131a26 0%, #0d121b 100%);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid #3498db;
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.player-mini-card.t { border-left-color: #e67e22; }
+.player-mini-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-highlight);
+}
+.player-mini-card.dead {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.pmc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.pmc-avatar-circ {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1c2b3d;
+  border: 1px solid #3498db;
+  color: #fff;
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pmc-avatar-circ.t {
+  background: #3d2314;
+  border-color: #e67e22;
+}
+
+.pmc-info { flex: 1; min-width: 0; }
+.pmc-name-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.pmc-name {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.pmc-role {
+  font-size: 9px;
+  color: var(--text-secondary);
+  white-space: nowrap;
   overflow: hidden;
-  margin-top: 1px;
+  text-overflow: ellipsis;
 }
 
-.r-morale-fill { background: var(--morale-purple); height: 100%; }
-.r-tilt-fill { background: var(--tilt-red); height: 100%; }
+.pmc-rating-pill {
+  background: rgba(241, 196, 15, 0.15);
+  border: 1px solid var(--gold-star);
+  color: var(--gold-star);
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
 
-.r-weapon-money {
+/* BADGES */
+.badge-item {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.badge-c4 {
+  background: #c0392b;
+  color: #fff;
+  animation: pulseC4 1s infinite;
+}
+.badge-kit {
+  background: #2980b9;
+  color: #fff;
+}
+.state-badge {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.state-badge.dead { background: #555; color: #bbb; }
+.state-badge.planting { background: #d35400; color: #fff; }
+.state-badge.defusing { background: #27ae60; color: #fff; }
+.state-badge.combat { background: #e74c3c; color: #fff; }
+
+/* 2x2 SKILLS GRID */
+.pmc-skills-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 5px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.skill-pill {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 9px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.sp-lbl { color: var(--text-secondary); font-size: 8px; }
+.sp-val {
+  font-family: 'Chakra Petch', sans-serif;
+  font-weight: 700;
+  color: #00d2d3;
+}
+
+/* LIVE COMBAT BAR */
+.pmc-stats-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pmc-hp-track {
+  width: 100%;
+  height: 4px;
+  background: #1c2738;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pmc-hp-fill {
+  height: 100%;
+  transition: width 0.2s ease;
+}
+.pmc-stats-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+.pmc-stats-details strong { color: #fff; }
+.pmc-weapon {
+  background: #1b2636;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #ecf0f1;
+  font-weight: 600;
+  font-size: 8px;
+}
+.pmc-money { color: var(--hp-green); font-weight: 700; }
+.pmc-kda { color: var(--text-secondary); }
+
+/* =========================================
+   10 PRO PLAYER CARDS MODAL
+========================================= */
+.cards-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 7, 12, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 110;
+}
+
+.cards-modal-card {
+  background: linear-gradient(145deg, #101824 0%, #0b1018 100%);
+  border: 2px solid var(--border-highlight);
+  border-radius: 10px;
+  width: 95%;
+  max-width: 1180px;
+  max-height: 90vh;
+  padding: 20px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cards-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+}
+.cards-modal-title {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+.cards-modal-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.cards-deck-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  overflow-y: auto;
+  padding-right: 6px;
+  flex: 1;
+}
+
+.deck-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.deck-team-header {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+.deck-team-header.ct-head { background: linear-gradient(135deg, #0f3b6d 0%, #1e5799 100%); color: #fff; }
+.deck-team-header.t-head { background: linear-gradient(135deg, #6e3e07 0%, #b85e05 100%); color: #fff; }
+
+.deck-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* DECK CARD ITEM */
+.deck-player-card {
+  background: #141d2a;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid #3498db;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s, border-color 0.2s;
+}
+.deck-player-card.t { border-left-color: #e67e22; }
+.deck-player-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-highlight);
+}
+
+.dpc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.dpc-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1e3a5f;
+  border: 2px solid #3498db;
+  color: #fff;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dpc-avatar.t { background: #4a2810; border-color: #e67e22; }
+
+.dpc-meta { flex: 1; }
+.dpc-name {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+.dpc-role { font-size: 10px; color: var(--gold-star); font-weight: 600; }
+.dpc-rating {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold-star);
+  background: rgba(241, 196, 15, 0.15);
+  border: 1px solid var(--gold-star);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.dpc-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 10px;
+  font-style: italic;
+  border-left: 2px solid rgba(255, 255, 255, 0.15);
+  padding-left: 6px;
+}
+
+.dpc-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.skill-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sbr-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.sbr-label strong { color: #fff; }
+.sbr-track {
+  width: 100%;
+  height: 6px;
+  background: #0b1018;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sbr-fill { height: 100%; border-radius: 3px; }
+.sbr-fill.aim { background: linear-gradient(90deg, #e74c3c, #f39c12); }
+.sbr-fill.reflex { background: linear-gradient(90deg, #3498db, #00d2d3); }
+.sbr-fill.gamesense { background: linear-gradient(90deg, #9b59b6, #8e44ad); }
+.sbr-fill.clutch { background: linear-gradient(90deg, #f1c40f, #2ecc71); }
+
+.dpc-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+}
   margin-top: 3px;
   color: var(--text-muted);
 }

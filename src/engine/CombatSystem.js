@@ -1,4 +1,5 @@
 // SimulatorX - CS:GO Combat, Line-of-Sight & Ballistics Resolution System
+// Pure Skill-Based Combat: Outcomed by Aim, Reflex, Game Sense, and Clutch attributes.
 const { WEAPONS } = require('../config/weapons');
 const { getClosestNode } = require('../navigation/pathfinding');
 
@@ -55,9 +56,12 @@ class CombatSystem {
       if (bestTarget) {
         if (p.targetEnemyId !== bestTarget.id) {
           p.targetEnemyId = bestTarget.id;
-          let baseReaction = 0.20;
-          if (p.tilt > 40) baseReaction += 0.08;
-          p.reactionTimer = Math.max(0.12, baseReaction + (Math.random() * 0.06));
+
+          // Pure Skill-Based Reaction Time:
+          // Player's Reflex attribute directly dictates reaction latency (e.g. 100 reflex -> ~130ms; 90 reflex -> ~200ms)
+          const reflex = (p.skills && p.skills.reflex) || 94;
+          const baseReaction = 0.27 - (reflex / 100) * 0.14 + (Math.random() * 0.02);
+          p.reactionTimer = Math.max(0.10, baseReaction);
         }
 
         if (p.reactionTimer > 0) {
@@ -90,12 +94,28 @@ class CombatSystem {
     else burstAccuracy = 0.42;
 
     const distFactor = Math.max(0.4, 1.0 - (dist / weapon.maxRange) * 0.45);
-    const moraleBonus = (shooter.morale - 50) * 0.002;
+
+    // Skill-based modifiers:
+    const aim = (shooter.skills && shooter.skills.aim) || 94;
+    const gamesense = (shooter.skills && shooter.skills.gamesense) || 94;
+    const clutch = (shooter.skills && shooter.skills.clutch) || 94;
+
+    const aimBonus = (aim - 90) * 0.015;
+    const gamesenseBonus = (gamesense - 90) * 0.008;
+
+    // Check for 1vX clutch situation
+    const aliveAllies = Object.values(match.players).filter(p => p.team === shooter.team && p.alive).length;
+    const aliveEnemies = Object.values(match.players).filter(p => p.team !== shooter.team && p.alive).length;
+    const isClutching = (aliveAllies === 1 && aliveEnemies >= 1);
+    const clutchBonus = isClutching ? ((clutch - 90) * 0.012) : 0;
+
     const movingPenalty = (shooter.state === 'moving' && weapon.type !== 'pistol') ? -0.16 : 0;
     const holdBonus = (shooter.state === 'holding') ? 0.06 : 0;
     const stationaryTargetBonus = (target.state === 'planting' || target.state === 'defusing') ? 0.12 : 0;
 
-    let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy) + moraleBonus + movingPenalty + holdBonus + stationaryTargetBonus;
+    let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy)
+      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + stationaryTargetBonus;
+
     if (shooter.flashDuration > 0.3) {
       totalHitChance *= 0.25; // Blind panic-spray penalty
     }
@@ -105,7 +125,9 @@ class CombatSystem {
     let damage = 0;
 
     if (isHit) {
-      const baseHsChance = weapon.name === 'AWP' ? 0.15 : (shooter.burstCount === 1 ? 0.42 : 0.22);
+      // Headshot probability is determined by shooter's Aim skill (e.g. NiKo 99, b1t 97)
+      const hsSkillFactor = (aim / 100) * 0.30;
+      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor) : (0.12 + hsSkillFactor * 0.5));
       isHeadshot = Math.random() < baseHsChance;
 
       damage = weapon.damage * (isHeadshot ? weapon.hsMult : 1.0);
@@ -170,12 +192,8 @@ class CombatSystem {
     victim.alive = false;
     victim.state = 'dead';
     victim.deaths++;
-    victim.tilt = Math.min(100, victim.tilt + 18);
-    victim.morale = Math.max(10, victim.morale - 12);
 
     killer.kills++;
-    killer.morale = Math.min(100, killer.morale + 15);
-    killer.tilt = Math.max(0, killer.tilt - 10);
     killer.money += (weapon.type === 'sniper' ? 100 : 300);
 
     Object.values(match.players).filter(p => p.team === victim.team && p.alive).forEach(mate => {

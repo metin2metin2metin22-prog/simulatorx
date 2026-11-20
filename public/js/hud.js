@@ -40,6 +40,15 @@ class HUDManager {
     this.tStratDisplay = document.getElementById('tStratDisplay');
     this.rosterList = document.getElementById('rosterList');
 
+    this.btnTabCT = document.getElementById('btnTabCT');
+    this.btnTabT = document.getElementById('btnTabT');
+    this.btnOpenCardsModal = document.getElementById('btnOpenCardsModal');
+    this.btnTogglePlayerCards = document.getElementById('btnTogglePlayerCards');
+    this.playerCardsModal = document.getElementById('playerCardsModal');
+    this.btnCloseCardsModal = document.getElementById('btnCloseCardsModal');
+    this.ctCardsDeck = document.getElementById('ctCardsDeck');
+    this.tCardsDeck = document.getElementById('tCardsDeck');
+
     this.scoreboardModal = document.getElementById('scoreboardModal');
     this.ctTableBody = document.getElementById('ctTableBody');
     this.tTableBody = document.getElementById('tTableBody');
@@ -54,10 +63,58 @@ class HUDManager {
     this.roundMvpName = document.getElementById('roundMvpName');
 
     this.chatMessages = document.getElementById('chatMessages');
+
+    this.selectedRosterTeam = 'ct';
+    this.cachedPlayers = null;
+
+    this.initEventListeners();
+  }
+
+  initEventListeners() {
+    if (this.btnTabCT) {
+      this.btnTabCT.addEventListener('click', () => {
+        this.selectedRosterTeam = 'ct';
+        this.btnTabCT.classList.add('active');
+        if (this.btnTabT) this.btnTabT.classList.remove('active');
+        if (this.cachedPlayers) this.renderRoster(this.cachedPlayers);
+      });
+    }
+
+    if (this.btnTabT) {
+      this.btnTabT.addEventListener('click', () => {
+        this.selectedRosterTeam = 't';
+        this.btnTabT.classList.add('active');
+        if (this.btnTabCT) this.btnTabCT.classList.remove('active');
+        if (this.cachedPlayers) this.renderRoster(this.cachedPlayers);
+      });
+    }
+
+    const openCards = () => {
+      if (this.playerCardsModal) {
+        this.playerCardsModal.style.display = 'flex';
+        if (this.cachedPlayers) this.renderCardsModal(this.cachedPlayers);
+      }
+    };
+
+    if (this.btnOpenCardsModal) this.btnOpenCardsModal.addEventListener('click', openCards);
+    if (this.btnTogglePlayerCards) this.btnTogglePlayerCards.addEventListener('click', openCards);
+
+    if (this.btnCloseCardsModal) {
+      this.btnCloseCardsModal.addEventListener('click', () => {
+        if (this.playerCardsModal) this.playerCardsModal.style.display = 'none';
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (this.playerCardsModal) this.playerCardsModal.style.display = 'none';
+      }
+    });
   }
 
   updateHUD(state, localTeam) {
     if (!state) return;
+    this.cachedPlayers = state.players;
 
     // 1. Lobby Overlay & Round Info
     if (state.phase === 'lobby') {
@@ -131,11 +188,16 @@ class HUDManager {
     // 7. Top Avatars
     this.renderAvatars(state.players);
 
-    // 8. Roster List
+    // 8. Roster Mini Player Cards
     this.renderRoster(state.players, localTeam);
 
     // 9. Full Scoreboard
     this.renderScoreboardTables(state.players);
+
+    // 10. Update Deck Modal if open
+    if (this.playerCardsModal && this.playerCardsModal.style.display === 'flex') {
+      this.renderCardsModal(state.players);
+    }
   }
 
   renderAvatars(players) {
@@ -144,7 +206,7 @@ class HUDManager {
 
     const ctList = playerList.filter(p => p.team === 'ct').sort((a, b) => a.slot - b.slot);
     this.ctAvatars.innerHTML = ctList.map(p => `
-      <div class="avatar-pill ${p.alive ? '' : 'dead'}">
+      <div class="avatar-pill ${p.alive ? '' : 'dead'}" title="${p.name} (${p.role}) - Aim:${p.skills?.aim || 94} Reflex:${p.skills?.reflex || 94}">
         <span class="avatar-num">${p.name.slice(0, 6)}</span>
         <div class="avatar-hp-bar">
           <div class="avatar-hp-fill" style="width: ${Math.max(0, p.hp)}%; background: ${p.hp > 50 ? '#2ecc71' : (p.hp > 25 ? '#f1c40f' : '#e74c3c')}"></div>
@@ -154,7 +216,7 @@ class HUDManager {
 
     const tList = playerList.filter(p => p.team === 't').sort((a, b) => a.slot - b.slot);
     this.tAvatars.innerHTML = tList.map(p => `
-      <div class="avatar-pill ${p.alive ? '' : 'dead'} ${p.hasBomb ? 'has-bomb' : ''}">
+      <div class="avatar-pill ${p.alive ? '' : 'dead'} ${p.hasBomb ? 'has-bomb' : ''}" title="${p.name} (${p.role}) - Aim:${p.skills?.aim || 94} Reflex:${p.skills?.reflex || 94}">
         <span class="avatar-num">${p.hasBomb ? '💣 ' : ''}${p.name.slice(0, 6)}</span>
         <div class="avatar-hp-bar">
           <div class="avatar-hp-fill" style="width: ${Math.max(0, p.hp)}%; background: ${p.hp > 50 ? '#2ecc71' : (p.hp > 25 ? '#f1c40f' : '#e74c3c')}"></div>
@@ -163,23 +225,127 @@ class HUDManager {
     `).join('');
   }
 
-  renderRoster(players, localTeam) {
-    if (!players) return;
-    const teamToRender = localTeam || 'ct';
+  renderRoster(players) {
+    if (!players || !this.rosterList) return;
+    const teamToRender = this.selectedRosterTeam || 'ct';
     const roster = Object.values(players).filter(p => p.team === teamToRender).sort((a, b) => a.slot - b.slot);
 
-    this.rosterList.innerHTML = roster.map(p => `
-      <div class="roster-card ${p.alive ? '' : 'dead'}">
-        <div class="r-head">
-          <span class="r-name">${p.name} ${p.hasBomb ? '💣' : ''} ${p.hasKit ? '✂️' : ''}</span>
-          <span class="r-role">${p.role}</span>
+    this.rosterList.innerHTML = roster.map(p => {
+      const skills = p.skills || { aim: 94, reflex: 94, gamesense: 94, clutch: 94 };
+      let stateTag = '';
+      if (!p.alive) stateTag = '<span class="state-badge dead">☠️ ELENDİ</span>';
+      else if (p.state === 'planting') stateTag = '<span class="state-badge planting">💣 KURUYOR</span>';
+      else if (p.state === 'defusing') stateTag = '<span class="state-badge defusing">⚡ ÇÖZÜYOR</span>';
+      else if (p.state === 'engaging') stateTag = '<span class="state-badge combat">💥 ÇATIŞMA</span>';
+
+      return `
+        <div class="player-mini-card ${p.alive ? '' : 'dead'} ${p.team}">
+          <div class="pmc-head">
+            <div class="pmc-avatar-circ ${p.team}">${p.name.slice(0, 2).toUpperCase()}</div>
+            <div class="pmc-info">
+              <div class="pmc-name-line">
+                <span class="pmc-name">${p.name}</span>
+                ${p.hasBomb ? '<span class="badge-item badge-c4">💣 C4</span>' : ''}
+                ${p.hasKit ? '<span class="badge-item badge-kit">✂️ KİT</span>' : ''}
+                ${stateTag}
+              </div>
+              <div class="pmc-role">${p.role || p.tag || 'Rifler'}</div>
+            </div>
+            <div class="pmc-rating-pill" title="HLTV Rating 2.0">★ ${(p.rating || 1.20).toFixed(2)}</div>
+          </div>
+
+          <!-- SKILLS 2x2 GRID -->
+          <div class="pmc-skills-grid">
+            <div class="skill-pill">
+              <span class="sp-lbl">🎯 AIM</span>
+              <span class="sp-val">${skills.aim}</span>
+            </div>
+            <div class="skill-pill">
+              <span class="sp-lbl">⚡ RFLX</span>
+              <span class="sp-val">${skills.reflex}</span>
+            </div>
+            <div class="skill-pill">
+              <span class="sp-lbl">🧠 ZEKA</span>
+              <span class="sp-val">${skills.gamesense}</span>
+            </div>
+            <div class="skill-pill">
+              <span class="sp-lbl">🏆 CLUTCH</span>
+              <span class="sp-val">${skills.clutch}</span>
+            </div>
+          </div>
+
+          <!-- LIVE COMBAT & STATS BAR -->
+          <div class="pmc-stats-bar">
+            <div class="pmc-hp-track">
+              <div class="pmc-hp-fill" style="width:${Math.max(0, p.hp)}%; background:${p.hp > 50 ? '#2ecc71' : (p.hp > 25 ? '#f1c40f' : '#e74c3c')}"></div>
+            </div>
+            <div class="pmc-stats-details">
+              <span>HP: <strong>${Math.max(0, p.hp)}</strong></span>
+              <span class="pmc-weapon">${(p.weapon || 'USP').toUpperCase()}</span>
+              <span class="pmc-money">$${p.money}</span>
+              <span class="pmc-kda">${p.kills}K / ${p.deaths}D</span>
+            </div>
+          </div>
         </div>
-        <div class="r-weapon-money">
-          <span>HP: ${Math.max(0, p.hp)} | ${p.weapon ? p.weapon.toUpperCase() : 'USP'}</span>
-          <span>Bakiye: <strong>$${p.money}</strong></span>
+      `;
+    }).join('');
+  }
+
+  renderCardsModal(players) {
+    if (!players || !this.ctCardsDeck || !this.tCardsDeck) return;
+    const playerList = Object.values(players);
+
+    const renderDeckCard = (p) => {
+      const skills = p.skills || { aim: 94, reflex: 94, gamesense: 94, clutch: 94 };
+      return `
+        <div class="deck-player-card ${p.team}">
+          <div class="dpc-header">
+            <div class="dpc-avatar ${p.team}">${p.name.slice(0, 2).toUpperCase()}</div>
+            <div class="dpc-meta">
+              <div class="dpc-name">${p.name}</div>
+              <div class="dpc-role">${p.role || p.tag}</div>
+            </div>
+            <div class="dpc-rating">★ ${(p.rating || 1.20).toFixed(2)}</div>
+          </div>
+
+          <div class="dpc-desc">${p.desc || 'Profesyonel CS:GO espor oyuncusu.'}</div>
+
+          <!-- SKILL BARS -->
+          <div class="dpc-bars">
+            <div class="skill-bar-row">
+              <div class="sbr-label"><span>🎯 AIM (İsabet)</span> <strong>${skills.aim}/100</strong></div>
+              <div class="sbr-track"><div class="sbr-fill aim" style="width: ${skills.aim}%"></div></div>
+            </div>
+            <div class="skill-bar-row">
+              <div class="sbr-label"><span>⚡ REFLEX (Tepki)</span> <strong>${skills.reflex}/100</strong></div>
+              <div class="sbr-track"><div class="sbr-fill reflex" style="width: ${skills.reflex}%"></div></div>
+            </div>
+            <div class="skill-bar-row">
+              <div class="sbr-label"><span>🧠 OYUN ZEKASI</span> <strong>${skills.gamesense}/100</strong></div>
+              <div class="sbr-track"><div class="sbr-fill gamesense" style="width: ${skills.gamesense}%"></div></div>
+            </div>
+            <div class="skill-bar-row">
+              <div class="sbr-label"><span>🏆 CLUTCH (1vX)</span> <strong>${skills.clutch}/100</strong></div>
+              <div class="sbr-track"><div class="sbr-fill clutch" style="width: ${skills.clutch}%"></div></div>
+            </div>
+          </div>
+
+          <!-- LIVE STATS FOOTER -->
+          <div class="dpc-footer">
+            <span>K/D: <strong>${p.kills}/${p.deaths}</strong></span>
+            <span>Hasar: <strong>${p.damage || 0}</strong></span>
+            <span>Bakiye: <strong style="color:#2ecc71">$${p.money}</strong></span>
+            <span>Durum: <strong style="color:${p.alive ? '#2ecc71' : '#e74c3c'}">${p.alive ? 'CANLI' : 'ELENDİ'}</strong></span>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    };
+
+    const ctList = playerList.filter(p => p.team === 'ct').sort((a, b) => a.slot - b.slot);
+    const tList = playerList.filter(p => p.team === 't').sort((a, b) => a.slot - b.slot);
+
+    this.ctCardsDeck.innerHTML = ctList.map(renderDeckCard).join('');
+    this.tCardsDeck.innerHTML = tList.map(renderDeckCard).join('');
   }
 
   renderScoreboardTables(players) {
@@ -198,8 +364,8 @@ class HUDManager {
         <td style="color:#2ecc71">$${p.money}</td>
         <td>${p.kills}</td>
         <td>${p.deaths}</td>
-        <td>${p.assists}</td>
-        <td style="color:#9b59b6">${p.morale}%</td>
+        <td>${p.damage || 0}</td>
+        <td style="color:#f1c40f; font-weight:700;">★ ${(p.rating || 1.20).toFixed(2)}</td>
         <td style="color:#f1c40f">${p.mvps > 0 ? '★ ' + p.mvps : '-'}</td>
       </tr>
     `;

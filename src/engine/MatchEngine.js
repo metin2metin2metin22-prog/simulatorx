@@ -120,6 +120,10 @@ class PureCoachMatch {
         slot: i,
         name: pro.name,
         role: pro.role,
+        tag: pro.tag,
+        desc: pro.desc,
+        rating: pro.rating,
+        skills: { ...pro.skills },
         team: 'ct',
         x: spawn.x,
         y: spawn.y,
@@ -142,8 +146,6 @@ class PureCoachMatch {
         targetEnemyId: null,
         path: [],
         pathIndex: 0,
-        morale: 85,
-        tilt: 0,
         reactionTimer: 0,
         burstCount: 0,
         burstPauseTimer: 0,
@@ -166,6 +168,10 @@ class PureCoachMatch {
         slot: i,
         name: pro.name,
         role: pro.role,
+        tag: pro.tag,
+        desc: pro.desc,
+        rating: pro.rating,
+        skills: { ...pro.skills },
         team: 't',
         x: spawn.x,
         y: spawn.y,
@@ -188,8 +194,6 @@ class PureCoachMatch {
         targetEnemyId: null,
         path: [],
         pathIndex: 0,
-        morale: 85,
-        tilt: 0,
         reactionTimer: 0,
         burstCount: 0,
         burstPauseTimer: 0,
@@ -657,11 +661,9 @@ class PureCoachMatch {
     Object.values(this.players).forEach(p => {
       if (p.team === winner) {
         p.money = Math.min(16000, p.money + 3250);
-        p.morale = Math.min(100, p.morale + 10);
       } else {
         const lossBonus = 1400 + this.lossStreak[p.team] * 500;
         p.money = Math.min(16000, p.money + lossBonus);
-        p.morale = Math.max(10, p.morale - 8);
       }
     });
 

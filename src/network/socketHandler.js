@@ -56,10 +56,6 @@ function registerSocketHandlers(io, match) {
             callingTeam: team,
             timer: 25
           };
-          Object.values(match.players).filter(p => p.team === team).forEach(p => {
-            p.tilt = 0;
-            p.morale = Math.min(100, p.morale + 20);
-          });
           io.emit('timeout_called', { team, coach: match.coaches[team].name });
           io.emit('chat_message', { sender: 'HAKEM', text: `${team.toUpperCase()} Takımı Koçu Taktiksel Mola aldı! (25s)` });
         }

@@ -204,13 +204,11 @@ class BotTactics {
     if (aliveCTs.length === 1 && aliveTs.length >= 2) {
       match.clutchAnnounced = true;
       const clutcher = aliveCTs[0];
-      clutcher.morale = Math.min(100, clutcher.morale + 10);
       match.addRadioMessage('ct', clutcher.name, `[CLUTCH] 1v${aliveTs.length} durumunda tek kaldım, sakin oynuyorum!`);
       match.events.push({ type: 'clutch', team: 'ct', player: clutcher.name, count: aliveTs.length });
     } else if (aliveTs.length === 1 && aliveCTs.length >= 2) {
       match.clutchAnnounced = true;
       const clutcher = aliveTs[0];
-      clutcher.morale = Math.min(100, clutcher.morale + 10);
       match.addRadioMessage('t', clutcher.name, `[CLUTCH] 1v${aliveCTs.length} durumunda tek kaldım, site'a sızıyorum!`);
       match.events.push({ type: 'clutch', team: 't', player: clutcher.name, count: aliveCTs.length });
     }

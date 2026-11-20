@@ -88,7 +88,7 @@
         </button>
         <div class="timeout-rules">
           <p>📋 <strong>Kural:</strong> Koç olarak oyuna silah, tempo veya hareket müdahalesi yapılamaz. Karakterler profesyonel CS:GO stratejilerine göre otonom oynar.</p>
-          <p>⏱️ <strong>Mola:</strong> Maç başına 2 mola hakkınız vardır. 25 saniyelik mola takımı toparlar ve tilt seviyelerini sıfırlar.</p>
+          <p>⏱️ <strong>Mola:</strong> Maç başına 2 mola hakkınız vardır. 25 saniyelik mola takımı toparlar ve taktiksel nefes aldırır.</p>
         </div>
       </section>
 
@@ -158,6 +158,7 @@
         <!-- RADAR FOOTER CONTROLS -->
         <div class="radar-footer-controls">
           <button class="btn btn-ctrl" id="btnToggleScoreboard">TAB (Skor Tablosu)</button>
+          <button class="btn btn-ctrl" id="btnTogglePlayerCards">🃏 Oyuncu Kartları (10)</button>
           <button class="btn btn-ctrl" id="btnSoundToggle">🔊 Ses: Açık</button>
           <div class="speed-btns">
             <span class="speed-label">Simülasyon Hızı:</span>
@@ -171,9 +172,16 @@
 
     <!-- RIGHT PANEL: ROSTER & LIVE MATCH LOG -->
     <aside class="panel side-panel right-panel">
-      <!-- TEAM ROSTER -->
+      <!-- TEAM ROSTER & MINI PLAYER CARDS -->
       <section class="panel-section roster-section">
-        <h3 class="section-title">TAKIM KADROSU & DURUM</h3>
+        <div class="roster-header-row">
+          <h3 class="section-title" style="margin-bottom:0;">OYUNCU KARTLARI</h3>
+          <button class="btn-cards-all" id="btnOpenCardsModal">🃏 Tüm Kartlar</button>
+        </div>
+        <div class="roster-tabs">
+          <button class="r-tab-btn active" id="btnTabCT">🛡️ CT KADROSU</button>
+          <button class="r-tab-btn" id="btnTabT">💣 T KADROSU</button>
+        </div>
         <div class="roster-list" id="rosterList"></div>
       </section>
 
@@ -215,7 +223,7 @@
               <th>K</th>
               <th>D</th>
               <th>A</th>
-              <th>MORAL</th>
+              <th>RATING</th>
               <th>MVP</th>
             </tr>
           </thead>
@@ -240,12 +248,41 @@
               <th>K</th>
               <th>D</th>
               <th>A</th>
-              <th>MORAL</th>
+              <th>RATING</th>
               <th>MVP</th>
             </tr>
           </thead>
           <tbody id="tTableBody"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 PRO PLAYER CARDS MODAL -->
+  <div class="cards-modal" id="playerCardsModal" style="display:none;">
+    <div class="cards-modal-card">
+      <div class="cards-modal-header">
+        <div>
+          <h2 class="cards-modal-title">🏆 PROFESYONEL OYUNCU KARTLARI</h2>
+          <p class="cards-modal-subtitle">Maçlar tamamen oyuncuların Aim, Reflex, Oyun Zekası ve Clutch yeteneklerine göre belirlenir.</p>
+        </div>
+        <button class="close-btn" id="btnCloseCardsModal">✕</button>
+      </div>
+      <div class="cards-deck-container" id="cardsDeckContainer">
+        <!-- CT Column -->
+        <div class="deck-column ct-deck">
+          <div class="deck-team-header ct-head">
+            <span>🛡️ COUNTER-TERRORISTS (DEFANS)</span>
+          </div>
+          <div class="deck-cards-list" id="ctCardsDeck"></div>
+        </div>
+        <!-- T Column -->
+        <div class="deck-column t-deck">
+          <div class="deck-team-header t-head">
+            <span>💣 TERRORISTS (SALDIRI)</span>
+          </div>
+          <div class="deck-cards-list" id="tCardsDeck"></div>
+        </div>
       </div>
     </div>
   </div>
