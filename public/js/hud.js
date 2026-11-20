@@ -26,7 +26,7 @@ class HUDManager {
     this.phaseTag = document.getElementById('phaseTag');
 
     this.killfeedContainer = document.getElementById('killfeedContainer');
-    this.activeKillIds = new Set();
+    this.seenKillIds = new Set();
     this.bombAlertBanner = document.getElementById('bombAlertBanner');
     this.bombSiteText = document.getElementById('bombSiteText');
     this.bombCountdown = document.getElementById('bombCountdown');
@@ -433,37 +433,52 @@ class HUDManager {
     }
   }
 
+  getWeaponIcon(rawWeapon) {
+    if (!rawWeapon) return '/assets/weapons/ak47.svg';
+    const w = String(rawWeapon).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (w.includes('ak47') || w.includes('ak')) return '/assets/weapons/ak47.svg';
+    if (w.includes('m4a1') || w.includes('m4s')) return '/assets/weapons/m4a1.svg';
+    if (w.includes('m4') || w.includes('m4a4')) return '/assets/weapons/m4a4.svg';
+    if (w.includes('awp') || w.includes('sniper')) return '/assets/weapons/awp.svg';
+    if (w.includes('deagle') || w.includes('desert')) return '/assets/weapons/deagle.svg';
+    if (w.includes('usp')) return '/assets/weapons/usp.svg';
+    if (w.includes('glock')) return '/assets/weapons/glock.svg';
+    if (w.includes('famas')) return '/assets/weapons/famas.svg';
+    if (w.includes('galil')) return '/assets/weapons/galil.svg';
+    if (w.includes('he') || w.includes('grenade') || w.includes('bomb')) return '/assets/weapons/hegrenade.svg';
+    if (w.includes('knife') || w.includes('stab') || w.includes('slash')) return '/assets/weapons/knife.svg';
+    return '/assets/weapons/ak47.svg';
+  }
+
   addKillfeedItem(kill) {
     if (!this.killfeedContainer || !kill) return;
-    const killId = kill.id || `${kill.killer}_${kill.victim}_${kill.time || Date.now()}`;
-    if (this.activeKillIds.has(killId)) return;
-    this.activeKillIds.add(killId);
+    const killId = String(kill.id || `${kill.killer}_${kill.victim}_${kill.time || Date.now()}`);
+    if (this.seenKillIds.has(killId)) return;
+    this.seenKillIds.add(killId);
 
     const item = document.createElement('div');
     const isHeadshot = Boolean(kill.isHeadshot || kill.headshot);
     item.className = `kf-item ${isHeadshot ? 'kf-hs' : ''}`;
     item.id = `kf-${killId}`;
 
-    const weaponDisplay = (kill.weapon || 'AK-47').toUpperCase();
-    const hsSvg = `
-      <svg class="kf-hs-svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="8"/>
-        <line x1="12" y1="2" x2="12" y2="6"/>
-        <line x1="12" y1="18" x2="12" y2="22"/>
-        <line x1="2" y1="12" x2="6" y2="12"/>
-        <line x1="18" y1="12" x2="22" y2="12"/>
-        <circle cx="12" cy="12" r="2.5" fill="#e74c3c"/>
-      </svg>
-    `;
+    const weaponIconUrl = this.getWeaponIcon(kill.weapon);
+    const killerTeam = (kill.teamKiller || 'ct').toLowerCase();
+    const victimTeam = (kill.teamVictim || 't').toLowerCase();
 
-    const assisterHtml = kill.assister ? `<span class="kf-plus">+</span><span class="kf-assister ${kill.teamKiller}">${kill.assister}</span>` : '';
+    const assisterHtml = kill.assister 
+      ? `<span class="kf-plus">+</span><span class="kf-assister ${killerTeam}">${kill.assister}</span>` 
+      : '';
+
+    const hsHtml = isHeadshot 
+      ? `<img src="/assets/weapons/headshot.svg" class="kf-hs-icon" alt="HS" />` 
+      : '';
 
     item.innerHTML = `
-      <span class="kf-killer ${kill.teamKiller}">${kill.killer}</span>
+      <span class="kf-killer ${killerTeam}">${kill.killer}</span>
       ${assisterHtml}
-      <span class="kf-weapon-pill ${weaponDisplay.toLowerCase()}">${weaponDisplay}</span>
-      ${isHeadshot ? hsSvg : ''}
-      <span class="kf-victim ${kill.teamVictim}">${kill.victim}</span>
+      <img src="${weaponIconUrl}" class="kf-weapon-icon" alt="${kill.weapon || 'weapon'}" />
+      ${hsHtml}
+      <span class="kf-victim ${victimTeam}">${kill.victim}</span>
     `;
 
     // Prepend to killfeed so newest kill is at the top
@@ -474,21 +489,23 @@ class HUDManager {
       this.killfeedContainer.lastElementChild.remove();
     }
 
-    // Authentic CS:GO 5-second lifespan with smooth slide-out
+    // Authentic CS:GO lifespan with smooth fade/slide out
     setTimeout(() => {
       item.classList.add('kf-fade-out');
       setTimeout(() => {
         if (item.parentNode) item.remove();
-        this.activeKillIds.delete(killId);
+        // Never delete killId from seenKillIds to prevent death loop
       }, 350);
-    }, 4500);
+    }, 5000);
   }
 
   updateKillfeed(feed) {
     if (!feed || !Array.isArray(feed)) return;
-    // Sync incoming killfeed items without wiping the container
     for (let i = feed.length - 1; i >= 0; i--) {
-      this.addKillfeedItem(feed[i]);
+      const k = feed[i];
+      if (k && k.id && !this.seenKillIds.has(String(k.id))) {
+        this.addKillfeedItem(k);
+      }
     }
   }
 
@@ -497,9 +514,11 @@ class HUDManager {
     const items = Array.from(this.killfeedContainer.children);
     items.forEach(item => {
       item.classList.add('kf-fade-out');
-      setTimeout(() => item.remove(), 250);
+      setTimeout(() => {
+        if (item.parentNode) item.remove();
+      }, 250);
     });
-    this.activeKillIds.clear();
+    this.seenKillIds.clear();
   }
 
   addChatMessage(sender, text, team = '') {

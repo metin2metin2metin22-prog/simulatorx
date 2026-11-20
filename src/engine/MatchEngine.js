@@ -221,6 +221,7 @@ class PureCoachMatch {
     this.round = 1;
     this.score = { ct: 0, t: 0 };
     this.isPaused = false;
+    this.killfeed = [];
     this.coaches.ct.timeoutsLeft = 2;
     this.coaches.t.timeoutsLeft = 2;
     this.initPlayers();
@@ -232,6 +233,7 @@ class PureCoachMatch {
     this.timer = 2.5; // Fast, snappy freeze buy time (2.5s instead of 10s)
     this.smokes = [];
     this.grenades = [];
+    this.killfeed = []; // Reset killfeed for fresh round
     this.events.push({ type: 'round_freeze', round: this.round });
 
     // Reset Bomb

@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let coachName = 'Koç';
   let currentGameState = null;
   let audioInitialized = false;
+  let firstStateReceived = false;
 
   const initAudio = () => {
     if (!audioInitialized) {
@@ -24,12 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('game_update', (state) => {
     currentGameState = state;
 
-    if (state.events && state.events.length > 0) {
-      state.events.forEach(evt => handleGameEvent(evt));
+    if (!firstStateReceived) {
+      firstStateReceived = true;
+      if (state.killfeed) {
+        hud.updateKillfeed(state.killfeed);
+      }
     }
 
-    if (state.killfeed) {
-      hud.updateKillfeed(state.killfeed);
+    if (state.events && state.events.length > 0) {
+      state.events.forEach(evt => handleGameEvent(evt));
     }
 
     hud.updateHUD(state, localTeam);
