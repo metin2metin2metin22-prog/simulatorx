@@ -561,6 +561,34 @@ class PureCoachMatch {
     }
   }
 
+  setDefensiveHoldAngle(p, nodeKey) {
+    const PRE_AIM_DIRECTIONS = {
+      // B Site & Tunnels
+      'b_site': { x: 150, y: 300 }, // Aim towards B Tunnels Exit
+      'b_back_site': { x: 278, y: 200 }, // Aim towards B Doors
+      'b_platform': { x: 150, y: 300 }, // Aim towards B Tunnels Exit
+      'b_car': { x: 150, y: 300 }, // Aim towards B Tunnels Exit
+      'b_doors': { x: 380, y: 240 }, // Aim towards CT Ramp
+      'b_window': { x: 340, y: 240 }, // Aim towards CT Ramp
+      'b_doors_outside': { x: 278, y: 200 }, // Aim towards B Doors
+      // A Site & Long & Short
+      'goose': { x: 800, y: 220 }, // Aim towards A Short / Ramp
+      'a_site': { x: 740, y: 240 }, // Aim towards A Short
+      'a_ramp': { x: 860, y: 320 }, // Aim down Long A
+      'long_pit': { x: 850, y: 450 }, // Aim towards Long Corner
+      'a_short_site': { x: 720, y: 240 }, // Aim towards Catwalk / Short
+      'ct_elevator': { x: 830, y: 240 }, // Aim towards Long Cross
+      'ct_mid': { x: 490, y: 390 }, // Aim towards Mid Doors
+      'top_mid': { x: 490, y: 390 } // Aim towards Mid Doors
+    };
+
+    const targetAim = PRE_AIM_DIRECTIONS[nodeKey];
+    if (targetAim) {
+      p.targetAngle = Math.atan2(targetAim.y - p.y, targetAim.x - p.x);
+      p.angle = p.targetAngle;
+    }
+  }
+
   applyTeammateSeparation(p, dt) {
     const teammates = Object.values(this.players).filter(other => other.team === p.team && other.id !== p.id && other.alive);
     for (const other of teammates) {
@@ -595,12 +623,12 @@ class PureCoachMatch {
           p.strafeTimer = 0.24;
         }
 
-        if (p.weapon !== 'awp' && p.burstPauseTimer > 0) {
+        if (p.burstPauseTimer > 0) {
           const perpAngle = p.angle + (Math.PI / 2) * p.strafeDirection;
-          const strafeSpeed = 38;
+          const strafeSpeed = p.weapon === 'awp' ? 44 : 38;
           const sx = p.x + Math.cos(perpAngle) * strafeSpeed * dt;
           const sy = p.y + Math.sin(perpAngle) * strafeSpeed * dt;
-          if (!this.collision.isLineBlockedByWall(p.x, p.y, sx, sy)) {
+          if (this.isWalkable(sx, sy) && !this.collision.isLineBlockedByWall(p.x, p.y, sx, sy)) {
             p.x = sx;
             p.y = sy;
           }
@@ -612,7 +640,8 @@ class PureCoachMatch {
       }
     }
 
-    if (p.soundAlert && (Date.now() - p.soundAlert.time < 1200)) {
+    const hasFreshSoundAlert = p.soundAlert && (Date.now() - p.soundAlert.time < 900);
+    if (hasFreshSoundAlert) {
       p.targetAngle = Math.atan2(p.soundAlert.y - p.y, p.soundAlert.x - p.x);
     }
 
@@ -637,15 +666,27 @@ class PureCoachMatch {
     const dy = targetNode.y - p.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist < 20) {
+    const isFinalNode = (p.pathIndex >= p.path.length - 1);
+    const arrivalRadius = isFinalNode ? 28 : 20;
+
+    if (dist < arrivalRadius) {
       p.pathIndex++;
-      if (p.pathIndex >= p.path.length && p.team === 'ct' && !this.bomb.planted) {
-        p.holdTimer = 16.0 + Math.random() * 8.0;
-        p.state = 'holding';
+      if (p.pathIndex >= p.path.length) {
+        if (p.team === 'ct' && !this.bomb.planted) {
+          p.holdTimer = 16.0 + Math.random() * 8.0;
+          p.state = 'holding';
+          this.setDefensiveHoldAngle(p, targetNodeKey);
+        } else if (p.team === 't' && this.bomb.planted) {
+          p.holdTimer = 25.0;
+          p.state = 'holding';
+          this.setDefensiveHoldAngle(p, targetNodeKey);
+        }
       }
       this.tactics.tacticalBotUtility(this, p, targetNodeKey);
     } else {
-      p.targetAngle = Math.atan2(dy, dx);
+      if (!hasFreshSoundAlert) {
+        p.targetAngle = Math.atan2(dy, dx);
+      }
       p.angle = p.targetAngle;
 
       let baseSpeed = 75; // Pro realistic movement speed for 1:30+ min round duration

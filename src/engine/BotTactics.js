@@ -28,9 +28,24 @@ class BotTactics {
         }
       }
       if (closestT && !closestT.targetEnemyId) {
-        const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
-        if (!closestT.path || closestT.path.length === 0 || closestT.path[closestT.path.length - 1] !== bombNode) {
-          match.setPlayerPath(closestT, bombNode);
+        const distToDroppedBomb = Math.hypot(closestT.x - match.bomb.x, closestT.y - match.bomb.y);
+        if (distToDroppedBomb <= 80) {
+          // Direct steering straight onto dropped bomb
+          const angleToBomb = Math.atan2(match.bomb.y - closestT.y, match.bomb.x - closestT.x);
+          closestT.targetAngle = angleToBomb;
+          closestT.angle = angleToBomb;
+          const step = 85 * dt;
+          const nx = closestT.x + Math.cos(angleToBomb) * step;
+          const ny = closestT.y + Math.sin(angleToBomb) * step;
+          if (match.isWalkable(nx, ny)) {
+            closestT.x = nx;
+            closestT.y = ny;
+          }
+        } else {
+          const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
+          if (!closestT.path || closestT.path.length === 0 || closestT.path[closestT.path.length - 1] !== bombNode) {
+            match.setPlayerPath(closestT, bombNode);
+          }
         }
       }
 
@@ -109,7 +124,19 @@ class BotTactics {
 
     if (bestDefuser && !bestDefuser.targetEnemyId && bestDefuser.state !== 'defusing') {
       const distToBomb = Math.hypot(bestDefuser.x - match.bomb.x, bestDefuser.y - match.bomb.y);
-      if (distToBomb > 40 && (!bestDefuser.path || bestDefuser.pathIndex >= bestDefuser.path.length || bestDefuser.path[bestDefuser.path.length - 1] !== bombNode)) {
+      if (distToBomb <= 75 && distToBomb > 25) {
+        // Direct steering onto planted bomb coordinates to begin defuse
+        const angleToBomb = Math.atan2(match.bomb.y - bestDefuser.y, match.bomb.x - bestDefuser.x);
+        bestDefuser.targetAngle = angleToBomb;
+        bestDefuser.angle = angleToBomb;
+        const step = 80 * dt;
+        const nx = bestDefuser.x + Math.cos(angleToBomb) * step;
+        const ny = bestDefuser.y + Math.sin(angleToBomb) * step;
+        if (match.isWalkable(nx, ny)) {
+          bestDefuser.x = nx;
+          bestDefuser.y = ny;
+        }
+      } else if (distToBomb > 40 && (!bestDefuser.path || bestDefuser.pathIndex >= bestDefuser.path.length || bestDefuser.path[bestDefuser.path.length - 1] !== bombNode)) {
         match.setPlayerPath(bestDefuser, bombNode);
       }
     }
@@ -213,6 +240,8 @@ class BotTactics {
   detonateGrenade(match, g) {
     if (g.type === 'flash') {
       match.events.push({ type: 'flash_pop', x: g.x, y: g.y });
+      const thrower = match.players[g.throwerId];
+
       Object.values(match.players).forEach(p => {
         if (!p.alive) return;
         const dist = Math.hypot(p.x - g.x, p.y - g.y);
@@ -220,10 +249,34 @@ class BotTactics {
           if (this.collision.isLineBlockedByWall(p.x, p.y, g.x, g.y)) return;
           const angleToFlash = Math.atan2(g.y - p.y, g.x - p.x);
           const angleDiff = Math.abs(this.collision.normalizeAngle(p.angle - angleToFlash));
-          if (angleDiff < Math.PI / 2) {
-            p.flashDuration = Math.min(3.5, 4.0 * (1 - dist / 260));
+          const isFacingFlash = (angleDiff < Math.PI / 2);
+          const isTeammate = thrower && thrower.team === p.team;
+
+          if (isFacingFlash) {
+            const rawDuration = Math.min(3.5, 4.0 * (1 - dist / 260));
+            p.flashDuration = isTeammate ? Math.min(1.2, rawDuration * 0.45) : rawDuration;
           } else {
-            p.flashDuration = 1.0;
+            p.flashDuration = isTeammate ? 0.2 : 0.8;
+          }
+        }
+      });
+    } else if (g.type === 'he') {
+      match.events.push({ type: 'he_pop', x: g.x, y: g.y });
+      const thrower = match.players[g.throwerId];
+
+      Object.values(match.players).forEach(p => {
+        if (!p.alive) return;
+        const dist = Math.hypot(p.x - g.x, p.y - g.y);
+        if (dist < 180) {
+          if (this.collision.isLineBlockedByWall(p.x, p.y, g.x, g.y)) return;
+          const dmgRatio = 1 - (dist / 180);
+          let blastDamage = Math.round(55 * dmgRatio);
+          if (p.armor > 0) blastDamage = Math.round(blastDamage * 0.65);
+          p.hp = Math.max(0, p.hp - blastDamage);
+          if (thrower) thrower.damage += blastDamage;
+
+          if (p.hp <= 0 && thrower) {
+            match.combat.handleKill(match, thrower, p, { name: 'HE Grenade', type: 'grenade' }, false);
           }
         }
       });

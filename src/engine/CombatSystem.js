@@ -17,7 +17,8 @@ class CombatSystem {
     const angleDiff = Math.abs(this.collision.normalizeAngle(shooter.angle - angleToEnemy));
     if (dist > 48 && angleDiff > 0.72) return false;
 
-    if (this.collision.isLineBlockedBySmoke(smokes, shooter.x, shooter.y, enemy.x, enemy.y)) return false;
+    // In CS:GO, point-blank contact (<40 units) inside smoke is visible
+    if (dist > 40 && this.collision.isLineBlockedBySmoke(smokes, shooter.x, shooter.y, enemy.x, enemy.y)) return false;
     if (this.collision.isLineBlockedByWall(shooter.x, shooter.y, enemy.x, enemy.y)) return false;
     return true;
   }
@@ -54,6 +55,9 @@ class CombatSystem {
       }
 
       if (bestTarget) {
+        // Immediately face the spotted target
+        p.targetAngle = Math.atan2(bestTarget.y - p.y, bestTarget.x - p.x);
+
         if (p.targetEnemyId !== bestTarget.id) {
           p.targetEnemyId = bestTarget.id;
 
@@ -113,8 +117,13 @@ class CombatSystem {
     const holdBonus = (shooter.state === 'holding') ? 0.06 : 0;
     const stationaryTargetBonus = (target.state === 'planting' || target.state === 'defusing') ? 0.12 : 0;
 
+    // Crosshair alignment check: If shooter's angle has not settled onto target yet (<0.15 rad ~8 deg), apply flick penalty
+    const angleToTarget = Math.atan2(target.y - shooter.y, target.x - shooter.x);
+    const aimSettlingDiff = Math.abs(this.collision.normalizeAngle(shooter.angle - angleToTarget));
+    const flickPenalty = aimSettlingDiff > 0.18 ? -0.22 : 0;
+
     let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy)
-      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + stationaryTargetBonus;
+      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + stationaryTargetBonus + flickPenalty;
 
     if (shooter.flashDuration > 0.3) {
       totalHitChance *= 0.25; // Blind panic-spray penalty
@@ -143,6 +152,19 @@ class CombatSystem {
       // Track damage history for assists
       target.damageHistory = target.damageHistory || {};
       target.damageHistory[shooter.id] = (target.damageHistory[shooter.id] || 0) + damage;
+
+      // PRO AI REACTION: Victim flinches, breaks idle/hold, and immediately returns fire towards the shooter!
+      if (target.alive && target.hp > 0) {
+        target.holdTimer = 0;
+        target.targetAngle = Math.atan2(shooter.y - target.y, shooter.x - target.x);
+        target.soundAlert = { x: shooter.x, y: shooter.y, time: Date.now() };
+
+        if (!target.targetEnemyId || target.targetEnemyId !== shooter.id) {
+          target.targetEnemyId = shooter.id;
+          const reflex = (target.skills && target.skills.reflex) || 94;
+          target.reactionTimer = Math.max(0.08, 0.20 - (reflex / 100) * 0.11);
+        }
+      }
 
       match.events.push({
         type: isHeadshot ? 'headshot' : 'hit',
