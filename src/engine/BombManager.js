@@ -11,17 +11,19 @@ class BombManager {
       const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
       for (const t of aliveTs) {
         const dist = Math.hypot(t.x - match.bomb.x, t.y - match.bomb.y);
-        if (dist <= 48) {
+        if (dist <= 58) {
           match.bomb.dropped = false;
           match.bomb.carried = true;
           match.bomb.carrierId = t.id;
           t.hasBomb = true;
+          t.isRetrievingBomb = false;
           match.bomb.x = t.x;
           match.bomb.y = t.y;
           match.events.push({ type: 'bomb_pickup', playerId: t.id });
           const targetNode = match.tTargetSite === 'B' ? 'b_site' : 'a_site';
           match.addRadioMessage('t', 'electronic (IGL)', `Bombayı aldık! ${match.tTargetSite} Site'a topluca hücum ediyoruz!`);
           aliveTs.forEach(mate => {
+            mate.isRetrievingBomb = false;
             if (!mate.targetEnemyId) match.setPlayerPath(mate, targetNode);
           });
           break;

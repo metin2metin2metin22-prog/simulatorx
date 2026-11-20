@@ -32,9 +32,10 @@ class CombatSystem {
     const now = Date.now();
 
     players.forEach(p => {
+      if (!p.alive) return; // Dead player in current frame cannot act
       if (p.burstPauseTimer > 0) p.burstPauseTimer -= dt;
 
-      const enemies = players.filter(e => e.team !== p.team);
+      const enemies = Object.values(match.players).filter(e => e.team !== p.team && e.alive);
       let bestTarget = null;
       let closestDist = Infinity;
 
@@ -59,6 +60,7 @@ class CombatSystem {
       // 3. Scan visible enemies and lock nearest
       if (!bestTarget) {
         for (const enemy of enemies) {
+          if (!enemy.alive) continue;
           if (this.canSeeEnemy(p, enemy, match.smokes)) {
             const dist = Math.hypot(enemy.x - p.x, enemy.y - p.y);
             if (dist < closestDist) {
@@ -69,7 +71,7 @@ class CombatSystem {
         }
       }
 
-      if (bestTarget) {
+      if (bestTarget && bestTarget.alive) {
         // Immediately face the spotted target
         p.targetAngle = Math.atan2(bestTarget.y - p.y, bestTarget.x - p.x);
 
@@ -198,7 +200,7 @@ class CombatSystem {
         isHeadshot
       });
 
-      if (target.hp <= 0) {
+      if (target.hp <= 0 && target.alive) {
         this.handleKill(match, shooter, target, weapon, isHeadshot);
       }
     }
@@ -242,6 +244,7 @@ class CombatSystem {
   }
 
   handleKill(match, killer, victim, weapon, isHeadshot) {
+    if (!victim.alive) return; // Guard against multiple simultaneous kill resolutions
     victim.alive = false;
     victim.state = 'dead';
     victim.deaths++;
@@ -315,8 +318,8 @@ class CombatSystem {
           if (isBombAtA || ctAtAAndMid === 0) {
             const bCT = aliveCTs.find(p => p.x < 460);
             if (bCT && !bCT.targetEnemyId) {
-              match.setPlayerPath(bCT, 'a_site');
-              match.addRadioMessage('ct', bCT.name, "B'den A'ya rotasyon yapıyorum, site'a tutunun!");
+              match.setPlayerPath(bCT, 'goose'); // Goose anchor to create proper crossfire with a_site
+              match.addRadioMessage('ct', bCT.name, "B'den A Goose'a rotasyon yapıyorum, tutunun!");
             }
           }
 
@@ -324,7 +327,7 @@ class CombatSystem {
           if (match.tTargetSite === 'A') {
             const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
             aliveTs.forEach(t => {
-              if (!t.targetEnemyId) match.setPlayerPath(t, 'a_site');
+              if (!t.targetEnemyId && !t.isRetrievingBomb) match.setPlayerPath(t, 'a_site');
             });
           }
         } else if (zone === 'B Site') {
@@ -342,8 +345,8 @@ class CombatSystem {
           if (isBombAtB || ctAtBAndMid === 0) {
             const aCT = aliveCTs.find(p => p.x > 650);
             if (aCT && !aCT.targetEnemyId) {
-              match.setPlayerPath(aCT, 'b_site');
-              match.addRadioMessage('ct', aCT.name, "A'dan B'ye CT Spawn üzerinden intikal ediyorum!");
+              match.setPlayerPath(aCT, 'b_platform'); // Platform anchor to create crossfire with site/doors
+              match.addRadioMessage('ct', aCT.name, "A'dan B Platform'a intikal ediyorum!");
             }
           }
 
@@ -351,7 +354,7 @@ class CombatSystem {
           if (match.tTargetSite === 'B') {
             const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
             aliveTs.forEach(t => {
-              if (!t.targetEnemyId) match.setPlayerPath(t, 'b_site');
+              if (!t.targetEnemyId && !t.isRetrievingBomb) match.setPlayerPath(t, 'b_site');
             });
           }
         }
@@ -372,7 +375,8 @@ class CombatSystem {
         match.bomb.carrierId = null;
         match.bomb.x = victim.x;
         match.bomb.y = victim.y;
-        match.events.push({ type: 'bomb_dropped', x: victim.x, y: victim.y });
+        match.ensureWalkable(match.bomb); // Guarantee dropped bomb is at a walkable coordinate!
+        match.events.push({ type: 'bomb_dropped', x: match.bomb.x, y: match.bomb.y });
         match.addRadioMessage('t', 'electronic (IGL)', "BOMBA DÜŞTÜ! C4'ü geri alın, site'a ilerleyin!");
 
         // CT killer announces dropped bomb to CT team
@@ -381,8 +385,8 @@ class CombatSystem {
           spotted: true,
           site: dropSite,
           lastSpottedTime: Date.now(),
-          x: victim.x,
-          y: victim.y,
+          x: match.bomb.x,
+          y: match.bomb.y,
           spotterName: killer.name,
           isDropped: true
         };
@@ -390,35 +394,34 @@ class CombatSystem {
         match.events.push({
           type: 'bomb_spotted',
           site: dropSite,
-          x: victim.x,
-          y: victim.y,
+          x: match.bomb.x,
+          y: match.bomb.y,
           spotter: killer.name,
           isDropped: true
         });
 
-        // Nearby CTs establish defense over the dropped bomb
+        // Nearby CT establishes a defensive hold angle watching the dropped bomb
         const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
-        const bombNode = getClosestNode(victim.x, victim.y, match.mapData.nodes, match.collision);
-        aliveCTs.forEach(ct => {
-          if (!ct.targetEnemyId) {
-            const d = Math.hypot(ct.x - victim.x, ct.y - victim.y);
-            if (d > 160) {
-              match.setPlayerPath(ct, bombNode);
-            }
-          }
-        });
+        const nearbyCT = aliveCTs.find(ct => !ct.targetEnemyId && Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y) < 260);
+        if (nearbyCT) {
+          nearbyCT.holdTimer = 10.0;
+          nearbyCT.state = 'holding';
+          nearbyCT.targetAngle = Math.atan2(match.bomb.y - nearbyCT.y, match.bomb.x - nearbyCT.x);
+        }
 
-        // Closest alive T retrieves bomb
+        // Closest alive T retrieves bomb immediately
         if (aliveTs.length > 0) {
           let closestT = aliveTs[0];
           let minDist = Infinity;
           for (const t of aliveTs) {
-            const d = Math.hypot(t.x - victim.x, t.y - victim.y);
+            const d = Math.hypot(t.x - match.bomb.x, t.y - match.bomb.y);
             if (d < minDist) {
               minDist = d;
               closestT = t;
             }
           }
+          closestT.isRetrievingBomb = true;
+          const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
           match.setPlayerPath(closestT, bombNode);
         }
       }

@@ -27,10 +27,16 @@ class BotTactics {
           closestT = t;
         }
       }
-      if (closestT && !closestT.targetEnemyId) {
+
+      if (closestT) {
+        closestT.isRetrievingBomb = true;
         const distToDroppedBomb = Math.hypot(closestT.x - match.bomb.x, closestT.y - match.bomb.y);
-        if (distToDroppedBomb <= 80) {
-          // Direct steering straight onto dropped bomb
+
+        if (distToDroppedBomb <= 95) {
+          // Direct steering straight onto dropped bomb coordinates
+          closestT.path = [];
+          closestT.pathIndex = 0;
+          closestT.holdTimer = 0;
           const angleToBomb = Math.atan2(match.bomb.y - closestT.y, match.bomb.x - closestT.x);
           closestT.targetAngle = angleToBomb;
           closestT.angle = angleToBomb;
@@ -40,14 +46,42 @@ class BotTactics {
           if (match.isWalkable(nx, ny)) {
             closestT.x = nx;
             closestT.y = ny;
+          } else if (match.isWalkable(nx, closestT.y)) {
+            closestT.x = nx;
+          } else if (match.isWalkable(closestT.x, ny)) {
+            closestT.y = ny;
           }
+          closestT.state = 'moving';
         } else {
           const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
           if (!closestT.path || closestT.path.length === 0 || closestT.path[closestT.path.length - 1] !== bombNode) {
             match.setPlayerPath(closestT, bombNode);
+            closestT.state = 'moving';
           }
         }
       }
+
+      // Teammate reactions while bomb is dropped:
+      aliveTs.forEach(t => {
+        if (closestT && t.id === closestT.id) return;
+        t.isRetrievingBomb = false;
+
+        const dToBomb = Math.hypot(t.x - match.bomb.x, t.y - match.bomb.y);
+        if (dToBomb <= 300) {
+          // Nearby teammate holds covering angle over the dropped bomb
+          if (!t.targetEnemyId && (t.state === 'idle' || !t.path || t.pathIndex >= t.path.length)) {
+            t.holdTimer = 6.0;
+            t.state = 'holding';
+            t.targetAngle = Math.atan2(match.bomb.y - t.y, match.bomb.x - t.x);
+          }
+        } else {
+          // Teammate further away regroups towards the bomb area
+          if (!t.targetEnemyId && (t.state === 'idle' || !t.path || t.pathIndex >= t.path.length)) {
+            const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
+            match.setPlayerPath(t, bombNode);
+          }
+        }
+      });
 
       // If another T is nearby, throw protective smoke onto the dropped bomb
       if (aliveTs.length > 1 && match.smokes.length < 3) {
@@ -60,6 +94,9 @@ class BotTactics {
           }
         }
       }
+
+      // CRITICAL: While bomb is on the ground, DO NOT execute anti-idle into site without bomb!
+      return;
     }
 
     // 2. Coordinated Team Execute Call after 10-12 seconds of round start:
@@ -68,7 +105,7 @@ class BotTactics {
       match.tExecuteCalled = true;
       match.addRadioMessage('t', 'electronic (IGL)', `${match.tTargetSite} Site'a TOPLU GİRİYORUZ! Giriş yapın ve bombayı kurun!`);
       aliveTs.forEach(t => {
-        if (!t.targetEnemyId) {
+        if (!t.targetEnemyId && !t.isRetrievingBomb) {
           match.setPlayerPath(t, targetNode);
         }
       });
@@ -77,6 +114,7 @@ class BotTactics {
     // 3. Strict Anti-Idle Protection:
     // If any T has completed their path or sits idle before plant, direct them into the bombsite!
     aliveTs.forEach(t => {
+      if (t.isRetrievingBomb) return;
       if (!t.targetEnemyId && (t.state === 'idle' || !t.path || t.pathIndex >= t.path.length)) {
         const sitePos = match.mapData.sites[match.tTargetSite];
         const distToSite = Math.hypot(t.x - sitePos.x, t.y - sitePos.y);
@@ -290,8 +328,8 @@ class BotTactics {
         bCTs.sort((a, b) => Math.hypot(a.x - 350, a.y - 240) - Math.hypot(b.x - 350, b.y - 240));
         const rotatingB = bCTs[0];
         if (!rotatingB.targetEnemyId) {
-          match.setPlayerPath(rotatingB, 'a_site');
-          match.addRadioMessage('ct', rotatingB.name, "B'den A'ya rotasyon yapıyorum, geldim!");
+          match.setPlayerPath(rotatingB, 'goose'); // Assign Goose anchor to prevent stacking on a_site
+          match.addRadioMessage('ct', rotatingB.name, "B'den A Goose'a rotasyon yapıyorum, geldim!");
         }
       }
     }
@@ -358,14 +396,18 @@ class BotTactics {
           match.setPlayerPath(ct, bombNode);
         }
       } else {
-        // Ts alive -> establish defensive hold around the bombsite
+        // Ts alive -> establish defensive hold around the bombsite with distinct crossfire angles
         if (ct.state === 'idle' || !ct.path || ct.pathIndex >= ct.path.length) {
           const siteKey = (match.bomb.site === 'B' || match.bomb.site === 'A') ? match.bomb.site : (match.bomb.x < 500 ? 'B' : 'A');
           const siteData = match.mapData.sites[siteKey] || match.mapData.sites.A;
-          const siteNode = siteKey === 'B' ? 'b_site' : 'a_site';
-          const dSite = Math.hypot(ct.x - siteData.x, ct.y - siteData.y);
-          if (dSite > 65) {
-            match.setPlayerPath(ct, siteNode);
+          const aSpots = ['a_site', 'goose', 'a_ramp', 'ct_elevator', 'a_short_site'];
+          const bSpots = ['b_platform', 'b_site', 'b_back_site', 'b_car', 'b_cross_hall'];
+          const spots = siteKey === 'B' ? bSpots : aSpots;
+          const assignedSpot = spots[ct.slot % spots.length];
+          const spotNode = match.mapData.nodes[assignedSpot] || siteData;
+          const dSpot = Math.hypot(ct.x - spotNode.x, ct.y - spotNode.y);
+          if (dSpot > 48) {
+            match.setPlayerPath(ct, assignedSpot);
           }
         }
       }

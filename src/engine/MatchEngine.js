@@ -92,6 +92,7 @@ class PureCoachMatch {
     player.path = findPath(currentNodeKey, targetNodeKey, this.mapData.nodes);
     player.pathIndex = 0;
     player.holdTimer = 0;
+    player.state = 'moving';
   }
 
   addRadioMessage(team, sender, text) {
@@ -411,7 +412,10 @@ class PureCoachMatch {
     if (carrier) {
       const targetNode = this.tTargetSite === 'B' ? 'b_site' : 'a_site';
       if (!carrier.path || carrier.path.length === 0 || carrier.path[carrier.path.length - 1] !== targetNode) {
-        carrier.path = expandWaypoints((carrier.path || []).concat([targetNode]), this.mapData.nodes);
+        const startNode = (carrier.path && carrier.path.length > 0) ? carrier.path[0] : getClosestNode(carrier.x, carrier.y, this.mapData.nodes, this.collision);
+        carrier.path = findPath(startNode, targetNode, this.mapData.nodes);
+        carrier.pathIndex = 0;
+        carrier.state = 'moving';
       }
     }
 
@@ -621,8 +625,8 @@ class PureCoachMatch {
       const dx = p.x - other.x;
       const dy = p.y - other.y;
       const d = Math.hypot(dx, dy);
-      if (d > 0.01 && d < 18) {
-        const pushForce = (18 - d) * 20 * dt;
+      if (d > 0.01 && d < 26) {
+        const pushForce = (26 - d) * 16 * dt;
         const angle = Math.atan2(dy, dx);
         const nx = p.x + Math.cos(angle) * pushForce;
         const ny = p.y + Math.sin(angle) * pushForce;
