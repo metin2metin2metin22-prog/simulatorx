@@ -576,7 +576,7 @@ class PureCoachMatch {
         p.isDeagleEcoTrap = false;
         if (!hasRifleOrAwp) {
           p.weapon = team === 'ct' ? 'usp' : 'glock';
-          const deagleWorthy = (p.slot === 0 || p.slot === 1 || (p.skills && p.skills.aim >= 95));
+          const deagleWorthy = (p.perk === 'onetap_god' || p.slot === 0 || (p.skills && p.skills.aim >= 70));
           if (deagleWorthy && p.money >= 1700 && Math.random() < 0.85) {
             p.weapon = 'deagle';
             p.money -= 700;

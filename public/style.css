@@ -2158,3 +2158,138 @@ body.theme-cs {
   filter: brightness(1.15);
 }
 
+/* SCOUTING PROSPECT (GENÇ YETENEK KEŞFİ) */
+.rm-action-buttons-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-scout-prospect {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 50%, #16a085 100%);
+  border: 1px solid #2ecc71;
+  color: #fff;
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.35);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-scout-prospect:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 18px rgba(46, 204, 113, 0.55);
+  transform: translateY(-1px);
+}
+
+.rm-scout-card {
+  background: linear-gradient(145deg, rgba(16, 38, 30, 0.95) 0%, rgba(10, 20, 24, 0.98) 100%);
+  border: 2px solid #2ecc71;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(46, 204, 113, 0.25);
+  animation: modalScaleIn 0.2s ease;
+}
+
+.rm-scout-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.rm-scout-badge-prospect {
+  background: rgba(46, 204, 113, 0.2);
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.rm-scout-name {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.rm-scout-sub {
+  font-size: 11px;
+  color: #a3e635;
+  margin-top: 2px;
+}
+
+.rm-scout-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  background: rgba(4, 14, 10, 0.7);
+  padding: 8px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.rm-scout-report-text {
+  font-size: 11px;
+  color: #e2e8f0;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 10px;
+  border-radius: 4px;
+  border-left: 3px solid #2ecc71;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.rm-scout-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-scout-sign {
+  background: #2ecc71;
+  color: #041208;
+  font-weight: 800;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-scout-sign:hover {
+  background: #4ade80;
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.5);
+}
+
+.btn-scout-reroll {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.btn-scout-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 6px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+

@@ -806,21 +806,22 @@ class BotTactics {
           const angleDiff = Math.abs(this.collision.normalizeAngle(p.angle - angleToFlash));
           const isFacingFlash = (angleDiff < Math.PI / 2);
           const isTeammate = thrower && thrower.team === p.team;
-          const throwerUtility = (thrower && thrower.skills && thrower.skills.utility) || 90;
-          const utilityMult = isTeammate ? 1.0 : (throwerUtility / 90);
+          const throwerUtility = Math.max(30, Math.min(100, (thrower && thrower.skills && thrower.skills.utility) || 60));
+          const utilityMult = isTeammate ? 1.0 : (0.70 + (throwerUtility / 100) * 0.40);
 
           if (isFacingFlash) {
-            const rawDuration = Math.min(4.2, 4.0 * (1 - dist / 260) * utilityMult);
+            const rawDuration = Math.min(4.2, 3.8 * (1 - dist / 260) * utilityMult);
             p.flashDuration = isTeammate ? Math.min(1.2, rawDuration * 0.45) : rawDuration;
           } else {
-            p.flashDuration = isTeammate ? 0.2 : 0.8 * utilityMult;
+            p.flashDuration = isTeammate ? 0.2 : 0.7 * utilityMult;
           }
         }
       });
     } else if (g.type === 'he') {
       match.events.push({ type: 'he_pop', x: g.x, y: g.y });
       const thrower = match.players[g.throwerId];
-      const throwerUtility = (thrower && thrower.skills && thrower.skills.utility) || 90;
+      const throwerUtility = Math.max(30, Math.min(100, (thrower && thrower.skills && thrower.skills.utility) || 60));
+      const heUtilityMult = 0.75 + (throwerUtility / 100) * 0.35;
 
       Object.values(match.players).forEach(p => {
         if (!p.alive) return;
@@ -828,7 +829,7 @@ class BotTactics {
         if (dist < 180) {
           if (this.collision.isLineBlockedByWall(p.x, p.y, g.x, g.y)) return;
           const dmgRatio = 1 - (dist / 180);
-          let blastDamage = Math.round(58 * dmgRatio * (throwerUtility / 90));
+          let blastDamage = Math.round(58 * dmgRatio * heUtilityMult);
           if (p.armor > 0) blastDamage = Math.round(blastDamage * 0.65);
           p.hp = Math.max(0, p.hp - blastDamage);
           if (thrower) thrower.damage += blastDamage;

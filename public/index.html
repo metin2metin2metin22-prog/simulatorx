@@ -321,10 +321,10 @@
           <label for="rmPresetSelect" class="rm-label">⚡ Hazır Kadro Yükle:</label>
           <select id="rmPresetSelect" class="rm-select">
             <option value="">-- Şablon Seçiniz --</option>
+            <option value="starter_grassroots">🌱 Başlangıç Çaylak Kadrosu (Amatör)</option>
+            <option value="young_scouts">💎 Genç Yetenekler (Scout Karması)</option>
             <option value="all_stars">⭐ CS:GO All-Star Dream Team</option>
             <option value="faze_clan">🛡️ FaZe Clan Major Champions</option>
-            <option value="vitality_gold">🐝 Team Vitality Golden Era</option>
-            <option value="spirit_titans">🐉 Team Spirit Major Titans</option>
             <option value="navi_dynasty">🇺🇦 Natus Vincere Dynasty</option>
           </select>
           <button class="btn btn-sm btn-preset-apply" id="btnApplyPreset">Yükle</button>
@@ -373,12 +373,19 @@
             <!-- Market cards injected via JS -->
           </div>
 
-          <!-- CUSTOM PLAYER CREATOR TOGGLE -->
+          <!-- SCOUT PROSPECT & CUSTOM PLAYER SECTION -->
           <div class="rm-custom-section">
-            <button class="btn btn-custom-toggle" id="btnToggleCustomPlayer">+ Özel Oyuncu Kartı Oluştur</button>
+            <div class="rm-action-buttons-row">
+              <button class="btn btn-scout-prospect" id="btnScoutProspect">🔍 Genç Yetenek Keşfet (Scouting)</button>
+              <button class="btn btn-custom-toggle" id="btnToggleCustomPlayer">+ Özel Oyuncu Kartı Oluştur</button>
+            </div>
+
+            <!-- SCOUTING REPORT CARD MODAL / POPUP -->
+            <div class="rm-scout-card" id="rmScoutCard" style="display:none;"></div>
+
             <div class="rm-custom-form" id="rmCustomForm" style="display:none;">
               <div class="rm-form-row">
-                <input type="text" id="cpName" placeholder="Oyuncu Adı (Örn: Xantares)" class="rm-input" />
+                <input type="text" id="cpName" placeholder="Oyuncu Adı (Örn: Xantares, w0nderful)" class="rm-input" />
                 <select id="cpRole" class="rm-select">
                   <option value="Entry Fragger">Entry Fragger</option>
                   <option value="AWPer">AWPer</option>
@@ -387,6 +394,8 @@
                   <option value="In-Game Leader (IGL)">IGL</option>
                 </select>
                 <select id="cpPerk" class="rm-select">
+                  <option value="raw_talent">💎 İşlenmemiş Elmas (Genç Yetenek)</option>
+                  <option value="rookie_nervous">🐣 Heyecanlı Çaylak (Tecrübesiz)</option>
                   <option value="onetap_god">🎯 One-Tap Makinesi</option>
                   <option value="flick_king">⚡ Flick Kralı</option>
                   <option value="ice_clutch">❄️ Buz Adam (Clutch)</option>
@@ -398,28 +407,28 @@
               </div>
               <div class="rm-sliders-grid">
                 <div class="slider-group">
-                  <label>Aim: <span id="valCpAim">95</span></label>
-                  <input type="range" id="cpAim" min="70" max="99" value="95" />
+                  <label>Aim: <span id="valCpAim">60</span></label>
+                  <input type="range" id="cpAim" min="30" max="100" value="60" />
                 </div>
                 <div class="slider-group">
-                  <label>Reflex: <span id="valCpReflex">95</span></label>
-                  <input type="range" id="cpReflex" min="70" max="100" value="95" />
+                  <label>Reflex: <span id="valCpReflex">60</span></label>
+                  <input type="range" id="cpReflex" min="30" max="100" value="60" />
                 </div>
                 <div class="slider-group">
-                  <label>Headshot: <span id="valCpHs">96</span></label>
-                  <input type="range" id="cpHs" min="70" max="100" value="96" />
+                  <label>Headshot: <span id="valCpHs">55</span></label>
+                  <input type="range" id="cpHs" min="30" max="100" value="55" />
                 </div>
                 <div class="slider-group">
-                  <label>Game Sense: <span id="valCpGs">94</span></label>
-                  <input type="range" id="cpGs" min="70" max="100" value="94" />
+                  <label>Game Sense: <span id="valCpGs">55</span></label>
+                  <input type="range" id="cpGs" min="30" max="100" value="55" />
                 </div>
                 <div class="slider-group">
-                  <label>Clutch: <span id="valCpClutch">93</span></label>
-                  <input type="range" id="cpClutch" min="70" max="100" value="93" />
+                  <label>Clutch: <span id="valCpClutch">50</span></label>
+                  <input type="range" id="cpClutch" min="30" max="100" value="50" />
                 </div>
                 <div class="slider-group">
-                  <label>Utility: <span id="valCpUtility">90</span></label>
-                  <input type="range" id="cpUtility" min="70" max="100" value="90" />
+                  <label>Utility: <span id="valCpUtility">50</span></label>
+                  <input type="range" id="cpUtility" min="30" max="100" value="50" />
                 </div>
               </div>
               <button class="btn btn-create-player" id="btnCreateCustomPlayer">⭐ Kartı Oluştur & Havuza Ekle</button>

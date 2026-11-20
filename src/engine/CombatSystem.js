@@ -203,15 +203,20 @@ class CombatSystem {
         if (p.targetEnemyId !== bestTarget.id) {
           p.targetEnemyId = bestTarget.id;
 
-          // Card Skill-Driven Reaction Time:
-          const reflex = (p.skills && p.skills.reflex) || 94;
-          let baseReaction = 0.28 - (reflex / 100) * 0.15 + (Math.random() * 0.02);
+          // Card Skill-Driven Reaction Time (Normalized for 30 - 100 scale):
+          // 100 reflex pro: ~0.10s (100ms) base; 40 reflex rookie: ~0.35s (350ms) base
+          const reflex = Math.max(30, Math.min(100, (p.skills && p.skills.reflex) || 50));
+          let baseReaction = 0.40 - ((reflex - 30) / 70) * 0.30 + (Math.random() * 0.03 - 0.015);
 
           // Card Signature Perks:
           if (p.perk === 'flick_king' && (p.weapon === 'awp')) {
             baseReaction *= 0.70; // 30% faster AWP sniper reaction!
           } else if (p.perk === 'aggressive_entry') {
             baseReaction *= 0.82; // Faster aggressive peek reaction!
+          } else if (p.perk === 'rookie_nervous') {
+            baseReaction *= 1.15; // Inexperienced rookie hesitates under pressure (+15%)
+          } else if (p.perk === 'raw_talent' && Math.random() < 0.25) {
+            baseReaction *= 0.80; // Sudden raw reflex spark!
           }
 
           // Team Mastermind Perk: If team has an active IGL with tactical_mastermind:
@@ -228,7 +233,7 @@ class CombatSystem {
           }
 
           if (p.tradeTargetId === bestTarget.id) {
-            baseReaction = 0.07;
+            baseReaction = Math.min(baseReaction, 0.08);
           }
 
           p.reactionTimer = Math.max(0.04, baseReaction);
@@ -326,28 +331,50 @@ class CombatSystem {
     shooter.burstCount = (shooter.burstCount || 0) + 1;
 
     let burstAccuracy = 1.0;
-    if (shooter.burstCount === 1) burstAccuracy = 0.96;
+    if (shooter.burstCount === 1) burstAccuracy = 0.98;
     else if (shooter.burstCount === 2) burstAccuracy = 0.88;
     else if (shooter.burstCount === 3) burstAccuracy = 0.74;
-    else burstAccuracy = 0.42;
+    else burstAccuracy = 0.44;
 
     const distFactor = Math.max(0.4, 1.0 - (dist / weapon.maxRange) * 0.45);
 
-    // Card Skill-Driven Combat Modifiers:
-    const aim = (shooter.skills && shooter.skills.aim) || 94;
-    const gamesense = (shooter.skills && shooter.skills.gamesense) || 94;
-    const clutch = (shooter.skills && shooter.skills.clutch) || 94;
-    const headshotSkill = (shooter.skills && (shooter.skills.headshot || shooter.skills.aim)) || 90;
-    const aggression = (shooter.skills && shooter.skills.aggression) || 75;
+    // Card Skill-Driven Combat Modifiers (Normalized for 30 - 100 scale):
+    const aim = Math.max(30, Math.min(100, (shooter.skills && shooter.skills.aim) || 50));
+    const gamesense = Math.max(30, Math.min(100, (shooter.skills && shooter.skills.gamesense) || 50));
+    const clutch = Math.max(30, Math.min(100, (shooter.skills && shooter.skills.clutch) || 50));
+    const headshotSkill = Math.max(30, Math.min(100, (shooter.skills && (shooter.skills.headshot || shooter.skills.aim)) || 45));
+    const aggression = Math.max(30, Math.min(100, (shooter.skills && shooter.skills.aggression) || 50));
 
-    const aimBonus = (aim - 90) * 0.016;
-    const gamesenseBonus = (gamesense - 90) * 0.010;
+    // Base accuracy modifier centered at 65 (average):
+    // Aim 100 -> +0.14 | Aim 65 -> 0.00 | Aim 40 -> -0.10 | Aim 30 -> -0.14
+    const aimBonus = ((aim - 65) / 100) * 0.40;
+    // Gamesense 100 -> +0.07 | Gamesense 65 -> 0.00 | Gamesense 40 -> -0.05
+    const gamesenseBonus = ((gamesense - 65) / 100) * 0.20;
+
+    // Recoil spray penalty based on aim & spray control:
+    // High aim pros hold spray tightly; rookies with low aim lose control on continuous burst
+    let sprayRecoilPenalty = 0;
+    if (shooter.burstCount === 2) {
+      sprayRecoilPenalty = ((100 - aim) / 100) * 0.14;
+    } else if (shooter.burstCount >= 3) {
+      sprayRecoilPenalty = ((100 - aim) / 100) * 0.28;
+    }
 
     // Check for 1vX clutch situation
     const aliveAllies = Object.values(match.players).filter(p => p.team === shooter.team && p.alive).length;
     const aliveEnemies = Object.values(match.players).filter(p => p.team !== shooter.team && p.alive).length;
     const isClutching = (aliveAllies === 1 && aliveEnemies >= 1);
-    const clutchBonus = isClutching ? ((clutch - 85) * 0.018) : 0;
+    
+    let clutchBonus = 0;
+    if (isClutching) {
+      if (clutch >= 80) {
+        // Cold-blooded clutch player (+0.05 to +0.18)
+        clutchBonus = ((clutch - 80) / 20) * 0.18;
+      } else if (clutch < 60) {
+        // Inexperienced rookie choking under 1vX pressure (-0.05 to -0.14)
+        clutchBonus = ((clutch - 60) / 30) * 0.14;
+      }
+    }
 
     // Card Signature Perks:
     let perkAccuracyBonus = 0;
@@ -355,17 +382,26 @@ class CombatSystem {
 
     if (shooter.perk === 'onetap_god' && shooter.burstCount === 1) {
       perkHsBonus += 0.22; // Massive 1-tap headshot advantage
-      perkAccuracyBonus += 0.09;
+      perkAccuracyBonus += 0.10;
     }
     if (shooter.perk === 'ice_clutch' && isClutching) {
       perkAccuracyBonus += 0.22; // Ice in veins clutch mastery
       perkHsBonus += 0.16;
     }
     if (shooter.perk === 'flick_king' && weapon.type === 'sniper') {
-      perkAccuracyBonus += 0.15; // Godly sniper flick accuracy
+      perkAccuracyBonus += 0.16; // Godly sniper flick accuracy
     }
     if (shooter.perk === 'smoke_criminal' && shooter.smokeExitTimer > 0) {
       perkAccuracyBonus += 0.20; // Eliminates smoke push disadvantage
+    }
+    if (shooter.perk === 'rookie_nervous') {
+      sprayRecoilPenalty += 0.08;
+      if (isClutching) clutchBonus -= 0.08;
+    }
+    if (shooter.perk === 'raw_talent' && Math.random() < 0.25) {
+      // 25% chance of sudden raw mechanical flash of genius
+      perkAccuracyBonus += 0.15;
+      perkHsBonus += 0.10;
     }
 
     const movingPenalty = shooter.state === 'moving' 
@@ -425,27 +461,39 @@ class CombatSystem {
     // Crosshair alignment check: If shooter's angle has not settled onto target yet (<0.15 rad ~8 deg), apply flick penalty
     const angleToTarget = Math.atan2(target.y - shooter.y, target.x - shooter.x);
     const aimSettlingDiff = Math.abs(this.collision.normalizeAngle(shooter.angle - angleToTarget));
-    const flickPenalty = aimSettlingDiff > 0.18 ? -0.22 : 0;
+    const flickPenalty = aimSettlingDiff > 0.18 ? -0.20 : 0;
 
     let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy)
+      - sprayRecoilPenalty
       + aimBonus + gamesenseBonus + clutchBonus + perkAccuracyBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + crouchBonus + smokeExitShooterPenalty + smokeExitTargetBonus + flickPenalty;
 
     if (shooter.flashDuration > 0.3) {
       totalHitChance *= 0.25; // Blind panic-spray penalty
     }
 
+    // Ensure total hit chance stays in safe, realistic bounds (6% to 96%)
+    totalHitChance = Math.max(0.06, Math.min(0.96, totalHitChance));
+
     const isHit = Math.random() < totalHitChance;
     let isHeadshot = false;
     let damage = 0;
 
     if (isHit) {
-      // Headshot probability is determined by shooter's Headshot & Aim card skills (e.g. b1t 100, NiKo 99, donk 98)
-      // Siper arkasında pre-aim tutan oyuncu ilk vuruşta ekstra kafadan vuruş şansı kazanır (+8%)
+      // Headshot probability is determined by shooter's Headshot skill on a realistic power curve:
+      // A 99-100 HS pro has ~55-65% HS rate on burst 1; a 40 HS rookie has ~9-12%.
       const coverHsBonus = (shooterInCover && shooter.burstCount === 1) ? 0.08 : 0;
       const crouchTargetHsPenalty = target.isCrouching ? -0.06 : 0;
-      const hsSkillFactor = (headshotSkill / 100) * 0.36;
-      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.20 + hsSkillFactor + coverHsBonus + crouchTargetHsPenalty + deagleOneTapHsBonus + perkHsBonus) : (0.10 + hsSkillFactor * 0.45 + crouchTargetHsPenalty));
-      isHeadshot = Math.random() < Math.max(0.04, baseHsChance);
+      const hsSkillFactor = Math.pow(headshotSkill / 100, 1.8) * 0.48;
+      
+      let baseHsChance = 0;
+      if (weapon.name === 'AWP') {
+        baseHsChance = 0.12;
+      } else if (shooter.burstCount === 1) {
+        baseHsChance = 0.10 + hsSkillFactor + coverHsBonus + crouchTargetHsPenalty + deagleOneTapHsBonus + perkHsBonus;
+      } else {
+        baseHsChance = 0.05 + hsSkillFactor * 0.40 + crouchTargetHsPenalty;
+      }
+      isHeadshot = Math.random() < Math.max(0.04, Math.min(0.92, baseHsChance));
 
       if (isHeadshot) {
         let hsDamage = weapon.damage * weapon.hsMult;
@@ -500,8 +548,8 @@ class CombatSystem {
 
         if (!target.targetEnemyId || target.targetEnemyId !== shooter.id) {
           target.targetEnemyId = shooter.id;
-          const reflex = (target.skills && target.skills.reflex) || 94;
-          target.reactionTimer = Math.max(0.08, 0.20 - (reflex / 100) * 0.11);
+          const reflex = Math.max(30, Math.min(100, (target.skills && target.skills.reflex) || 50));
+          target.reactionTimer = Math.max(0.06, 0.28 - ((reflex - 30) / 70) * 0.18);
         }
       }
 

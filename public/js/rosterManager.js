@@ -85,6 +85,12 @@ class RosterManager {
       });
     }
 
+    // Scout Prospect Button
+    const btnScout = document.getElementById('btnScoutProspect');
+    if (btnScout) {
+      btnScout.addEventListener('click', () => this.openScoutProspect());
+    }
+
     // Custom Player Form Toggle
     const btnToggleCustom = document.getElementById('btnToggleCustomPlayer');
     const customForm = document.getElementById('rmCustomForm');
@@ -457,7 +463,11 @@ class RosterManager {
     const utility = parseInt(document.getElementById('cpUtility')?.value || 90, 10);
 
     const avgSkill = (aim + reflex + headshot + gamesense + clutch) / 5;
-    const rating = (1.0 + (avgSkill - 85) * 0.02).toFixed(2);
+    const rating = (0.70 + (avgSkill - 45) * 0.012).toFixed(2);
+    let tier = 'Çaylak';
+    if (avgSkill >= 92) tier = 'Tier 1 Efsane';
+    else if (avgSkill >= 78) tier = 'Tier 2 Pro';
+    else if (avgSkill >= 60) tier = 'Genç Yetenek';
 
     const customP = {
       id: `custom_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
@@ -465,9 +475,10 @@ class RosterManager {
       teamName: 'Kulüp Yıldızı',
       country: 'TR',
       role,
-      tag: 'Custom Star',
+      tag: 'Özel Kart',
       rating: Number(rating),
-      tier: 'S+',
+      tier,
+      price: Math.round(5000 + Math.pow(avgSkill / 10, 3) * 60),
       perk,
       skills: {
         aim,
@@ -476,19 +487,172 @@ class RosterManager {
         gamesense,
         clutch,
         utility,
-        aggression: 88
+        aggression: 75
       },
-      desc: 'Kulüp sahibi tarafından bizzat transfer edilip eğitilen özel süperstar.'
+      desc: 'Kulüp sahibi tarafından bizzat transfer edilip kadroya kazandırılan oyuncu.'
     };
 
     this.customPlayers.unshift(customP);
+    this.playerPool.unshift(customP);
 
     // Automatically put in current focused slot
     this.assignPlayerToSlot(customP, this.selectedSlot);
+    this.renderMarketPool();
 
     // Reset input
     document.getElementById('cpName').value = '';
     alert(`⭐ ${name} başarıyla oluşturuldu ve Slot ${this.selectedSlot === 0 ? 5 : this.selectedSlot}'e yerleştirildi!`);
+  }
+
+  generateProspect() {
+    const turkishFirst = ['Barış', 'Kaan', 'Doruk', 'Yusuf', 'Alper', 'Deniz', 'Mert', 'Emir', 'Umut', 'Arda', 'Kerem', 'Burak'];
+    const globalFirst = ['Luka', 'Milan', 'Jonas', 'Maksim', 'Nils', 'Sven', 'Alex', 'Mateo', 'Erik', 'Oliver'];
+    const nickTags = ['phantom', 'storm', 'deagle', 'flick', 'recoil', 'zen', 'rush', 'aim', 'focus', 'frost', 'pulse', 'spark', 'shadow', 'blaze'];
+    const countries = ['TR', 'DK', 'UA', 'SE', 'BA', 'RU', 'FR', 'PL', 'FI'];
+    const roles = ['Entry Fragger', 'AWPer', 'Lurker', 'Site Anchor', 'In-Game Leader (IGL)'];
+    const perks = ['raw_talent', 'aggressive_entry', 'flick_king', 'ice_clutch', 'rookie_nervous'];
+
+    const isTR = Math.random() < 0.6;
+    const firstName = isTR 
+      ? turkishFirst[Math.floor(Math.random() * turkishFirst.length)] 
+      : globalFirst[Math.floor(Math.random() * globalFirst.length)];
+    const nick = nickTags[Math.floor(Math.random() * nickTags.length)];
+    const country = isTR ? 'TR' : countries[Math.floor(Math.random() * countries.length)];
+    const role = roles[Math.floor(Math.random() * roles.length)];
+    const perk = perks[Math.floor(Math.random() * perks.length)];
+    const age = 16 + Math.floor(Math.random() * 4); // 16 - 19
+
+    // Base stats around 60-80 with role specialization
+    let aim = 60 + Math.floor(Math.random() * 20);
+    let reflex = 62 + Math.floor(Math.random() * 20);
+    let headshot = 58 + Math.floor(Math.random() * 20);
+    let gamesense = 55 + Math.floor(Math.random() * 20);
+    let clutch = 52 + Math.floor(Math.random() * 20);
+    let utility = 50 + Math.floor(Math.random() * 20);
+    let aggression = 60 + Math.floor(Math.random() * 30);
+
+    if (role === 'AWPer') {
+      aim += 6;
+      reflex += 8;
+      headshot -= 4;
+    } else if (role === 'Entry Fragger') {
+      reflex += 6;
+      headshot += 6;
+      aggression = Math.min(95, aggression + 15);
+    } else if (role === 'Site Anchor') {
+      gamesense += 8;
+      clutch += 6;
+    } else if (role === 'In-Game Leader (IGL)') {
+      gamesense += 10;
+      utility += 10;
+      aim -= 4;
+    }
+
+    aim = Math.max(45, Math.min(88, aim));
+    reflex = Math.max(48, Math.min(92, reflex));
+    headshot = Math.max(45, Math.min(86, headshot));
+    gamesense = Math.max(45, Math.min(86, gamesense));
+    clutch = Math.max(45, Math.min(85, clutch));
+    utility = Math.max(40, Math.min(85, utility));
+
+    const avg = (aim + reflex + headshot + gamesense + clutch) / 5;
+    const rating = (0.75 + (avg - 50) * 0.011).toFixed(2);
+    const price = 12000 + Math.floor((avg - 50) * 600);
+
+    const reports = [
+      `🎯 ${age} yaşında Faceit Seviye 10 liginde parladı. Muazzam bir refleks ve mekanik potansiyele sahip. Takım antrenmanlarıyla süperstara dönüşebilir!`,
+      `🔥 Gençler Ligi elemelerinde tek başına 1.34 reyting tutturdu. Agresif açılardan korkmuyor, yüksek özgüvenle oynuyor.`,
+      `💎 Akademi turnuvalarının en çok dikkat çeken elmaslarından biri. Reaksiyon süresi şimdiden Tier-1 profesyonelleriyle yarışıyor.`,
+      `🧠 Yaşına göre olağanüstü sakin ve zeki bir karar verme mekanizması var. Clutch turlarında baskıyı çok iyi kaldırıyor.`
+    ];
+    const reportText = reports[Math.floor(Math.random() * reports.length)];
+
+    return {
+      id: `scout_${firstName.toLowerCase()}_${nick}_${Date.now()}`,
+      name: `${firstName} (${nick})`,
+      teamName: 'Kulüp Akademisi',
+      country,
+      age,
+      role,
+      tag: 'Genç Yetenek',
+      rating: Number(rating),
+      tier: 'Genç Yetenek',
+      price,
+      perk,
+      skills: {
+        aim,
+        reflex,
+        headshot,
+        gamesense,
+        clutch,
+        utility,
+        aggression
+      },
+      desc: reportText
+    };
+  }
+
+  openScoutProspect() {
+    const prospect = this.generateProspect();
+    this.currentProspect = prospect;
+    const container = document.getElementById('rmScoutCard');
+    if (!container) return;
+
+    const perkDef = this.perks[prospect.perk] || { name: prospect.perk, icon: '⭐', desc: '' };
+
+    container.innerHTML = `
+      <div class="rm-scout-top">
+        <div>
+          <div class="rm-scout-badge-prospect">🔍 SCOUT RAPORU: GELECEĞİN YILDIZI (${prospect.age} Yaşında)</div>
+          <div class="rm-scout-name">${prospect.name} [${prospect.country}]</div>
+          <div class="rm-scout-sub">${prospect.role} • Potansiyel: A+ Sınırsız • Bonservis / Maaş: $${prospect.price.toLocaleString()}</div>
+        </div>
+        <div class="rm-metric-chip rating">
+          <span class="m-label">SCOUT REYTİNG</span>
+          <span class="m-val">${prospect.rating}</span>
+        </div>
+      </div>
+
+      <div class="rm-scout-stats-grid">
+        <div class="st-cell"><span class="k">AIM</span><span class="v">${prospect.skills.aim}</span></div>
+        <div class="st-cell"><span class="k">REFLX</span><span class="v">${prospect.skills.reflex}</span></div>
+        <div class="st-cell"><span class="k">HS%</span><span class="v">${prospect.skills.headshot}%</span></div>
+        <div class="st-cell"><span class="k">G.SENSE</span><span class="v">${prospect.skills.gamesense}</span></div>
+        <div class="st-cell"><span class="k">CLUTCH</span><span class="v">${prospect.skills.clutch}</span></div>
+        <div class="st-cell"><span class="k">UTILITY</span><span class="v">${prospect.skills.utility}</span></div>
+      </div>
+
+      <div class="rm-scout-report-text">
+        <strong>${perkDef.icon} İmzalı Pasif: ${perkDef.name}</strong><br>
+        ${prospect.desc}
+      </div>
+
+      <div class="rm-scout-actions">
+        <button class="btn btn-scout-reroll" id="btnScoutReroll">🔄 Başka Yetenek Keşfet</button>
+        <button class="btn btn-scout-close" id="btnScoutClose">✕ Kapat</button>
+        <button class="btn btn-scout-sign" id="btnScoutSign">✍️ Kulübe Kazandır & Slota Al ($${prospect.price.toLocaleString()})</button>
+      </div>
+    `;
+
+    container.style.display = 'block';
+
+    document.getElementById('btnScoutReroll')?.addEventListener('click', () => this.openScoutProspect());
+    document.getElementById('btnScoutClose')?.addEventListener('click', () => { container.style.display = 'none'; });
+    document.getElementById('btnScoutSign')?.addEventListener('click', () => {
+      this.signProspect(this.currentProspect);
+      container.style.display = 'none';
+    });
+  }
+
+  signProspect(prospect) {
+    if (!prospect) return;
+    this.customPlayers.unshift(prospect);
+    this.playerPool.unshift(prospect);
+
+    // Assign to selected slot
+    this.assignPlayerToSlot(prospect, this.selectedSlot);
+    this.renderMarketPool();
+  }
   }
 
   saveAndApply() {
