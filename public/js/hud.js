@@ -30,6 +30,12 @@ class HUDManager {
     this.bombSiteText = document.getElementById('bombSiteText');
     this.bombCountdown = document.getElementById('bombCountdown');
 
+    this.tacticalAlertBanner = document.getElementById('tacticalAlertBanner');
+    this.tacAlertTitle = document.getElementById('tacAlertTitle');
+    this.tacAlertText = document.getElementById('tacAlertText');
+    this.tacAlertIcon = document.getElementById('tacAlertIcon');
+    this.tacTimer = null;
+
     this.timeoutBanner = document.getElementById('timeoutBanner');
     this.timeoutSeconds = document.getElementById('timeoutSeconds');
     this.timeoutsLeftDisplay = document.getElementById('timeoutsLeftDisplay');
@@ -387,6 +393,19 @@ class HUDManager {
 
     this.ctTableBody.innerHTML = ctList.map(renderRow).join('');
     this.tTableBody.innerHTML = tList.map(renderRow).join('');
+  }
+
+  showTacticalBanner(title, text, site = 'B') {
+    if (!this.tacticalAlertBanner) return;
+    this.tacAlertTitle.innerText = title;
+    this.tacAlertText.innerText = text;
+    this.tacticalAlertBanner.className = `tactical-alert-banner alert-${(site || 'b').toLowerCase()}`;
+    this.tacticalAlertBanner.style.display = 'flex';
+
+    if (this.tacTimer) clearTimeout(this.tacTimer);
+    this.tacTimer = setTimeout(() => {
+      if (this.tacticalAlertBanner) this.tacticalAlertBanner.style.display = 'none';
+    }, 4500);
   }
 
   showRoundEndBanner(winner, reason, mvpName) {

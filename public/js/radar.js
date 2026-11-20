@@ -14,6 +14,19 @@ class RadarRenderer {
     this.prevPlayers = {};
     this.bulletTracers = [];
     this.particles = [];
+    this.pings = [];
+  }
+
+  addPing(x, y, label, type = 'danger') {
+    this.pings = this.pings || [];
+    this.pings.push({
+      x,
+      y,
+      label,
+      type,
+      createdAt: Date.now(),
+      duration: 6000 // 6 seconds prominent tactical alert
+    });
   }
 
   setMap(imageSrc) {
@@ -78,6 +91,60 @@ class RadarRenderer {
 
     // 8. Draw Floating Damage / Effects
     this.drawParticles(ctx);
+
+    // 9. Draw Tactical Radar Pings (Bomb Spotted / Rush Alert)
+    this.drawPings(ctx);
+  }
+
+  drawPings(ctx) {
+    if (!this.pings || this.pings.length === 0) return;
+    const now = Date.now();
+    for (let i = this.pings.length - 1; i >= 0; i--) {
+      const p = this.pings[i];
+      const elapsed = now - p.createdAt;
+      if (elapsed > p.duration) {
+        this.pings.splice(i, 1);
+        continue;
+      }
+
+      const progress = (elapsed % 1200) / 1200;
+      const fade = Math.max(0, 1 - (elapsed / p.duration));
+      const radius = 10 + progress * 40;
+      const isDanger = p.type === 'danger';
+      const color = isDanger ? '235, 77, 75' : '241, 196, 15';
+
+      ctx.save();
+      // Outer pulsating tactical beacon
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${color}, ${(1 - progress) * fade * 0.9})`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Middle halo
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 16, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${color}, ${fade * 0.25})`;
+      ctx.fill();
+
+      // Core ping pin
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+      ctx.fillStyle = `rgb(${color})`;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label badge above
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 6;
+      ctx.fillText(p.label, p.x, p.y - 14);
+      ctx.restore();
+    }
   }
 
   drawBombSites(ctx, mapData) {

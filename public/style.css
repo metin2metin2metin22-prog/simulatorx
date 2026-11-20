@@ -509,6 +509,55 @@ body.theme-cs {
   animation: pulse-danger 0.8s infinite alternate;
 }
 
+/* TACTICAL ALERT BANNER */
+.tactical-alert-banner {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(14, 22, 34, 0.95);
+  border: 1px solid var(--border-highlight);
+  border-left: 4px solid var(--ct-blue);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-family: 'Chakra Petch', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 6;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+  animation: slide-down 0.25s ease-out;
+}
+
+.tactical-alert-banner.alert-b {
+  border-left-color: #e74c3c;
+}
+.tactical-alert-banner.alert-a {
+  border-left-color: #3498db;
+}
+
+@keyframes slide-down {
+  from { transform: translate(-50%, -15px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.tac-icon {
+  font-size: 18px;
+}
+
+.tac-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #f39c12;
+}
+
+.tac-text {
+  font-size: 11px;
+  color: #ecf0f1;
+}
+
 /* TIMEOUT BANNER OVERLAY */
 .timeout-banner {
   position: absolute;

@@ -25,6 +25,8 @@ class PureCoachMatch {
     this.tExecuteCalled = false;
     this.tTargetSite = 'B';
     this.clutchAnnounced = false;
+    this.ctBombIntel = { spotted: false, site: null, lastSpottedTime: 0, x: 0, y: 0, spotterName: null, isDropped: false };
+    this.ctRushIntel = { detected: false, site: null, lastCallTime: 0, count: 0 };
 
     // Coaches & Timeouts
     this.coaches = JSON.parse(JSON.stringify(DEFAULT_COACHES));
@@ -262,6 +264,8 @@ class PureCoachMatch {
     this.bomb.defuserId = null;
     this.bomb.defuseProgress = 0;
     this.clutchAnnounced = false;
+    this.ctBombIntel = { spotted: false, site: null, lastSpottedTime: 0, x: 0, y: 0, spotterName: null, isDropped: false };
+    this.ctRushIntel = { detected: false, site: null, lastCallTime: 0, count: 0 };
 
     // Autonomous strategy selection by IGLs
     if (this.round === 1 || this.round === 13) {
@@ -522,6 +526,11 @@ class PureCoachMatch {
 
     // Terrorist Autonomous Grouped Tactics & Objective Executions
     this.tactics.updateTerroristTactics(this, dt);
+
+    // Counter-Terrorist Dynamic Pre-Plant Tactical Communication & Rotations
+    if (!this.bomb.planted) {
+      this.tactics.updateCTPrePlantTactics(this, dt);
+    }
 
     // Bomb Objectives
     this.bombManager.updateBombObjectives(this, dt);

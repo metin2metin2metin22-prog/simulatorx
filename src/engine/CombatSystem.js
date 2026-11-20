@@ -269,26 +269,26 @@ class CombatSystem {
 
         if (zone === 'A Site' || zone === 'Long A') {
           // Mid CT rotates to A
-          const midCT = aliveCTs.find(p => p.slot === 2);
-          if (midCT) {
+          const midCT = aliveCTs.find(p => p.slot === 2 || (p.x >= 420 && p.x <= 640 && p.y >= 220));
+          if (midCT && !midCT.targetEnemyId) {
             match.setPlayerPath(midCT, 'a_short_site');
             match.addRadioMessage('ct', midCT.name, "A'ya desteğe geçiyorum!");
           }
 
-          // If only 1 or 0 CTs left defending A, 1 B CT rotates through CT Spawn
-          const ctAtA = aliveCTs.filter(p => p.x > 680 && p.y < 350).length;
-          if (ctAtA <= 1) {
+          // B CT rotates to A ONLY IF bomb is confirmed at A or ALL A+Mid defenders are eliminated
+          const ctAtAAndMid = aliveCTs.filter(p => p.x > 460).length;
+          const isBombAtA = match.ctBombIntel && match.ctBombIntel.spotted && match.ctBombIntel.site === 'A';
+
+          if (isBombAtA || ctAtAAndMid === 0) {
             const bCT = aliveCTs.find(p => p.x < 460);
-            if (bCT) {
+            if (bCT && !bCT.targetEnemyId) {
               match.setPlayerPath(bCT, 'a_site');
               match.addRadioMessage('ct', bCT.name, "B'den A'ya rotasyon yapıyorum, site'a tutunun!");
             }
           }
 
-          // Terrorists exploit opening at A
-          if (match.tTargetSite !== 'A') {
-            match.tTargetSite = 'A';
-            match.addRadioMessage('t', 'electronic (IGL)', "A savunması kırıldı! A Site açık, tüm takım A'ya yüklenin!");
+          // Terrorists exploit opening at A if target was A
+          if (match.tTargetSite === 'A') {
             const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
             aliveTs.forEach(t => {
               if (!t.targetEnemyId) match.setPlayerPath(t, 'a_site');
@@ -296,26 +296,26 @@ class CombatSystem {
           }
         } else if (zone === 'B Site') {
           // Mid CT rotates to B
-          const midCT = aliveCTs.find(p => p.slot === 2);
-          if (midCT) {
+          const midCT = aliveCTs.find(p => p.slot === 2 || (p.x >= 420 && p.x <= 640 && p.y >= 220));
+          if (midCT && !midCT.targetEnemyId) {
             match.setPlayerPath(midCT, 'b_doors_outside');
             match.addRadioMessage('ct', midCT.name, "B'ye desteğe geliyorum!");
           }
 
-          // If B is in danger, 1 A CT rotates to B
-          const ctAtB = aliveCTs.filter(p => p.x < 400).length;
-          if (ctAtB <= 1) {
+          // A CT rotates to B ONLY IF bomb is confirmed at B or ALL B+Mid defenders are eliminated
+          const ctAtBAndMid = aliveCTs.filter(p => p.x < 650).length;
+          const isBombAtB = match.ctBombIntel && match.ctBombIntel.spotted && match.ctBombIntel.site === 'B';
+
+          if (isBombAtB || ctAtBAndMid === 0) {
             const aCT = aliveCTs.find(p => p.x > 650);
-            if (aCT) {
+            if (aCT && !aCT.targetEnemyId) {
               match.setPlayerPath(aCT, 'b_site');
               match.addRadioMessage('ct', aCT.name, "A'dan B'ye CT Spawn üzerinden intikal ediyorum!");
             }
           }
 
-          // Terrorists exploit opening at B
-          if (match.tTargetSite !== 'B') {
-            match.tTargetSite = 'B';
-            match.addRadioMessage('t', 'electronic (IGL)', "B savunması kırıldı! B Site açık, toplu hücum!");
+          // Terrorists exploit opening at B if target was B
+          if (match.tTargetSite === 'B') {
             const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
             aliveTs.forEach(t => {
               if (!t.targetEnemyId) match.setPlayerPath(t, 'b_site');
@@ -342,6 +342,39 @@ class CombatSystem {
         match.events.push({ type: 'bomb_dropped', x: victim.x, y: victim.y });
         match.addRadioMessage('t', 'electronic (IGL)', "BOMBA DÜŞTÜ! C4'ü geri alın, site'a ilerleyin!");
 
+        // CT killer announces dropped bomb to CT team
+        const dropSite = zone === 'B Site' ? 'B' : (zone === 'Mid' ? 'Mid' : 'A');
+        match.ctBombIntel = {
+          spotted: true,
+          site: dropSite,
+          lastSpottedTime: Date.now(),
+          x: victim.x,
+          y: victim.y,
+          spotterName: killer.name,
+          isDropped: true
+        };
+        match.addRadioMessage('ct', killer.name, `BOMBA DÜŞTÜ! Taşıyıcıyı vurdum! Bomba [${zone}] bölgesinde yerde, burayı tutun!`);
+        match.events.push({
+          type: 'bomb_spotted',
+          site: dropSite,
+          x: victim.x,
+          y: victim.y,
+          spotter: killer.name,
+          isDropped: true
+        });
+
+        // Nearby CTs establish defense over the dropped bomb
+        const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
+        const bombNode = getClosestNode(victim.x, victim.y, match.mapData.nodes);
+        aliveCTs.forEach(ct => {
+          if (!ct.targetEnemyId) {
+            const d = Math.hypot(ct.x - victim.x, ct.y - victim.y);
+            if (d > 160) {
+              match.setPlayerPath(ct, bombNode);
+            }
+          }
+        });
+
         // Closest alive T retrieves bomb
         if (aliveTs.length > 0) {
           let closestT = aliveTs[0];
@@ -353,7 +386,6 @@ class CombatSystem {
               closestT = t;
             }
           }
-          const bombNode = getClosestNode(victim.x, victim.y, match.mapData.nodes);
           match.setPlayerPath(closestT, bombNode);
         }
       }

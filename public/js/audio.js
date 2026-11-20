@@ -240,6 +240,52 @@ class SoundEngine {
     this.speak("The bomb has been planted!");
   }
 
+  playBombSpotted(site) {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Tactical dual-tone radio ping
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.setValueAtTime(1250, now + 0.08);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.24);
+
+    if (site === 'A') {
+      this.speak("Bomb at A! Need backup!");
+    } else if (site === 'B') {
+      this.speak("Bomb at B! Need backup!");
+    } else if (site === 'Mid') {
+      this.speak("Bomb spotted Mid!");
+    }
+  }
+
+  playRadioSquelch() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const noise = this.createNoiseBuffer(0.07);
+    const node = this.ctx.createBufferSource();
+    node.buffer = noise;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1600, now);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    node.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    node.start(now);
+  }
+
   playBombDropped() {
     if (!this.enabled || !this.ctx) return;
     const now = this.ctx.currentTime;

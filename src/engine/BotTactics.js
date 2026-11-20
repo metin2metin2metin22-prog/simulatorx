@@ -87,6 +87,216 @@ class BotTactics {
     });
   }
 
+  determineSiteZone(x, y) {
+    if (x < 380 || (x < 420 && y < 350)) {
+      return 'B';
+    } else if (x > 700 || (x >= 530 && y < 460)) {
+      return 'A';
+    } else {
+      return 'Mid';
+    }
+  }
+
+  // Pre-Plant Tactical Communication & Dynamic CT Rotations:
+  // Active every tick before bomb is planted. When bomb carrier or multiple Ts are spotted,
+  // CTs actively shout over radio ("BOMBA B'DE / A'DA! Acil desteğe gelin!") and rotate!
+  updateCTPrePlantTactics(match, dt) {
+    if (match.bomb.planted || match.phase !== 'live') return;
+
+    if (!match.ctBombIntel) {
+      match.ctBombIntel = { spotted: false, site: null, lastSpottedTime: 0, x: 0, y: 0, spotterName: null, isDropped: false };
+    }
+    if (!match.ctRushIntel) {
+      match.ctRushIntel = { detected: false, site: null, lastCallTime: 0, count: 0 };
+    }
+
+    const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
+    const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
+    if (aliveCTs.length === 0 || aliveTs.length === 0) return;
+
+    const now = Date.now();
+
+    // 1. Check if ANY CT sees the Bomb Carrier
+    if (!match.bomb.dropped && match.bomb.carrierId) {
+      const carrier = match.players[match.bomb.carrierId];
+      if (carrier && carrier.alive) {
+        let spotterCT = null;
+        for (const ct of aliveCTs) {
+          if (match.combat && match.combat.canSeeEnemy(ct, carrier, match.smokes)) {
+            spotterCT = ct;
+            break;
+          }
+        }
+
+        if (spotterCT) {
+          const zone = this.determineSiteZone(carrier.x, carrier.y);
+          const isFreshSpot = !match.ctBombIntel.spotted || match.ctBombIntel.site !== zone || (now - match.ctBombIntel.lastSpottedTime > 9000);
+
+          if (isFreshSpot) {
+            match.ctBombIntel = {
+              spotted: true,
+              site: zone,
+              lastSpottedTime: now,
+              x: carrier.x,
+              y: carrier.y,
+              spotterName: spotterCT.name,
+              isDropped: false
+            };
+
+            // Authentic Pro CS:GO Turkish Radio Callouts
+            if (zone === 'B') {
+              match.addRadioMessage('ct', spotterCT.name, "BOMBA B'DE! Taşıyıcıyı gördüm, B Site'a acil desteğe gelin!");
+            } else if (zone === 'A') {
+              match.addRadioMessage('ct', spotterCT.name, "BOMBA A'DA! Long ve Short'tan A'ya yükleniyorlar, desteğe gelin!");
+            } else {
+              match.addRadioMessage('ct', spotterCT.name, "BOMBA MID'DE! Taşıyıcı Mid'den geçiyor, dikkat edin!");
+            }
+
+            match.events.push({
+              type: 'bomb_spotted',
+              site: zone,
+              x: carrier.x,
+              y: carrier.y,
+              spotter: spotterCT.name,
+              carrier: carrier.name,
+              isDropped: false
+            });
+
+            this.executeCTPrePlantRotation(match, zone, spotterCT);
+          }
+        }
+      }
+    }
+
+    // 2. Check if ANY CT sees the Dropped Bomb on the ground
+    if (match.bomb.dropped && !match.bomb.carried && !match.bomb.planted) {
+      for (const ct of aliveCTs) {
+        const dist = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
+        if (dist < 480 && !this.collision.isLineBlockedByWall(ct.x, ct.y, match.bomb.x, match.bomb.y)) {
+          const zone = this.determineSiteZone(match.bomb.x, match.bomb.y);
+          const isFreshDropSpot = !match.ctBombIntel.isDropped || (now - match.ctBombIntel.lastSpottedTime > 9000);
+
+          if (isFreshDropSpot) {
+            match.ctBombIntel = {
+              spotted: true,
+              site: zone,
+              lastSpottedTime: now,
+              x: match.bomb.x,
+              y: match.bomb.y,
+              spotterName: ct.name,
+              isDropped: true
+            };
+
+            match.addRadioMessage('ct', ct.name, `BOMBA DÜŞTÜ! Bomba [${zone}] bölgesinde yerde! Bombayı tutun, almalarına izin vermeyin!`);
+            match.events.push({
+              type: 'bomb_spotted',
+              site: zone,
+              x: match.bomb.x,
+              y: match.bomb.y,
+              spotter: ct.name,
+              isDropped: true
+            });
+
+            // Reposition CTs to guard the dropped bomb
+            const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes);
+            aliveCTs.forEach(mate => {
+              if (!mate.targetEnemyId) {
+                const d = Math.hypot(mate.x - match.bomb.x, mate.y - match.bomb.y);
+                if (d > 160) {
+                  match.setPlayerPath(mate, bombNode);
+                }
+              }
+            });
+          }
+          break;
+        }
+      }
+    }
+
+    // 3. Multi-Enemy Push / Rush Detection (Even if carrier is behind)
+    if (!match.ctBombIntel.spotted || (now - match.ctBombIntel.lastSpottedTime > 12000)) {
+      aliveCTs.forEach(ct => {
+        let seenEnemies = 0;
+        aliveTs.forEach(t => {
+          if (match.combat && match.combat.canSeeEnemy(ct, t, match.smokes)) {
+            seenEnemies++;
+          }
+        });
+
+        if (seenEnemies >= 2 && (now - match.ctRushIntel.lastCallTime > 10000)) {
+          const ctZone = this.determineSiteZone(ct.x, ct.y);
+          if (ctZone === 'B' || ctZone === 'A') {
+            match.ctRushIntel = {
+              detected: true,
+              site: ctZone,
+              lastCallTime: now,
+              count: seenEnemies
+            };
+
+            if (ctZone === 'B') {
+              match.addRadioMessage('ct', ct.name, `B'YE RUSH GELİYOR! En az ${seenEnemies} kişi var, acil destek lazım!`);
+            } else {
+              match.addRadioMessage('ct', ct.name, `A'YA RUSH GELİYOR! Long ve Short basıyorlar, desteğe gelin!`);
+            }
+
+            match.events.push({
+              type: 'rush_detected',
+              site: ctZone,
+              spotter: ct.name,
+              count: seenEnemies
+            });
+
+            this.executeCTPrePlantRotation(match, ctZone, ct);
+          }
+        }
+      });
+    }
+  }
+
+  // Coordinated Pre-Plant Rotation Execution
+  executeCTPrePlantRotation(match, targetZone, spotter) {
+    const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
+    if (aliveCTs.length <= 1) return;
+
+    if (targetZone === 'B') {
+      // 1. Mid CT rotates to B immediately
+      const midCT = aliveCTs.find(p => (p.slot === 2 || (p.x >= 420 && p.x <= 640 && p.y >= 220)) && p.id !== spotter.id);
+      if (midCT && !midCT.targetEnemyId) {
+        match.setPlayerPath(midCT, 'b_doors_outside');
+        match.addRadioMessage('ct', midCT.name, "B'ye desteğe koşuyorum, dayanın!");
+      }
+
+      // 2. A CTs: If 2 alive at A, 1 rotates through CT Spawn to B, leaving 1 anchor
+      const aCTs = aliveCTs.filter(p => p.x > 640 && p.id !== spotter.id);
+      if (aCTs.length >= 2) {
+        aCTs.sort((a, b) => Math.hypot(a.x - 635, a.y - 215) - Math.hypot(b.x - 635, b.y - 215));
+        const rotatingA = aCTs[0];
+        if (!rotatingA.targetEnemyId) {
+          match.setPlayerPath(rotatingA, 'b_doors_outside');
+          match.addRadioMessage('ct', rotatingA.name, "A'dan B'ye CT Spawn üzerinden intikal ediyorum!");
+        }
+      }
+    } else if (targetZone === 'A') {
+      // 1. Mid CT rotates to A immediately
+      const midCT = aliveCTs.find(p => (p.slot === 2 || (p.x >= 420 && p.x <= 640 && p.y >= 220)) && p.id !== spotter.id);
+      if (midCT && !midCT.targetEnemyId) {
+        match.setPlayerPath(midCT, 'a_short_site');
+        match.addRadioMessage('ct', midCT.name, "A'ya desteğe koşuyorum, tutunun!");
+      }
+
+      // 2. B CTs: If 2 alive at B, 1 rotates through CT Ramp -> CT Spawn to A, leaving 1 B anchor
+      const bCTs = aliveCTs.filter(p => p.x < 420 && p.id !== spotter.id);
+      if (bCTs.length >= 2) {
+        bCTs.sort((a, b) => Math.hypot(a.x - 350, a.y - 240) - Math.hypot(b.x - 350, b.y - 240));
+        const rotatingB = bCTs[0];
+        if (!rotatingB.targetEnemyId) {
+          match.setPlayerPath(rotatingB, 'a_site');
+          match.addRadioMessage('ct', rotatingB.name, "B'den A'ya rotasyon yapıyorum, geldim!");
+        }
+      }
+    }
+  }
+
   // Active Retake & Defuse Guidance: Runs every tick while the bomb is planted
   updateRetakeAndPostPlantTactics(match, dt) {
     if (!match.bomb.planted) return;
