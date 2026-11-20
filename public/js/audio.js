@@ -193,6 +193,94 @@ class SoundEngine {
     noiseNode.start(now);
   }
 
+  playMolotov() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Glass bottle shatter
+    const noise = this.createNoiseBuffer(0.08);
+    const noiseNode = this.ctx.createBufferSource();
+    noiseNode.buffer = noise;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(3200, now);
+    const nGain = this.ctx.createGain();
+    nGain.gain.setValueAtTime(0.6, now);
+    nGain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    noiseNode.connect(filter);
+    filter.connect(nGain);
+    nGain.connect(this.ctx.destination);
+    noiseNode.start(now);
+
+    // Deep combustion whoosh
+    const whoosh = this.createNoiseBuffer(0.65);
+    const whooshNode = this.ctx.createBufferSource();
+    whooshNode.buffer = whoosh;
+    const wFilter = this.ctx.createBiquadFilter();
+    wFilter.type = 'lowpass';
+    wFilter.frequency.setValueAtTime(280, now);
+    wFilter.frequency.linearRampToValueAtTime(650, now + 0.2);
+    wFilter.frequency.linearRampToValueAtTime(150, now + 0.65);
+    const wGain = this.ctx.createGain();
+    wGain.gain.setValueAtTime(0.55, now + 0.04);
+    wGain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+    whooshNode.connect(wFilter);
+    wFilter.connect(wGain);
+    wGain.connect(this.ctx.destination);
+    whooshNode.start(now + 0.04);
+  }
+
+  playExtinguish() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    // Violent pressurized steam hiss ("PSSSHHHH!")
+    const noise = this.createNoiseBuffer(0.9);
+    const noiseNode = this.ctx.createBufferSource();
+    noiseNode.buffer = noise;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2400, now);
+    filter.frequency.linearRampToValueAtTime(1400, now + 0.5);
+    filter.Q.setValueAtTime(2.2, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.7, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
+
+    noiseNode.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noiseNode.start(now);
+  }
+
+  playHE() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.45);
+    gain.gain.setValueAtTime(0.8, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+    const noise = this.createNoiseBuffer(0.35);
+    const noiseNode = this.ctx.createBufferSource();
+    noiseNode.buffer = noise;
+    const nGain = this.ctx.createGain();
+    nGain.gain.setValueAtTime(0.75, now);
+    nGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    noiseNode.connect(nGain);
+    nGain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.5);
+    noiseNode.start(now);
+  }
+
   playBombBeep(urgency = 1) {
     if (!this.enabled || !this.ctx) return;
     const now = this.ctx.currentTime;

@@ -66,6 +66,11 @@ class RadarRenderer {
       gameState.smokes.forEach(smoke => this.drawSmoke(ctx, smoke));
     }
 
+    // 3.5. Draw Molotov / Incendiary Fires
+    if (gameState.fires) {
+      gameState.fires.forEach(fire => this.drawFire(ctx, fire));
+    }
+
     // 4. Draw Grenades / Flashes
     if (gameState.grenades) {
       gameState.grenades.forEach(g => this.drawGrenade(ctx, g));
@@ -262,6 +267,33 @@ class RadarRenderer {
     ctx.restore();
   }
 
+  drawFire(ctx, fire) {
+    ctx.save();
+    const time = Date.now() / 1000;
+    const alpha = Math.min(1, fire.remainingTime / 1.5);
+    const flicker = 1.0 + Math.sin(time * 14 + fire.x) * 0.08;
+    const curRad = (fire.radius || 46) * flicker;
+
+    const grad = ctx.createRadialGradient(fire.x, fire.y, 6, fire.x, fire.y, curRad);
+    grad.addColorStop(0, `rgba(255, 235, 90, ${0.88 * alpha})`);
+    grad.addColorStop(0.35, `rgba(255, 100, 20, ${0.76 * alpha})`);
+    grad.addColorStop(0.75, `rgba(220, 45, 10, ${0.52 * alpha})`);
+    grad.addColorStop(1, 'rgba(180, 20, 0, 0)');
+
+    ctx.beginPath();
+    ctx.arc(fire.x, fire.y, curRad, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Crackling fire border
+    ctx.beginPath();
+    ctx.arc(fire.x, fire.y, curRad * 0.94, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 170, 40, ${0.5 * alpha})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
   drawGrenade(ctx, g) {
     ctx.save();
     if (g.type === 'flash') {
@@ -288,6 +320,24 @@ class RadarRenderer {
         ctx.arc(g.x, g.y, g.detonateProgress * 80, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(230, 80, 20, ${0.6 * (1 - g.detonateProgress)})`;
         ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#27ae60';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    } else if (g.type === 'molotov' || g.type === 'incendiary') {
+      if (!g.detonated) {
+        ctx.beginPath();
+        ctx.arc(g.x, g.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#e67e22';
+        ctx.fill();
+        ctx.strokeStyle = '#f39c12';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
     } else if (g.type === 'smoke') {
       if (!g.detonated) {

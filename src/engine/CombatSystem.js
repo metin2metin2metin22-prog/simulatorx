@@ -50,6 +50,14 @@ class CombatSystem {
       if (!p.alive) return; // Dead player in current frame cannot act
       if (p.burstPauseTimer > 0) p.burstPauseTimer -= dt;
 
+      // Smoke push tracking (First-out delay)
+      const insideAnySmoke = (match.smokes || []).some(s => Math.hypot(p.x - s.x, p.y - s.y) <= s.radius);
+      if (insideAnySmoke) {
+        p.smokeExitTimer = 0.32;
+      } else if (p.smokeExitTimer > 0) {
+        p.smokeExitTimer -= dt;
+      }
+
       // Handle Reloading Logic
       if (p.isReloading) {
         p.reloadTimer -= dt;
@@ -343,13 +351,17 @@ class CombatSystem {
     }
     const crouchBonus = shooter.isCrouching ? 0.12 : 0;
 
+    // 7. SMOKE PUSH DISADVANTAGE (CS:GO First-Out Blindness):
+    const smokeExitShooterPenalty = (shooter.smokeExitTimer > 0) ? -0.18 : 0;
+    const smokeExitTargetBonus = (target.smokeExitTimer > 0) ? 0.15 : 0;
+
     // Crosshair alignment check: If shooter's angle has not settled onto target yet (<0.15 rad ~8 deg), apply flick penalty
     const angleToTarget = Math.atan2(target.y - shooter.y, target.x - shooter.x);
     const aimSettlingDiff = Math.abs(this.collision.normalizeAngle(shooter.angle - angleToTarget));
     const flickPenalty = aimSettlingDiff > 0.18 ? -0.22 : 0;
 
     let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy)
-      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + crouchBonus + flickPenalty;
+      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + crouchBonus + smokeExitShooterPenalty + smokeExitTargetBonus + flickPenalty;
 
     if (shooter.flashDuration > 0.3) {
       totalHitChance *= 0.25; // Blind panic-spray penalty

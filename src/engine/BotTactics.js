@@ -99,6 +99,9 @@ class BotTactics {
       return;
     }
 
+    // 1.5. Fire Obstruction & Pro Smoke Extinguish Counter:
+    this.handleTFireObstructionAndSmokeExtinguish(match, aliveTs, dt);
+
     // 2. Coordinated Team Execute Call after 10-12 seconds of round start:
     // IGL issues all-out push command and all alive Ts flood the bombsite together
     if (match.timer <= 88 && !match.tExecuteCalled) {
@@ -153,6 +156,9 @@ class BotTactics {
     if (aliveCTs.length === 0 || aliveTs.length === 0) return;
 
     const now = Date.now();
+
+    // 0. CS:GO PRO 2-MAN B SETUP & SEQUENTIAL CHAINED MOLOTOVS
+    this.updateCTBDefenseAndMolotovChain(match, dt);
 
     // 1. Check if ANY CT sees the Bomb Carrier
     if (!match.bomb.dropped && match.bomb.carrierId) {
@@ -352,6 +358,102 @@ class BotTactics {
     }
   }
 
+  // CS:GO AUTHENTIC 2-MAN B SETUP & SEQUENTIAL CHAINED MOLOTOV DEFENSE:
+  // CT B Anchor & Support coordinate to burn Upper Tunnels sequentially (~14s total area denial!)
+  updateCTBDefenseAndMolotovChain(match, dt) {
+    if (match.phase !== 'live') return;
+
+    // Alive CTs guarding B Site zone (x < 380, y < 350)
+    const aliveBCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive && p.x < 380 && p.y < 350);
+    if (aliveBCTs.length === 0) return;
+
+    // Anchor is closest to Platform/Site (180, 220), Support is near Window/Doors
+    aliveBCTs.sort((a, b) => Math.hypot(a.x - 180, a.y - 220) - Math.hypot(b.x - 180, b.y - 220));
+    const bAnchor = aliveBCTs[0];
+    const bSupport = aliveBCTs.length > 1 ? aliveBCTs[1] : null;
+
+    // Check active tunnel fire
+    const tunnelFire = (match.fires || []).find(f => f.x < 210 && f.y >= 250 && f.y <= 360);
+
+    // Check if Ts are in Upper Tunnels
+    const tPresenceInTunnels = Object.values(match.players).some(p =>
+      p.team === 't' && p.alive && p.x < 250 && p.y > 270 && p.y < 520
+    );
+
+    // 1. FIRST MOLOTOV THROW (B Anchor blocks tunnel exit around 93s - 86s or upon sound alert)
+    if (!match.bMollyStage) {
+      const shouldThrowFirstMolly = (match.timer <= 93 && match.timer >= 86) || tPresenceInTunnels || (match.ctRushIntel && match.ctRushIntel.site === 'B');
+      if (shouldThrowFirstMolly && bAnchor && !bAnchor.targetEnemyId) {
+        match.bMollyStage = 1;
+        match.bMolly1Time = Date.now();
+        this.throwGrenade(match, bAnchor, 'incendiary', 150, 300);
+        match.addRadioMessage('ct', bAnchor.name, "Tünel çıkışına molotof salladım! Rush'ı kestik, geçemezler!");
+      }
+    }
+
+    // 2. SEQUENTIAL CHAINED MOLOTOV (B Support renews the flame as 1st molly ends)
+    else if (match.bMollyStage === 1 && bSupport && !bSupport.targetEnemyId) {
+      const firstMollyExpiring = tunnelFire && tunnelFire.remainingTime <= 2.2;
+      const firstMollyEndedRecently = !tunnelFire && (Date.now() - (match.bMolly1Time || 0) > 5500 && Date.now() - (match.bMolly1Time || 0) < 14000);
+
+      if ((firstMollyExpiring || firstMollyEndedRecently) && (tPresenceInTunnels || match.timer <= 84)) {
+        match.bMollyStage = 2;
+        this.throwGrenade(match, bSupport, 'incendiary', 135, 315);
+        match.addRadioMessage('ct', bSupport.name, "İkinci molotofu çaktım, tüneli sırayla yakıyoruz! İçeride kilitlendiler!");
+      }
+    }
+
+    // 3. CT COUNTER-HE & BLIND SPRAY IF SMOKE BLOOMS IN TUNNEL CHOKE
+    const tunnelSmoke = (match.smokes || []).find(s => Math.hypot(s.x - 150, s.y - 300) < 70);
+    if (tunnelSmoke && !match.bSmokeHECounterThrown && bSupport && !bSupport.targetEnemyId) {
+      match.bSmokeHECounterThrown = true;
+      this.throwGrenade(match, bSupport, 'he', 140, 310);
+      match.addRadioMessage('ct', bSupport.name, "Dumanın içine el bombası salladım! Girişte sıkıştılar!");
+    }
+  }
+
+  // T COUNTER-PLAY: EXTINGUISH MOLOTOV WITH SMOKE & HIGH-IQ POP-FLASH BREAKOUT
+  handleTFireObstructionAndSmokeExtinguish(match, aliveTs, dt) {
+    const tunnelFire = (match.fires || []).find(f => f.x < 210 && f.y >= 250 && f.y <= 360);
+    if (!tunnelFire) return;
+
+    const tsInTunnels = aliveTs.filter(t => t.x < 260 && t.y > 260 && t.y < 520);
+    if (tsInTunnels.length === 0) return;
+
+    tsInTunnels.sort((a, b) => Math.hypot(a.x - tunnelFire.x, a.y - tunnelFire.y) - Math.hypot(b.x - tunnelFire.x, b.y - tunnelFire.y));
+    const leadT = tsInTunnels[0];
+    const distToFire = Math.hypot(leadT.x - tunnelFire.x, leadT.y - tunnelFire.y);
+
+    if (distToFire <= 140) {
+      // 1. Pro Smoke Extinguish: Snuffs out the fire
+      if (!tunnelFire.smoked) {
+        tunnelFire.smoked = true;
+        this.throwSmoke(match, leadT, tunnelFire.x, tunnelFire.y);
+        match.addRadioMessage('t', leadT.name, "Molotofu sisle söndürdüm! Çıkış duman oldu, dikkatli çıkın!");
+
+        // High-IQ Pop-Flash Over Smoke
+        if (tsInTunnels.length > 1) {
+          const supportT = tsInTunnels[1];
+          setTimeout(() => {
+            if (supportT && supportT.alive && match.phase === 'live') {
+              this.throwGrenade(match, supportT, 'flash', 190, 220);
+              match.addRadioMessage('t', supportT.name, "Duman üstünden pop-flash çaktım, kör oldular! Şimdi çıkın!");
+            }
+          }, 950);
+        }
+      }
+
+      // 2. Prevent rushing blindly through active burning flames
+      tsInTunnels.forEach(t => {
+        const d = Math.hypot(t.x - tunnelFire.x, t.y - tunnelFire.y);
+        if (d < 85 && !t.targetEnemyId) {
+          t.state = 'holding';
+          t.holdTimer = 2.0;
+        }
+      });
+    }
+  }
+
   // Active Retake & Defuse Guidance: Runs every tick while the bomb is planted
   updateRetakeAndPostPlantTactics(match, dt) {
     if (!match.bomb.planted) return;
@@ -523,11 +625,45 @@ class BotTactics {
         id: Math.random().toString(36).substr(2, 9),
         x: g.x,
         y: g.y,
-        radius: 46,
+        radius: 48,
         duration: 18,
         remainingTime: 18
       });
       match.events.push({ type: 'smoke_pop', x: g.x, y: g.y });
+
+      // CS:GO AUTHENTIC FIRE EXTINGUISH MECHANIC:
+      // If smoke blooms over or near an active fire pool, fire is instantly extinguished with loud steam hiss!
+      if (match.fires && match.fires.length > 0) {
+        for (let i = match.fires.length - 1; i >= 0; i--) {
+          const fire = match.fires[i];
+          const distToFire = Math.hypot(g.x - fire.x, g.y - fire.y);
+          if (distToFire <= 48 + (fire.radius || 46) * 0.45) {
+            match.fires.splice(i, 1);
+            match.events.push({ type: 'fire_extinguished', x: fire.x, y: fire.y });
+          }
+        }
+      }
+    } else if (g.type === 'molotov' || g.type === 'incendiary') {
+      match.events.push({ type: 'molotov_pop', x: g.x, y: g.y, isIncendiary: g.type === 'incendiary' });
+      const thrower = match.players[g.throwerId];
+
+      // Check if an active smoke already covers this spot
+      const existingSmoke = (match.smokes || []).find(s => Math.hypot(s.x - g.x, s.y - g.y) <= s.radius * 0.9);
+      if (existingSmoke) {
+        match.events.push({ type: 'fire_extinguished', x: g.x, y: g.y });
+      } else {
+        match.fires = match.fires || [];
+        match.fires.push({
+          id: Math.random().toString(36).substr(2, 9),
+          x: g.x,
+          y: g.y,
+          radius: 48,
+          duration: 7.2,
+          remainingTime: 7.2,
+          throwerId: g.throwerId,
+          team: thrower ? thrower.team : 'ct'
+        });
+      }
     } else if (g.type === 'flash') {
       match.events.push({ type: 'flash_pop', x: g.x, y: g.y });
       const thrower = match.players[g.throwerId];

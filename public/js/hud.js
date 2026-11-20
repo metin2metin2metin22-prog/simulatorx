@@ -447,6 +447,7 @@ class HUDManager {
     if (w.includes('glock')) return '/assets/weapons/glock.svg';
     if (w.includes('famas')) return '/assets/weapons/famas.svg';
     if (w.includes('galil')) return '/assets/weapons/galil.svg';
+    if (w.includes('molotov') || w.includes('incendiary') || w.includes('fire')) return '/assets/weapons/molotov.svg';
     if (w.includes('he') || w.includes('grenade') || w.includes('bomb')) return '/assets/weapons/hegrenade.svg';
     if (w.includes('knife') || w.includes('stab') || w.includes('slash')) return '/assets/weapons/knife.svg';
     return '/assets/weapons/ak47.svg';

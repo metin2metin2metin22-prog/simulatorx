@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="48px" height="32px" viewBox="0 0 48 32">
+  <!-- Molotov bottle and flame silhouette in pure white -->
+  <g fill="#FFFFFF">
+    <!-- Bottle neck and cloth wick -->
+    <rect x="22" y="10" width="4" height="6" rx="1"/>
+    <path d="M22 10 L20 4 L23 2 L26 5 L24 10 Z"/>
+    <!-- Bottle body -->
+    <path d="M19 16 C17 17, 16 19, 16 22 L16 28 C16 30, 18 31, 20 31 L28 31 C30 31, 32 30, 32 28 L32 22 C32 19, 31 17, 29 16 Z"/>
+    <!-- Flame plume -->
+    <path d="M24 0 C22 3, 19 4, 21 7 C22 9, 26 9, 25 6 C27 4, 26 2, 24 0 Z"/>
+  </g>
+</svg>

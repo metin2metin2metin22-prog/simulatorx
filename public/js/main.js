@@ -54,6 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'smoke_pop':
         window.soundEngine.playSmoke();
         break;
+      case 'molotov_pop':
+        window.soundEngine.playMolotov();
+        break;
+      case 'fire_extinguished':
+        window.soundEngine.playExtinguish();
+        break;
+      case 'he_pop':
+        window.soundEngine.playHE();
+        break;
       case 'bomb_beep':
         window.soundEngine.playBombBeep(evt.urgency || 1);
         break;

@@ -70,6 +70,9 @@ class PureCoachMatch {
     this.players = {};
     this.smokes = [];
     this.grenades = [];
+    this.fires = [];
+    this.bMollyStage = 0;
+    this.bMolly1Time = 0;
     this.killfeed = [];
     this.events = [];
     this.radioMessages = [];
@@ -234,6 +237,9 @@ class PureCoachMatch {
     this.timer = 2.5; // Fast, snappy freeze buy time (2.5s instead of 10s)
     this.smokes = [];
     this.grenades = [];
+    this.fires = [];
+    this.bMollyStage = 0;
+    this.bMolly1Time = 0;
     this.droppedKits = []; // Clear dropped kits for fresh round
     this.events.push({ type: 'round_freeze', round: this.round });
 
@@ -633,6 +639,42 @@ class PureCoachMatch {
       }
     }
 
+    // Update Fires (Molotovs / Incendiaries) & Smoke Extinguishing
+    this.fires = this.fires || [];
+    for (let i = this.fires.length - 1; i >= 0; i--) {
+      const fire = this.fires[i];
+      fire.remainingTime -= dt;
+
+      // INSTANT SMOKE EXTINGUISH: If any smoke covers the fire pool, fire is snuffed out!
+      const extinguishingSmoke = this.smokes.find(s => Math.hypot(s.x - fire.x, s.y - fire.y) <= (s.radius + fire.radius * 0.45));
+      if (extinguishingSmoke || fire.remainingTime <= 0) {
+        if (extinguishingSmoke) {
+          this.events.push({ type: 'fire_extinguished', x: fire.x, y: fire.y });
+        }
+        this.fires.splice(i, 1);
+        continue;
+      }
+
+      // Burn tick damage to players inside the fire pool
+      Object.values(this.players).forEach(p => {
+        if (!p.alive) return;
+        const d = Math.hypot(p.x - fire.x, p.y - fire.y);
+        if (d <= (fire.radius || 46)) {
+          const burnDmg = Math.round(22 * dt);
+          if (burnDmg > 0) {
+            p.hp = Math.max(0, p.hp - burnDmg);
+            p.burnSlow = 0.58; // Burning slows down sprint/run speed
+            const thrower = this.players[fire.throwerId];
+            if (thrower) thrower.damage += burnDmg;
+            if (p.hp <= 0 && p.alive) {
+              p.alive = false;
+              this.combat.handleKill(this, thrower || p, p, { name: 'Molotov', type: 'grenade' }, false);
+            }
+          }
+        }
+      });
+    }
+
     // Update Players
     Object.values(this.players).forEach(p => {
       if (!p.alive) return;
@@ -862,6 +904,12 @@ class PureCoachMatch {
         baseSpeed *= p.queueSlowdown;
       }
 
+      // Apply fire burn slow
+      if (p.burnSlow && p.burnSlow < 1.0) {
+        baseSpeed *= p.burnSlow;
+        p.burnSlow = 1.0;
+      }
+
       // Flashdown retreat
       if (p.flashDuration > 1.0) {
         baseSpeed = 35;
@@ -1066,6 +1114,7 @@ class PureCoachMatch {
       players: this.players,
       smokes: this.smokes,
       grenades: this.grenades,
+      fires: this.fires || [],
       killfeed: this.killfeed,
       radioMessages: this.radioMessages,
       droppedKits: this.droppedKits || [],
