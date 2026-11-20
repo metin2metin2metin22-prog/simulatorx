@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { generateStarterRoster } = require('../utils/playerGenerator');
+const { generateStarterRoster, generateScoutedProspects } = require('../utils/playerGenerator');
 const { LEAGUE_TIERS, AMATEUR_BOT_TEAMS } = require('../config/multiLeague');
 const { calculateTeamStats, PRO_PLAYER_POOL } = require('../config/rosters');
 const { MASSIVE_TEAMS_CATALOG, ALL_100_TEAMS } = require('../config/massiveTeams');
@@ -11,6 +11,36 @@ const { backgroundMatchSimulator } = require('../engine/BackgroundMatchSimulator
 const { replayManager } = require('../engine/ReplayManager');
 
 const DB_PATH = path.join(__dirname, '../../data/database.json');
+
+const SCOUTING_PROGRAMS = {
+  local: {
+    id: 'local',
+    name: '🇹🇷 Yerel Akademi & Şehir Taraması',
+    cost: 800,
+    durationMinutes: 2,
+    stars: 3,
+    badge: 'Yerel Yetenek',
+    desc: 'Bölgesel kafeler ve yerel turnuvalardan 15-18 yaş arası işlenmemiş Türk yetenekler.'
+  },
+  challenger: {
+    id: 'challenger',
+    name: '🇪🇺 Avrupa FPL & Challenger Taraması',
+    cost: 2500,
+    durationMinutes: 5,
+    stars: 4,
+    badge: 'FPL Yıldızı',
+    desc: 'Faceit Pro League ve Avrupa challenger liglerinde parlayan genç aim canavarları.'
+  },
+  wonderkid: {
+    id: 'wonderkid',
+    name: '⭐ Global Major Wonderkid Avı',
+    cost: 6000,
+    durationMinutes: 10,
+    stars: 5,
+    badge: 'Geleceğin Yıldızı',
+    desc: 'Geleceğin s1mple veya donk adayları! Üst düzey potansiyelli efsane yetenekler.'
+  }
+};
 
 const TRAINING_DRILLS = {
   aim_headshot: {
@@ -261,6 +291,15 @@ class Database {
       tier: 'amateur',
       roster: starterRoster,
       training: {},
+      scouting: null,
+      scoutCandidates: [],
+      tactics: {
+        tStrategy: 'default_a', // default_a, rush_b, mid_split
+        ctStrategy: 'balanced', // balanced, aggressive_push, passive_retake
+        ecoStrategy: 'disciplined', // disciplined, aggressive_force
+        primaryAwperSlot: 1,
+        iglSlot: 5
+      },
       stats: {
         played: 0,
         won: 0,
@@ -499,11 +538,22 @@ class Database {
         }
       }
 
-      // Update club stats
+      // Update club stats and player form
       user.club.stats.played += 1;
       const userWon = nextMatch.isHome ? (homeScore > awayScore) : (awayScore > homeScore);
       if (userWon) user.club.stats.won += 1;
       else user.club.stats.lost += 1;
+
+      // Dynamic Form / Morale update
+      if (user.club.roster) {
+        user.club.roster.forEach(p => {
+          if (userWon) {
+            p.form = (Math.random() < 0.65) ? 'on_fire' : 'normal';
+          } else {
+            p.form = (Math.random() < 0.45) ? 'slump' : 'normal';
+          }
+        });
+      }
     }
 
     // 2. Simulate remaining bot matches of this week using real simulation engine
@@ -628,6 +678,14 @@ class Database {
       });
     }
 
+    // Check completed scouting missions
+    if (user.club.scouting) {
+      const now = Date.now();
+      if (now >= user.club.scouting.endTime) {
+        user.club.scouting.isReady = true;
+      }
+    }
+
     this.save();
     return this.sanitizeUser(user);
   }
@@ -739,9 +797,33 @@ class Database {
       roster: user.club.roster
     };
 
-    const sim = backgroundMatchSimulator.simulateFullMatch(userTeam, opponent, { tacticalFocus });
+    user.club.tactics = user.club.tactics || {
+      tStrategy: 'default_a',
+      ctStrategy: 'balanced',
+      ecoStrategy: 'disciplined',
+      primaryAwperSlot: 1,
+      iglSlot: 5
+    };
+
+    const sim = backgroundMatchSimulator.simulateFullMatch(userTeam, opponent, { 
+      tacticalFocus,
+      tactics: user.club.tactics
+    });
 
     user.club.stats.scrimsPlayed = (user.club.stats.scrimsPlayed || 0) + 1;
+
+    // Update player forms based on performance
+    const userWon = (sim.score.homeScore > sim.score.awayScore);
+    user.club.roster.forEach(p => {
+      const pBox = sim.homeBox?.find(b => b.name === p.name || b.id === p.id);
+      if (pBox) {
+        if (pBox.rating >= 1.20) p.form = 'on_fire';
+        else if (pBox.rating <= 0.85) p.form = 'slump';
+        else p.form = 'normal';
+      } else {
+        p.form = userWon ? 'on_fire' : 'normal';
+      }
+    });
 
     const rep = replayManager.createReplay({
       matchId: `scrim_${Date.now()}`,
@@ -760,6 +842,225 @@ class Database {
       scrimResult: sim,
       replayId: rep.replayId,
       tacticalFocus: tacticalFocus || 'Standart Taktik'
+    };
+  }
+
+  /**
+   * Starts a scouting mission for raw or wonderkid talent
+   */
+  startScoutingMission(username, programKey) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    const prog = SCOUTING_PROGRAMS[programKey];
+    if (!prog) return { success: false, error: 'Geçersiz gözlemci programı.' };
+
+    if (user.club.scouting && !user.club.scouting.isReady) {
+      const now = Date.now();
+      if (now < user.club.scouting.endTime) {
+        return { success: false, error: 'Zaten devam eden bir gözlemci taraması var!' };
+      }
+    }
+
+    if ((user.club.budget || 0) < prog.cost) {
+      return { success: false, error: `Yetersiz bütçe! Bu tarama için $${prog.cost.toLocaleString()} gereklidir.` };
+    }
+
+    user.club.budget -= prog.cost;
+    const now = Date.now();
+    const durationMs = prog.durationMinutes * 60 * 1000;
+
+    user.club.scouting = {
+      programKey,
+      programName: prog.name,
+      cost: prog.cost,
+      startTime: now,
+      endTime: now + durationMs,
+      durationMinutes: prog.durationMinutes,
+      isReady: false
+    };
+
+    this.save();
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      message: `🔭 "${prog.name}" görevi başladı! Gözlemciler sahaya indi (${prog.durationMinutes} dk).`
+    };
+  }
+
+  /**
+   * Claims scout report and generates 3 promising candidate prospects
+   */
+  claimScoutingReport(username) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    const sc = user.club.scouting;
+    if (!sc) return { success: false, error: 'Aktif bir gözlemci görevi bulunamadı.' };
+
+    const now = Date.now();
+    if (now < sc.endTime && !sc.isReady) {
+      const remSec = Math.ceil((sc.endTime - now) / 1000);
+      return { success: false, error: `Gözlemciler raporu hazırlıyor! Kalan süre: ${Math.floor(remSec / 60)}dk ${remSec % 60}s` };
+    }
+
+    // Generate 3 candidate prospects
+    const candidates = generateScoutedProspects(sc.programKey, user.club.name);
+    user.club.scoutCandidates = candidates;
+    user.club.scouting = null;
+    this.save();
+
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      candidates,
+      message: `🎉 Gözlemci raporu tamamlandı! 3 yeni genç yetenek keşfedildi.`
+    };
+  }
+
+  /**
+   * Signs a scout candidate into a designated roster slot
+   */
+  signScoutCandidate(username, candidateId, slotIndex) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    const candidates = user.club.scoutCandidates || [];
+    const cand = candidates.find(c => c.id === candidateId);
+    if (!cand) return { success: false, error: 'Aday listede bulunamadı.' };
+
+    const slotNum = parseInt(slotIndex, 10);
+    if (isNaN(slotNum) || slotNum < 0 || slotNum >= 5) {
+      return { success: false, error: 'Geçersiz kadro slotu (1-5 arası olmalıdır).' };
+    }
+
+    const price = cand.price || 3000;
+    if ((user.club.budget || 0) < price) {
+      return { success: false, error: `Yetersiz bütçe! Bu transfer için $${price.toLocaleString()} gereklidir.` };
+    }
+
+    // Deduct price and sign
+    user.club.budget -= price;
+    cand.teamName = user.club.name;
+    const oldPlayer = user.club.roster[slotNum];
+    user.club.roster[slotNum] = cand;
+
+    // Remove candidate from list
+    user.club.scoutCandidates = candidates.filter(c => c.id !== candidateId);
+    this.save();
+
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      signedPlayer: cand,
+      oldPlayer,
+      message: `✍️ ${cand.name} başarıyla Slot ${slotNum + 1}'e transfer edildi!`
+    };
+  }
+
+  /**
+   * Signs a pro market player into a designated roster slot
+   */
+  signMarketPlayer(username, playerId, slotIndex) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    const playerObj = PRO_PLAYER_POOL.find(p => p.id === playerId);
+    if (!playerObj) return { success: false, error: 'Oyuncu transfer pazarında bulunamadı.' };
+
+    const slotNum = parseInt(slotIndex, 10);
+    if (isNaN(slotNum) || slotNum < 0 || slotNum >= 5) {
+      return { success: false, error: 'Geçersiz kadro slotu (1-5 arası olmalıdır).' };
+    }
+
+    const price = playerObj.price || 15000;
+    if ((user.club.budget || 0) < price) {
+      return { success: false, error: `Yetersiz bütçe! Bu transfer için $${price.toLocaleString()} gereklidir.` };
+    }
+
+    user.club.budget -= price;
+    const newPlayer = JSON.parse(JSON.stringify(playerObj));
+    newPlayer.teamName = user.club.name;
+    newPlayer.form = 'normal';
+    const oldPlayer = user.club.roster[slotNum];
+    user.club.roster[slotNum] = newPlayer;
+
+    this.save();
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      signedPlayer: newPlayer,
+      oldPlayer,
+      message: `✍️ Yıldız transfer! ${newPlayer.name} başarıyla Slot ${slotNum + 1}'e transfer edildi!`
+    };
+  }
+
+  /**
+   * Updates team tactical playbook preset
+   */
+  updateTeamTactics(username, tactics) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    user.club.tactics = {
+      tStrategy: tactics.tStrategy || 'default_a',
+      ctStrategy: tactics.ctStrategy || 'balanced',
+      ecoStrategy: tactics.ecoStrategy || 'disciplined',
+      primaryAwperSlot: parseInt(tactics.primaryAwperSlot || '1', 10),
+      iglSlot: parseInt(tactics.iglSlot || '5', 10)
+    };
+
+    this.save();
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      tactics: user.club.tactics,
+      message: '📋 Taktik tahtası başarıyla kaydedildi!'
+    };
+  }
+
+  /**
+   * Changes tactical role of a player
+   */
+  updatePlayerRole(username, playerId, newRole) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    const player = user.club.roster.find(p => p.id === playerId);
+    if (!player) return { success: false, error: 'Oyuncu bulunamadı.' };
+
+    player.role = newRole;
+    this.save();
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      message: `${player.name} oyuncusunun yeni rolü: ${newRole}`
+    };
+  }
+
+  /**
+   * Swaps two roster positions (e.g. slot 0 and slot 1)
+   */
+  swapRosterSlots(username, slotA, slotB) {
+    const user = this.getUserRecordByUsername(username);
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+    const sA = parseInt(slotA, 10);
+    const sB = parseInt(slotB, 10);
+
+    if (sA < 0 || sA >= 5 || sB < 0 || sB >= 5) {
+      return { success: false, error: 'Geçersiz slot indeksi.' };
+    }
+
+    const temp = user.club.roster[sA];
+    user.club.roster[sA] = user.club.roster[sB];
+    user.club.roster[sB] = temp;
+
+    this.save();
+    return {
+      success: true,
+      user: this.sanitizeUser(user),
+      message: `Kadro slotları değiştirildi: Slot ${sA + 1} ⇄ Slot ${sB + 1}`
     };
   }
 
@@ -801,5 +1102,6 @@ const db = new Database();
 
 module.exports = {
   db,
-  TRAINING_DRILLS
+  TRAINING_DRILLS,
+  SCOUTING_PROGRAMS
 };

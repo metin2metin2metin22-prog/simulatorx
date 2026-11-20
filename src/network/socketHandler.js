@@ -1,7 +1,7 @@
 // SimulatorX - Socket.io Real-Time Networking & Event Dispatcher
 const { WEAPONS } = require('../config/weapons');
 const { ROSTERS, DEFAULT_ROSTERS, PRO_PLAYER_POOL, PERK_DEFINITIONS, ROSTER_PRESETS, calculateTeamStats } = require('../config/rosters');
-const { db, TRAINING_DRILLS } = require('../storage/db');
+const { db, TRAINING_DRILLS, SCOUTING_PROGRAMS } = require('../storage/db');
 const { LEAGUE_TIERS } = require('../config/multiLeague');
 const { ALL_100_TEAMS } = require('../config/massiveTeams');
 
@@ -20,6 +20,7 @@ function registerSocketHandlers(io, match, scheduleEngine, tournamentEngine, rep
       presets: ROSTER_PRESETS,
       leagueTiers: LEAGUE_TIERS,
       trainingDrills: TRAINING_DRILLS,
+      scoutingPrograms: SCOUTING_PROGRAMS,
       scrimTeams: ALL_100_TEAMS.map(t => ({ id: t.id, name: t.name, icon: t.icon, tier: t.tier, rating: t.rating })),
       league: match.league ? match.league.getLeagueData() : null,
       userClub: match.league ? match.league.userClub : null,
@@ -243,6 +244,90 @@ function registerSocketHandlers(io, match, scheduleEngine, tournamentEngine, rep
           if (typeof callback === 'function') callback(res);
         }
       }
+    });
+
+    // --- SCOUTING & YOUTH ACADEMY ---
+    socket.on('start_scouting_mission', ({ username, programKey }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.startScoutingMission(userToUse, programKey);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('claim_scouting_report', ({ username }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.claimScoutingReport(userToUse);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+        io.emit('chat_message', {
+          sender: 'SCOUT DEPARTMANI',
+          text: `🔭 ${res.user.club.name} gözlemcileri yeni genç yetenek raporunu sundu!`
+        });
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('sign_scout_candidate', ({ username, candidateId, slotIndex }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.signScoutCandidate(userToUse, candidateId, slotIndex);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+        io.emit('chat_message', {
+          sender: 'TRANSFER',
+          text: `✍️ ${res.user.club.name}, genç yetenek ${res.signedPlayer.name} ile sözleşme imzaladı!`
+        });
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('sign_market_player', ({ username, playerId, slotIndex }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.signMarketPlayer(userToUse, playerId, slotIndex);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+        io.emit('chat_message', {
+          sender: 'TRANSFER FLAŞ',
+          text: `⭐ ${res.user.club.name}, yıldız oyuncu ${res.signedPlayer.name} transferini resmen açıkladı!`
+        });
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    // --- SQUAD TACTICAL BOARD & ROSTER SYNERGIES ---
+    socket.on('update_team_tactics', ({ username, tactics }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.updateTeamTactics(userToUse, tactics);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('update_player_role', ({ username, playerId, newRole }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.updatePlayerRole(userToUse, playerId, newRole);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+      }
+      if (typeof callback === 'function') callback(res);
+    });
+
+    socket.on('swap_roster_slots', ({ username, slotA, slotB }, callback) => {
+      const userToUse = username || socket.username;
+      if (!userToUse) return;
+      const res = db.swapRosterSlots(userToUse, slotA, slotB);
+      if (res && res.success && res.user) {
+        socket.emit('user_updated', res.user);
+      }
+      if (typeof callback === 'function') callback(res);
     });
 
     // --- LEAGUE MATCH START (Live Real-Time Simulation) ---

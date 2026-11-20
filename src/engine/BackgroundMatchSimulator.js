@@ -183,8 +183,19 @@ class BackgroundMatchSimulator {
     const tBuys = this.resolveTeamBuy(tRoster, economy.t, 't');
 
     // 2. Tactical Plan
-    const targetSite = Math.random() < 0.52 ? 'A' : 'B';
-    const tStrat = targetSite === 'A' ? 'Long A / Short A Split' : 'Rush B & Mid Split';
+    const tTactics = tTeam.tactics || {};
+    let targetSite = 'A';
+    if (tTactics.tStrategy === 'rush_b') {
+      targetSite = Math.random() < 0.75 ? 'B' : 'A';
+    } else {
+      targetSite = Math.random() < 0.52 ? 'A' : 'B';
+    }
+    const tStrat = targetSite === 'B' 
+      ? (tTactics.tStrategy === 'rush_b' ? 'Hızlı Rush B & Catwalk Baskını' : 'Rush B & Mid Split') 
+      : (tTactics.tStrategy === 'mid_split' ? 'Mid to A Split & Sis Perdesi' : 'Long A / Short A Split');
+
+    const hasCT_IGL = ctRoster.some(p => p.role === 'In-Game Leader (IGL)');
+    const hasT_IGL = tRoster.some(p => p.role === 'In-Game Leader (IGL)');
 
     // Alive lists for the round
     let ctAlive = ctRoster.map((p, idx) => ({ ...p, buy: ctBuys[idx], hp: 100 }));
@@ -198,7 +209,11 @@ class BackgroundMatchSimulator {
     const ctOpener = ctAlive[Math.floor(Math.random() * ctAlive.length)];
     const tOpener = tAlive[Math.floor(Math.random() * tAlive.length)];
 
-    const openerResult = this.resolveDuel(ctOpener, tOpener, ctOpener.buy.weapon, tOpener.buy.weapon, { isOpening: true });
+    const openerResult = this.resolveDuel(ctOpener, tOpener, ctOpener.buy.weapon, tOpener.buy.weapon, { 
+      isOpening: true,
+      hasIGL1: hasCT_IGL,
+      hasIGL2: hasT_IGL
+    });
     if (openerResult.winner === ctOpener) {
       tOpener.hp = 0;
       tAlive = tAlive.filter(p => p !== tOpener);
@@ -313,6 +328,23 @@ class BackgroundMatchSimulator {
     // Aim & Reflex power score
     let score1 = (s1.aim * 0.40) + (s1.reflex * 0.35) + (s1.gamesense * 0.25);
     let score2 = (s2.aim * 0.40) + (s2.reflex * 0.35) + (s2.gamesense * 0.25);
+
+    // Form bonuses / debuffs
+    if (p1.form === 'on_fire') score1 += 6;
+    else if (p1.form === 'slump') score1 -= 5;
+
+    if (p2.form === 'on_fire') score2 += 6;
+    else if (p2.form === 'slump') score2 -= 5;
+
+    // Tactical IGL Synergy bonuses
+    if (context.hasIGL1) score1 += 4;
+    if (context.hasIGL2) score2 += 4;
+
+    // Role-specific bonuses
+    if (context.isOpening && p1.role === 'Entry Fragger') score1 += 9;
+    if (context.isOpening && p2.role === 'Entry Fragger') score2 += 9;
+    if (context.isExecute && p1.role === 'Site Anchor') score1 += 7;
+    if (context.isExecute && p2.role === 'Site Anchor') score2 += 7;
 
     // Perk bonuses
     if (p1.perk === 'onetap_god') score1 += 8;
