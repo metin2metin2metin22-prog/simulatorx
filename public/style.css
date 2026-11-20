@@ -509,37 +509,9 @@ body.theme-cs {
   animation: pulse-danger 0.8s infinite alternate;
 }
 
-/* TACTICAL ALERT BANNER */
+/* TACTICAL ALERT BANNER (Disabled: all comms routed to bottom-right radio) */
 .tactical-alert-banner {
-  position: absolute;
-  top: 48px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(14, 22, 34, 0.95);
-  border: 1px solid var(--border-highlight);
-  border-left: 4px solid var(--ct-blue);
-  color: #fff;
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-family: 'Chakra Petch', sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  z-index: 6;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
-  animation: slide-down 0.25s ease-out;
-}
-
-.tactical-alert-banner.alert-b {
-  border-left-color: #e74c3c;
-}
-.tactical-alert-banner.alert-a {
-  border-left-color: #3498db;
-}
-
-@keyframes slide-down {
-  from { transform: translate(-50%, -15px); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
+  display: none !important;
 }
 
 .tac-icon {
@@ -1162,33 +1134,43 @@ body.theme-cs {
 }
 .btn-calm:hover { filter: brightness(1.2); }
 
-/* CHAT */
+/* CHAT / TELSİZ */
 .chat-section {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 180px;
+  min-height: 200px;
 }
 
 .chat-messages {
   flex: 1;
-  background: #0f151e;
+  background: #0b1017;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 6px;
+  padding: 8px;
   overflow-y: auto;
-  max-height: 150px;
+  min-height: 170px;
+  max-height: 230px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
-.chat-msg { font-size: 10px; line-height: 1.3; }
-.chat-time { color: var(--text-muted); font-size: 8px; margin-right: 3px; }
-.chat-sender { font-weight: 700; margin-right: 3px; }
+.chat-msg {
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+.chat-msg.ct { border-left: 2px solid var(--ct-blue); background: rgba(74, 144, 226, 0.05); }
+.chat-msg.t { border-left: 2px solid var(--t-orange); background: rgba(230, 126, 34, 0.05); }
+
+.chat-time { color: var(--text-muted); font-size: 9px; margin-right: 4px; font-family: monospace; }
+.chat-sender { font-weight: 700; margin-right: 4px; }
 .chat-sender.ct { color: var(--ct-blue); }
 .chat-sender.t { color: var(--t-orange); }
-.chat-msg.system { color: var(--gold-star); font-style: italic; }
+.chat-body { color: #e1e8f0; word-break: break-word; }
+.chat-msg.system { color: var(--gold-star); font-style: italic; border-left: 2px solid var(--gold-star); padding-left: 4px; }
 
 .chat-input-wrap { display: flex; gap: 4px; margin-top: 6px; }
 #chatInput {

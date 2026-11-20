@@ -59,21 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'bomb_spotted':
         window.soundEngine.playBombSpotted(evt.site);
-        radar.addPing(evt.x, evt.y, evt.isDropped ? 'BOMBA YERDE!' : `BOMBA ${evt.site}!`, 'danger');
-        hud.showTacticalBanner(
-          evt.isDropped ? '⚠️ BOMBA YERDE TESPİT EDİLDİ!' : `⚠️ BOMBA ${evt.site} BÖLGESİNDE!`,
-          `${evt.spotter}: '${evt.isDropped ? 'Bomba yerde! Burayı tutun!' : 'Taşıyıcı burada, desteğe gelin!'}' -> CT intikali başladı!`,
-          evt.site
-        );
+        radar.addPing(evt.x, evt.y, '', 'danger');
         break;
       case 'rush_detected':
         window.soundEngine.playBombSpotted(evt.site);
-        radar.addPing(evt.site === 'B' ? 215 : 819, evt.site === 'B' ? 123 : 164, `RUSH ${evt.site}!`, 'warning');
-        hud.showTacticalBanner(
-          `⚡ ${evt.site} BÖLGESİNE RUSH BASKINI!`,
-          `${evt.spotter}: 'En az ${evt.count || 2} kişi basıyor, acil yardım!'`,
-          evt.site
-        );
+        radar.addPing(evt.site === 'B' ? 215 : 819, evt.site === 'B' ? 123 : 164, '', 'warning');
         break;
       case 'bomb_dropped':
         window.soundEngine.playBombDropped();
@@ -86,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'bomb_defused':
         window.soundEngine.playBombDefused();
         hud.addChatMessage('C4', `Bomba ${evt.defuserName || 'CT'} tarafından imha edildi!`, 'ct');
-        hud.showTacticalBanner('✂️ BOMBA İMHA EDİLDİ!', `${evt.defuserName || 'CT'} bombayı başarıyla imha etti! CT raundu kazandı!`, 'a');
         break;
       case 'bomb_explode':
         window.soundEngine.playBombExplosion();

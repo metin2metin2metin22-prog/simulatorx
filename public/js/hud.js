@@ -396,16 +396,13 @@ class HUDManager {
   }
 
   showTacticalBanner(title, text, site = 'B') {
-    if (!this.tacticalAlertBanner) return;
-    this.tacAlertTitle.innerText = title;
-    this.tacAlertText.innerText = text;
-    this.tacticalAlertBanner.className = `tactical-alert-banner alert-${(site || 'b').toLowerCase()}`;
-    this.tacticalAlertBanner.style.display = 'flex';
-
-    if (this.tacTimer) clearTimeout(this.tacTimer);
-    this.tacTimer = setTimeout(() => {
-      if (this.tacticalAlertBanner) this.tacticalAlertBanner.style.display = 'none';
-    }, 4500);
+    // Ekranda banner çıkması kaldırıldı - tüm telsiz/taktik bildirimleri sağ alttaki telsize iletiliyor
+    if (this.tacticalAlertBanner) {
+      this.tacticalAlertBanner.style.display = 'none';
+    }
+    if (text) {
+      this.addChatMessage('TELSİZ', text, (site || 'b').toLowerCase() === 'a' ? 'ct' : 't');
+    }
   }
 
   showRoundEndBanner(winner, reason, mvpName) {
@@ -444,13 +441,15 @@ class HUDManager {
   }
 
   addChatMessage(sender, text, team = '') {
+    if (!this.chatMessages) return;
     const d = new Date();
-    const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
     const div = document.createElement('div');
-    div.className = 'chat-msg';
+    const teamClass = (team || '').toLowerCase();
+    div.className = `chat-msg ${teamClass}`;
     div.innerHTML = `
-      <span class="chat-time">${timeStr}</span>
-      <span class="chat-sender ${team}">${sender}:</span>
+      <span class="chat-time">[${timeStr}]</span>
+      <span class="chat-sender ${teamClass}">${sender}:</span>
       <span class="chat-body">${text}</span>
     `;
     this.chatMessages.appendChild(div);

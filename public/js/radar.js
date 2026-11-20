@@ -129,20 +129,13 @@ class RadarRenderer {
 
       // Core ping pin
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
       ctx.fillStyle = `rgb(${color})`;
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Label badge above
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#000000';
-      ctx.shadowBlur = 6;
-      ctx.fillText(p.label, p.x, p.y - 14);
       ctx.restore();
     }
   }
@@ -326,14 +319,6 @@ class RadarRenderer {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('C4', bomb.x, bomb.y);
-
-      // Label above
-      ctx.fillStyle = '#ff9900';
-      ctx.font = 'bold 10px "Segoe UI", Arial, sans-serif';
-      ctx.shadowColor = '#000000';
-      ctx.shadowBlur = 4;
-      ctx.fillText('💣 DÜŞEN BOMBA', bomb.x, bomb.y - 14);
-      ctx.shadowBlur = 0;
     }
     ctx.restore();
   }
