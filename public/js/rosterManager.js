@@ -653,7 +653,6 @@ class RosterManager {
     this.assignPlayerToSlot(prospect, this.selectedSlot);
     this.renderMarketPool();
   }
-  }
 
   saveAndApply() {
     const team = this.selectedTeam;
