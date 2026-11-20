@@ -31,9 +31,10 @@ class BotTactics {
       if (closestT) {
         closestT.isRetrievingBomb = true;
         const distToDroppedBomb = Math.hypot(closestT.x - match.bomb.x, closestT.y - match.bomb.y);
+        const hasClearLineToBomb = !match.collision.isLineBlockedByWall(closestT.x, closestT.y, match.bomb.x, match.bomb.y);
 
-        if (distToDroppedBomb <= 95) {
-          // Direct steering straight onto dropped bomb coordinates
+        if (distToDroppedBomb <= 95 && hasClearLineToBomb) {
+          // Direct steering straight onto dropped bomb coordinates ONLY IF clear line of sight
           closestT.path = [];
           closestT.pathIndex = 0;
           closestT.holdTimer = 0;
@@ -43,12 +44,12 @@ class BotTactics {
           const step = 85 * dt;
           const nx = closestT.x + Math.cos(angleToBomb) * step;
           const ny = closestT.y + Math.sin(angleToBomb) * step;
-          if (match.isWalkable(nx, ny)) {
+          if (match.isWalkable(nx, ny) && !match.collision.isLineBlockedByWall(closestT.x, closestT.y, nx, ny)) {
             closestT.x = nx;
             closestT.y = ny;
-          } else if (match.isWalkable(nx, closestT.y)) {
+          } else if (match.isWalkable(nx, closestT.y) && !match.collision.isLineBlockedByWall(closestT.x, closestT.y, nx, closestT.y)) {
             closestT.x = nx;
-          } else if (match.isWalkable(closestT.x, ny)) {
+          } else if (match.isWalkable(closestT.x, ny) && !match.collision.isLineBlockedByWall(closestT.x, closestT.y, closestT.x, ny)) {
             closestT.y = ny;
           }
           closestT.state = 'moving';
@@ -426,7 +427,8 @@ class BotTactics {
 
   // T COUNTER-PLAY: EXTINGUISH MOLOTOV WITH SMOKE & HIGH-IQ POP-FLASH BREAKOUT
   handleTFireObstructionAndSmokeExtinguish(match, aliveTs, dt) {
-    const tunnelFire = (match.fires || []).find(f => f.x < 210 && f.y >= 250 && f.y <= 360);
+    // Only extinguish CT (enemy) incendiaries! Never extinguish friendly T molotovs!
+    const tunnelFire = (match.fires || []).find(f => f.team === 'ct' && f.x < 210 && f.y >= 250 && f.y <= 360);
     if (!tunnelFire) return;
 
     const tsInTunnels = aliveTs.filter(t => t.x < 260 && t.y > 260 && t.y < 520);
@@ -493,20 +495,21 @@ class BotTactics {
     // 2. Defuser physical steering straight onto bomb coordinates
     if (bestDefuser && bestDefuser.state !== 'defusing') {
       const distToBomb = Math.hypot(bestDefuser.x - match.bomb.x, bestDefuser.y - match.bomb.y);
-      if (distToBomb <= 95) {
-        // Direct physical steering straight onto planted bomb coordinates
+      const hasClearLineToBomb = !match.collision.isLineBlockedByWall(bestDefuser.x, bestDefuser.y, match.bomb.x, match.bomb.y);
+      if (distToBomb <= 95 && hasClearLineToBomb) {
+        // Direct physical steering straight onto planted bomb coordinates ONLY if line of sight is clear
         const angleToBomb = Math.atan2(match.bomb.y - bestDefuser.y, match.bomb.x - bestDefuser.x);
         bestDefuser.targetAngle = angleToBomb;
         bestDefuser.angle = angleToBomb;
         const step = 85 * dt;
         const nx = bestDefuser.x + Math.cos(angleToBomb) * step;
         const ny = bestDefuser.y + Math.sin(angleToBomb) * step;
-        if (match.isWalkable(nx, ny)) {
+        if (match.isWalkable(nx, ny) && !match.collision.isLineBlockedByWall(bestDefuser.x, bestDefuser.y, nx, ny)) {
           bestDefuser.x = nx;
           bestDefuser.y = ny;
-        } else if (match.isWalkable(nx, bestDefuser.y)) {
+        } else if (match.isWalkable(nx, bestDefuser.y) && !match.collision.isLineBlockedByWall(bestDefuser.x, bestDefuser.y, nx, bestDefuser.y)) {
           bestDefuser.x = nx;
-        } else if (match.isWalkable(bestDefuser.x, ny)) {
+        } else if (match.isWalkable(bestDefuser.x, ny) && !match.collision.isLineBlockedByWall(bestDefuser.x, bestDefuser.y, bestDefuser.x, ny)) {
           bestDefuser.y = ny;
         }
       } else if (!bestDefuser.path || bestDefuser.pathIndex >= bestDefuser.path.length || bestDefuser.path[bestDefuser.path.length - 1] !== bombNode) {
@@ -644,7 +647,11 @@ class BotTactics {
       } else if (nodeKey === 'ct_short_stairs' && Math.random() < 0.55) {
         this.throwGrenade(match, p, 'flash', 670, 370); // Flash Catwalk Stairs
       } else if (nodeKey === 'b_doors_outside' && Math.random() < 0.6) {
-        this.throwSmoke(match, p, 150, 300); // Smoke Tunnels Exit
+        // Only smoke tunnels exit if there is NO active friendly incendiary/fire at tunnels, and no chained molly planned
+        const hasActiveTunnelFire = (match.fires || []).some(f => f.x < 210 && f.y >= 250 && f.y <= 360 && f.team === 'ct');
+        if (!hasActiveTunnelFire && match.bMollyStage === 0) {
+          this.throwSmoke(match, p, 150, 300); // Smoke Tunnels Exit
+        }
       } else if (nodeKey === 'b_doors' && Math.random() < 0.55) {
         this.throwGrenade(match, p, 'flash', 180, 260); // Flash Tunnels
       }
@@ -652,6 +659,14 @@ class BotTactics {
   }
 
   throwGrenade(match, player, type, targetX, targetY) {
+    if (type === 'molotov' || type === 'incendiary') {
+      // PRO RULE: Never throw a molotov into an active smoke cloud (smoke instantly snuffs it out)
+      const existingSmoke = (match.smokes || []).find(s => 
+        Math.hypot(s.x - targetX, s.y - targetY) < (s.radius || 48) * 0.95
+      );
+      if (existingSmoke) return;
+    }
+
     match.grenades.push({
       id: Math.random().toString(36).substr(2, 9),
       type,
@@ -662,11 +677,26 @@ class BotTactics {
       timer: 0.8,
       detonated: false,
       detonateProgress: 0,
-      throwerId: player.id
+      throwerId: player.id,
+      team: player.team
     });
   }
 
   throwSmoke(match, player, targetX, targetY) {
+    // PRO RULE: A player must NEVER throw a smoke onto friendly fire (extinguishing own team's molotov)!
+    const friendlyFire = (match.fires || []).find(f => 
+      f.team === player.team && Math.hypot(f.x - targetX, f.y - targetY) < 75
+    );
+    if (friendlyFire) return;
+
+    // Prevent throwing smoke if a friendly molotov is already in the air heading for this spot
+    const friendlyMollyInAir = (match.grenades || []).find(g =>
+      (g.type === 'molotov' || g.type === 'incendiary') &&
+      g.team === player.team &&
+      Math.hypot(g.targetX - targetX, g.targetY - targetY) < 75
+    );
+    if (friendlyMollyInAir) return;
+
     this.throwGrenade(match, player, 'smoke', targetX, targetY);
   }
 
@@ -678,15 +708,18 @@ class BotTactics {
         y: g.y,
         radius: 48,
         duration: 18,
-        remainingTime: 18
+        remainingTime: 18,
+        team: g.team
       });
       match.events.push({ type: 'smoke_pop', x: g.x, y: g.y });
 
       // CS:GO AUTHENTIC FIRE EXTINGUISH MECHANIC:
       // If smoke blooms over or near an active fire pool, fire is instantly extinguished with loud steam hiss!
+      // BUT A TEAM NEVER EXTINGUISHES THEIR OWN TEAM'S MOLOTOV!
       if (match.fires && match.fires.length > 0) {
         for (let i = match.fires.length - 1; i >= 0; i--) {
           const fire = match.fires[i];
+          if (fire.team && g.team && fire.team === g.team) continue; // Never snuff out friendly fire!
           const distToFire = Math.hypot(g.x - fire.x, g.y - fire.y);
           if (distToFire <= 48 + (fire.radius || 46) * 0.45) {
             match.fires.splice(i, 1);
@@ -700,7 +733,7 @@ class BotTactics {
 
       // Check if an active smoke already covers this spot
       const existingSmoke = (match.smokes || []).find(s => Math.hypot(s.x - g.x, s.y - g.y) <= s.radius * 0.9);
-      if (existingSmoke) {
+      if (existingSmoke && (!thrower || !existingSmoke.team || existingSmoke.team !== thrower.team)) {
         match.events.push({ type: 'fire_extinguished', x: g.x, y: g.y });
       } else {
         match.fires = match.fires || [];
@@ -870,7 +903,7 @@ class BotTactics {
           loneT.saveAnnounced = true;
           match.addRadioMessage('t', loneT.name, `[SAVE] 1v${aliveCTs.length} durumunda kaldım! Elimdeki ${loneT.weapon.toUpperCase()}'ı sonraki raunt için koruyorum, saklanıyorum!`);
         }
-        const tHides = ['t_spawn', 't_plat', 'suicide'];
+        const tHides = ['t_spawn', 't_plat_long', 'suicide'];
         const chosenHide = tHides[0];
         const dHide = Math.hypot(loneT.x - match.mapData.nodes[chosenHide].x, loneT.y - match.mapData.nodes[chosenHide].y);
         if (dHide > 45 && (!loneT.path || loneT.pathIndex >= loneT.path.length)) {
@@ -902,7 +935,7 @@ class BotTactics {
             if (ct.soundAlert && (Date.now() - ct.soundAlert.time < 12000)) {
               huntNode = getClosestNode(ct.soundAlert.x, ct.soundAlert.y, match.mapData.nodes, match.collision);
             } else {
-              const sweepNodes = ['mid_doors', 'upper_tunnels', 'long_doors', 'catwalk'];
+              const sweepNodes = ['mid_doors_ct', 'upper_tunnels_north', 'long_doors_exit', 'catwalk_stairs'];
               huntNode = sweepNodes[ct.slot % sweepNodes.length];
             }
             match.setPlayerPath(ct, huntNode);

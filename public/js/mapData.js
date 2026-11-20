@@ -105,8 +105,8 @@ const DUST2_DATA = {
           { slot: 0, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site"], role: "entry" },
           { slot: 1, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_car", "b_site"], role: "planter" },
           { slot: 2, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site"], role: "trade" },
-          { slot: 3, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_cross_hall", "b_doors"], role: "doors_cut" },
-          { slot: 4, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_cross_hall", "b_window"], role: "window_cut" }
+          { slot: 3, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site", "b_cross_hall", "b_doors"], role: "doors_cut" },
+          { slot: 4, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site", "b_cross_hall", "b_window"], role: "window_cut" }
         ]
       },
       a_short_rush: {
@@ -126,9 +126,9 @@ const DUST2_DATA = {
         description: "4 Terrorist Long Doors ve Pit üzerinden A Site'a girer, 1 kişi Catwalk desteği sağlar.",
         targetSite: "A",
         assignments: [
-          { slot: 0, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_cross", "a_ramp", "a_site"], role: "long_entry" },
-          { slot: 1, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_cross", "a_site"], role: "long_planter" },
-          { slot: 2, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_pit", "long_cross", "a_site"], role: "pit_support" },
+          { slot: 0, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_car", "long_cross", "a_ramp", "a_site"], role: "long_entry" },
+          { slot: 1, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_car", "long_cross", "a_site"], role: "long_planter" },
+          { slot: 2, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_pit", "long_street", "long_car", "long_cross", "a_site"], role: "pit_support" },
           { slot: 3, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_car", "long_cross", "a_site"], role: "car_clear" },
           { slot: 4, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "xbox", "catwalk_start", "catwalk_corner", "catwalk_mid", "catwalk_stairs", "a_short_corner", "a_short", "a_site"], role: "cat_pinch" }
         ]
@@ -138,10 +138,10 @@ const DUST2_DATA = {
         description: "2 Terrorist Long'dan, 3 Terrorist Catwalk/Short'tan aynı anda A Site'ı kıskaç altına alır.",
         targetSite: "A",
         assignments: [
-          { slot: 0, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_cross", "a_site"], role: "long_entry" },
+          { slot: 0, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_car", "long_cross", "a_site"], role: "long_entry" },
           { slot: 1, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "xbox", "catwalk_start", "catwalk_corner", "catwalk_mid", "catwalk_stairs", "a_short_corner", "a_short", "a_short_site", "a_site"], role: "short_planter" },
           { slot: 2, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "xbox", "catwalk_start", "catwalk_corner", "catwalk_mid", "catwalk_stairs", "a_short_corner", "a_short", "a_site"], role: "short_trade" },
-          { slot: 3, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_cross", "a_site"], role: "long_support" },
+          { slot: 3, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit", "long_street", "long_car", "long_cross", "a_site"], role: "long_support" },
           { slot: 4, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "mid_palm", "mid_doors_t", "mid_doors_ct", "ct_mid", "ct_elevator", "a_site"], role: "ct_mid_flank" }
         ]
       },
@@ -154,7 +154,7 @@ const DUST2_DATA = {
           { slot: 1, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site"], role: "tunnel_planter" },
           { slot: 2, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "mid_palm", "mid_doors_t", "mid_doors_ct", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_window", "b_cross_hall", "b_site"], role: "mid_support" },
           { slot: 3, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_car", "b_site"], role: "tunnel_trade" },
-          { slot: 4, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "mid_palm", "mid_doors_t", "mid_doors_ct", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_site"], role: "rearguard" }
+          { slot: 4, path: ["t_spawn", "t_spawn_mid", "suicide", "top_mid", "mid_palm", "mid_doors_t", "mid_doors_ct", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "rearguard" }
         ]
       },
       fake_a_to_b: {
@@ -165,7 +165,7 @@ const DUST2_DATA = {
           { slot: 0, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site"], role: "b_entry" },
           { slot: 1, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_car", "b_site"], role: "b_planter" },
           { slot: 2, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site"], role: "b_trade" },
-          { slot: 3, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_cross_hall", "b_doors"], role: "b_flank_cut" },
+          { slot: 3, path: ["t_spawn", "t_tunnels_enter", "upper_tunnels_1", "upper_tunnels_mid", "upper_tunnels_bend", "upper_tunnels_stairs", "upper_tunnels_choke", "upper_tunnels_north", "b_tunnels_exit", "b_platform", "b_site", "b_cross_hall", "b_doors"], role: "b_flank_cut" },
           { slot: 4, path: ["t_spawn", "t_plat_long", "outside_long_ramp", "outside_long_corner", "outside_long", "long_doors_t", "long_doors_ct", "long_doors_exit"], role: "a_faker" }
         ]
       }
@@ -178,28 +178,28 @@ const DUST2_DATA = {
           { slot: 0, path: ["ct_spawn", "ct_elevator", "long_cross", "long_car"], role: "long_anchor" },
           { slot: 1, path: ["ct_spawn", "ct_short_stairs", "a_short"], role: "short_anchor" },
           { slot: 2, path: ["ct_spawn", "ct_mid", "mid_doors_ct"], role: "mid_awper" },
-          { slot: 3, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_anchor" },
-          { slot: 4, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_window", "b_cross_hall", "b_platform"], role: "b_support" }
+          { slot: 3, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_anchor" },
+          { slot: 4, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_window", "b_cross_hall", "b_site", "b_platform"], role: "b_support" }
         ]
       },
       aggressive_long: {
         name: "Aggressive Long Push",
         description: "3 CTs push Long Doors to trap Ts; 1 Mid, 1 B site solo.",
         assignments: [
-          { slot: 0, path: ["ct_spawn", "ct_elevator", "long_cross", "long_street", "long_doors_exit", "long_doors_ct"], role: "long_pusher_1" },
-          { slot: 1, path: ["ct_spawn", "ct_elevator", "long_cross", "long_street", "long_pit"], role: "long_pusher_2" },
+          { slot: 0, path: ["ct_spawn", "ct_elevator", "long_cross", "long_car", "long_street", "long_doors_exit", "long_doors_ct"], role: "long_pusher_1" },
+          { slot: 1, path: ["ct_spawn", "ct_elevator", "long_cross", "long_car", "long_street", "long_pit"], role: "long_pusher_2" },
           { slot: 2, path: ["ct_spawn", "ct_elevator", "long_cross", "long_car"], role: "long_flash_support" },
           { slot: 3, path: ["ct_spawn", "ct_mid", "mid_doors_ct"], role: "mid_watch" },
-          { slot: 4, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_solo_hold" }
+          { slot: 4, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_solo_hold" }
         ]
       },
       b_stack: {
         name: "B Stack (Anti-Rush)",
         description: "3 CTs hold tight crossfire on B Site, 1 Mid, 1 A anchor.",
         assignments: [
-          { slot: 0, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_close" },
-          { slot: 1, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_window", "b_cross_hall", "b_platform"], role: "b_plat" },
-          { slot: 2, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_car"], role: "b_car" },
+          { slot: 0, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_close" },
+          { slot: 1, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_window", "b_cross_hall", "b_site", "b_platform"], role: "b_plat" },
+          { slot: 2, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_car"], role: "b_car" },
           { slot: 3, path: ["ct_spawn", "ct_mid", "mid_doors_ct"], role: "mid_hold" },
           { slot: 4, path: ["ct_spawn", "ct_elevator", "a_site"], role: "a_solo" }
         ]
@@ -212,7 +212,7 @@ const DUST2_DATA = {
           { slot: 1, path: ["ct_spawn", "ct_short_stairs", "a_short"], role: "short_cover" },
           { slot: 2, path: ["ct_spawn", "ct_mid", "mid_doors_ct"], role: "mid_pressure" },
           { slot: 3, path: ["ct_spawn", "ct_elevator", "long_cross", "long_car"], role: "long_anchor" },
-          { slot: 4, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_anchor" }
+          { slot: 4, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_site"], role: "b_anchor" }
         ]
       },
       retake_defense: {
@@ -222,8 +222,8 @@ const DUST2_DATA = {
           { slot: 0, path: ["ct_spawn", "ct_elevator", "a_site", "goose"], role: "a_goose" },
           { slot: 1, path: ["ct_spawn", "ct_short_stairs", "a_short"], role: "a_short_deep" },
           { slot: 2, path: ["ct_spawn", "ct_mid"], role: "ct_spawn_mid" },
-          { slot: 3, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_back_site"], role: "b_back_hold" },
-          { slot: 4, path: ["ct_spawn", "ct_ramp_b", "b_doors_outside", "b_window", "b_cross_hall", "b_platform"], role: "b_window_hold" }
+          { slot: 3, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_doors", "b_cross_hall", "b_back_site"], role: "b_back_hold" },
+          { slot: 4, path: ["ct_spawn", "ct_mid", "ct_ramp_b", "b_doors_outside", "b_window", "b_cross_hall", "b_site", "b_platform"], role: "b_window_hold" }
         ]
       }
     }

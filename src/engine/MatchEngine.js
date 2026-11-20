@@ -96,8 +96,24 @@ class PureCoachMatch {
 
   setPlayerPath(player, targetNodeKey) {
     const currentNodeKey = getClosestNode(player.x, player.y, this.mapData.nodes, this.collision);
-    player.path = findPath(currentNodeKey, targetNodeKey, this.mapData.nodes);
+    const fullPath = findPath(currentNodeKey, targetNodeKey, this.mapData.nodes);
+    player.path = fullPath;
     player.pathIndex = 0;
+
+    // Pro CS:GO Path Smoothing: If player already has a clear line of sight to the 2nd node
+    // and is already past or near the 1st node, start at index 1 to prevent 180-degree backwards turning!
+    if (fullPath.length > 1) {
+      const node0 = this.mapData.nodes[fullPath[0]];
+      const node1 = this.mapData.nodes[fullPath[1]];
+      if (node0 && node1 && !this.collision.isLineBlockedByWall(player.x, player.y, node1.x, node1.y)) {
+        const d01 = Math.hypot(node1.x - node0.x, node1.y - node0.y);
+        const dP1 = Math.hypot(node1.x - player.x, node1.y - player.y);
+        if (dP1 <= d01 + 25) {
+          player.pathIndex = 1;
+        }
+      }
+    }
+
     player.holdTimer = 0;
     player.state = 'moving';
   }
@@ -682,8 +698,12 @@ class PureCoachMatch {
       const fire = this.fires[i];
       fire.remainingTime -= dt;
 
-      // INSTANT SMOKE EXTINGUISH: If any smoke covers the fire pool, fire is snuffed out!
-      const extinguishingSmoke = this.smokes.find(s => Math.hypot(s.x - fire.x, s.y - fire.y) <= (s.radius + fire.radius * 0.45));
+      // INSTANT SMOKE EXTINGUISH: If an ENEMY smoke covers the fire pool, fire is snuffed out!
+      // Teammates never extinguish their own molotovs!
+      const extinguishingSmoke = this.smokes.find(s => 
+        (!s.team || !fire.team || s.team !== fire.team) &&
+        Math.hypot(s.x - fire.x, s.y - fire.y) <= (s.radius + fire.radius * 0.45)
+      );
       if (extinguishingSmoke || fire.remainingTime <= 0) {
         if (extinguishingSmoke) {
           this.events.push({ type: 'fire_extinguished', x: fire.x, y: fire.y });
@@ -827,17 +847,17 @@ class PureCoachMatch {
           }
         }
 
-        // Gentle separation push ONLY if not pushing into walls
-        const pushForce = Math.min(18, (28 - d) * 12 * dt);
+        // Gentle separation push ONLY if not pushing through or into walls
+        const pushForce = Math.min(16, (28 - d) * 10 * dt);
         const angle = Math.atan2(dy, dx);
         const nx = p.x + Math.cos(angle) * pushForce;
         const ny = p.y + Math.sin(angle) * pushForce;
         if (this.isWalkable(nx, ny) && !this.collision.isLineBlockedByWall(p.x, p.y, nx, ny)) {
           p.x = nx;
           p.y = ny;
-        } else if (this.isWalkable(nx, p.y)) {
+        } else if (this.isWalkable(nx, p.y) && !this.collision.isLineBlockedByWall(p.x, p.y, nx, p.y)) {
           p.x = nx;
-        } else if (this.isWalkable(p.x, ny)) {
+        } else if (this.isWalkable(p.x, ny) && !this.collision.isLineBlockedByWall(p.x, p.y, p.x, ny)) {
           p.y = ny;
         }
       }
@@ -904,6 +924,22 @@ class PureCoachMatch {
 
     const isFinalNode = (p.pathIndex >= p.path.length - 1);
     const arrivalRadius = isFinalNode ? 28 : 20;
+
+    // CS:GO WAYPOINT LOOKAHEAD (String Pulling & Smooth Corner Cutting):
+    // If the next waypoint along the path is already in direct clear line of sight,
+    // round the corner smoothly without getting hung up on the intermediate node!
+    if (!isFinalNode && p.pathIndex < p.path.length - 1) {
+      const nextNodeKey = p.path[p.pathIndex + 1];
+      const nextNode = this.mapData.nodes[nextNodeKey];
+      if (nextNode && !this.collision.isLineBlockedByWall(p.x, p.y, nextNode.x, nextNode.y)) {
+        const distToNext = Math.hypot(nextNode.x - p.x, nextNode.y - p.y);
+        if (dist < 42 || distToNext < dist) {
+          p.pathIndex++;
+          this.tactics.tacticalBotUtility(this, p, targetNodeKey);
+          return;
+        }
+      }
+    }
 
     if (dist < arrivalRadius) {
       p.pathIndex++;
@@ -981,19 +1017,19 @@ class PureCoachMatch {
         p.x = nextX;
         p.y = nextY;
       } else {
-        // Wall sliding along corridor axis
-        if (this.isWalkable(nextX, p.y)) {
+        // Wall sliding along corridor axis with line-of-sight checks
+        if (this.isWalkable(nextX, p.y) && !this.collision.isLineBlockedByWall(p.x, p.y, nextX, p.y)) {
           p.x = nextX;
-        } else if (this.isWalkable(p.x, nextY)) {
+        } else if (this.isWalkable(p.x, nextY) && !this.collision.isLineBlockedByWall(p.x, p.y, p.x, nextY)) {
           p.y = nextY;
         } else {
-          // Attempt angle deflections (+35 deg, -35 deg, +60 deg, -60 deg)
+          // Attempt angle deflections (+30 deg, -30 deg, +60 deg, -60 deg, +85 deg, -85 deg)
           let deflected = false;
-          for (const angleOffset of [0.6, -0.6, 1.0, -1.0]) {
+          for (const angleOffset of [0.52, -0.52, 1.05, -1.05, 1.48, -1.48]) {
             const defAngle = moveAngle + angleOffset;
             const defX = p.x + Math.cos(defAngle) * stepDist;
             const defY = p.y + Math.sin(defAngle) * stepDist;
-            if (this.isWalkable(defX, defY)) {
+            if (this.isWalkable(defX, defY) && !this.collision.isLineBlockedByWall(p.x, p.y, defX, defY)) {
               p.x = defX;
               p.y = defY;
               deflected = true;
@@ -1008,7 +1044,7 @@ class PureCoachMatch {
         const moved = Math.hypot(p.x - p.lastPosX, p.y - p.lastPosY);
         if (moved < 1.2) {
           p.stuckTimer = (p.stuckTimer || 0) + dt;
-          if (p.stuckTimer > 1.0) {
+          if (p.stuckTimer > 0.55) {
             p.stuckTimer = 0;
             // Clean dynamic re-pathing to destination from current closest node
             const startNode = getClosestNode(p.x, p.y, this.mapData.nodes, this.collision);
@@ -1017,10 +1053,9 @@ class PureCoachMatch {
               p.path = findPath(startNode, finalNode, this.mapData.nodes);
               p.pathIndex = 0;
             } else if (p.pathIndex < p.path.length - 1) {
-              const nextNode = this.mapData.nodes[p.path[p.pathIndex + 1]];
-              if (nextNode && !this.collision.isLineBlockedByWall(p.x, p.y, nextNode.x, nextNode.y)) {
-                p.pathIndex++;
-              }
+              p.pathIndex++;
+            } else {
+              this.ensureWalkable(p);
             }
           }
         } else {
