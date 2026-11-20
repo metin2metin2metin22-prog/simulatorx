@@ -902,6 +902,9 @@ body.theme-cs {
 .state-badge.planting { background: #d35400; color: #fff; }
 .state-badge.defusing { background: #27ae60; color: #fff; }
 .state-badge.combat { background: #e74c3c; color: #fff; }
+.state-badge.holding { background: #2980b9; color: #fff; }
+.state-badge.rushing { background: #e67e22; color: #fff; }
+.state-badge.bomb { background: #f39c12; color: #111; font-weight: bold; }
 
 /* 2x2 SKILLS GRID */
 .pmc-skills-grid {

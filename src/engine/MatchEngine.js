@@ -810,12 +810,33 @@ class PureCoachMatch {
     if (this.round === 13) {
       this.swapTeams();
     }
-    if (this.score.ct >= 13 || this.score.t >= 13) {
+
+    // CS:GO / CS2 MR12 Overtime & Match Win Rules
+    if (this.score.ct === 12 && this.score.t === 12 && !this.overtimeAnnounced) {
+      this.overtimeAnnounced = true;
+      this.addRadioMessage('ct', 'HAKEM', 'UZATMALAR BAŞLADI (OVERTIME)! İlk 16 puana ulaşan kazanır.');
+      this.events.push({ type: 'overtime_start' });
+    }
+
+    const winTarget = (this.score.ct >= 12 && this.score.t >= 12) ? 16 : 13;
+    const isOvertime = this.score.ct >= 12 && this.score.t >= 12;
+
+    let matchWinner = null;
+    if (isOvertime) {
+      if (this.score.ct >= 16 && this.score.ct - this.score.t >= 2) matchWinner = 'Counter-Terrorists';
+      else if (this.score.t >= 16 && this.score.t - this.score.ct >= 2) matchWinner = 'Terrorists';
+      else if (this.score.ct === 15 && this.score.t === 15) matchWinner = 'Beraberlik (Draw)';
+    } else {
+      if (this.score.ct >= 13) matchWinner = 'Counter-Terrorists';
+      else if (this.score.t >= 13) matchWinner = 'Terrorists';
+    }
+
+    if (matchWinner) {
       this.phase = 'match_over';
-      const winner = this.score.ct >= 13 ? 'Counter-Terrorists' : 'Terrorists';
-      this.events.push({ type: 'match_over', winner });
+      this.events.push({ type: 'match_over', winner: matchWinner });
       return;
     }
+
     this.startRound();
   }
 
@@ -823,6 +844,9 @@ class PureCoachMatch {
     const tempScore = this.score.ct;
     this.score.ct = this.score.t;
     this.score.t = tempScore;
+
+    // Reset loss streaks for clean 2nd half start
+    this.lossStreak = { ct: 0, t: 0 };
 
     Object.values(this.players).forEach(p => {
       p.team = p.team === 'ct' ? 't' : 'ct';

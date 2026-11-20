@@ -8,6 +8,21 @@ class CombatSystem {
     this.collision = collisionSystem;
   }
 
+  isCoverPosition(x, y, match) {
+    if (!match || !match.mapData || !match.mapData.nodes) return false;
+    const COVER_KEYS = [
+      'goose', 'b_car', 'b_platform', 'b_back_site', 'b_doors', 'b_window',
+      'ct_elevator', 'a_ramp', 'long_car', 'long_pit', 'xbox', 'b_site', 'a_site', 'a_short_site'
+    ];
+    for (const key of COVER_KEYS) {
+      const node = match.mapData.nodes[key];
+      if (node && Math.hypot(node.x - x, node.y - y) <= 55) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   canSeeEnemy(shooter, enemy, smokes) {
     const dist = Math.hypot(enemy.x - shooter.x, enemy.y - shooter.y);
     const weapon = WEAPONS[shooter.weapon] || WEAPONS.ak47;
@@ -81,8 +96,21 @@ class CombatSystem {
           // Pure Skill-Based Reaction Time:
           // Player's Reflex attribute directly dictates reaction latency (e.g. 100 reflex -> ~130ms; 90 reflex -> ~200ms)
           const reflex = (p.skills && p.skills.reflex) || 94;
-          const baseReaction = 0.27 - (reflex / 100) * 0.14 + (Math.random() * 0.02);
-          p.reactionTimer = Math.max(0.10, baseReaction);
+          let baseReaction = 0.27 - (reflex / 100) * 0.14 + (Math.random() * 0.02);
+
+          // SİPER & AÇI TUTMA AVANTAJI:
+          // Savunmada açı tutan veya siper arkasında bekleyen oyuncu hedefe crosshair'i önceden yerleştirdiği için %30 daha hızlı tepki verir!
+          const isHoldingAngle = (p.state === 'holding' || this.isCoverPosition(p.x, p.y, match));
+          if (isHoldingAngle) {
+            baseReaction *= 0.70;
+          }
+
+          // TRADE FRAG AVANTAJI: Arkadaşı vurulduğu an intikam hedefi seçen oyuncu anında ateş açar!
+          if (p.tradeTargetId === bestTarget.id) {
+            baseReaction = 0.08;
+          }
+
+          p.reactionTimer = Math.max(0.08, baseReaction);
         }
 
         if (p.reactionTimer > 0) {
@@ -131,8 +159,40 @@ class CombatSystem {
     const clutchBonus = isClutching ? ((clutch - 90) * 0.012) : 0;
 
     const movingPenalty = (shooter.state === 'moving' && weapon.type !== 'pistol') ? -0.16 : 0;
-    const holdBonus = (shooter.state === 'holding') ? 0.06 : 0;
     const stationaryTargetBonus = (target.state === 'planting' || target.state === 'defusing') ? 0.12 : 0;
+
+    // 1. SİPER ALMA & AÇI TUTMA AVANTAJI:
+    // Savunma yapan oyuncu siperde veya sabit açı tutuyorsa ayakları yere sağlam basar, ilk mermisi çok isabetli olur (+12%)
+    const shooterInCover = (shooter.state === 'holding' || this.isCoverPosition(shooter.x, shooter.y, match));
+    const holdBonus = shooterInCover ? 0.12 : 0;
+
+    // 2. TERÖRİST TOPLU HÜCUM AVANTAJI (Pack Rush & Crossfire Momentum):
+    // Teröristler toplu giriş yapıyorsa (240px mesafede 1 veya daha fazla T yoldaşı varsa) güven ve baskı bonusu alır (+5% ila +12%)
+    let tGroupBonus = 0;
+    if (shooter.team === 't') {
+      const nearbyTAllies = Object.values(match.players).filter(p =>
+        p.team === 't' && p.alive && p.id !== shooter.id && Math.hypot(p.x - shooter.x, p.y - shooter.y) <= 240
+      ).length;
+      if (nearbyTAllies >= 1) {
+        tGroupBonus = Math.min(0.12, nearbyTAllies * 0.05);
+      }
+    }
+
+    // 3. ÇAPRAZ ATEŞ BASKISI:
+    // Hedefteki savunmacıya aynı anda 2 veya daha fazla düşman birden yükleniyorsa, savunmacı çapraz ateş baskısı altında kalır (-9%)
+    const attackersOnTarget = Object.values(match.players).filter(p =>
+      p.alive && p.team === shooter.team && p.targetEnemyId === target.id
+    ).length;
+    const crossfirePenalty = attackersOnTarget >= 2 ? -0.09 : 0;
+
+    // 4. SİPER ALMA SAVUNMASI (Hedefin Siperde Olması):
+    // Siper arkasında bekleyen hedefin yalnızca kafası/omuzları görünür, koşan düşman için vurması çok daha zordur (-18%)
+    const targetInCover = (target.state === 'holding' || this.isCoverPosition(target.x, target.y, match));
+    const coverDefensePenalty = targetInCover ? -0.18 : 0;
+
+    // 5. TRADE FRAG VURUŞU:
+    // Vurulan arkadaşını intikam hedefi olarak vuran oyuncu ekstra isabet alır (+12%)
+    const tradeBonus = (shooter.tradeTargetId === target.id) ? 0.12 : 0;
 
     // Crosshair alignment check: If shooter's angle has not settled onto target yet (<0.15 rad ~8 deg), apply flick penalty
     const angleToTarget = Math.atan2(target.y - shooter.y, target.x - shooter.x);
@@ -140,7 +200,7 @@ class CombatSystem {
     const flickPenalty = aimSettlingDiff > 0.18 ? -0.22 : 0;
 
     let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy)
-      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + stationaryTargetBonus + flickPenalty;
+      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + flickPenalty;
 
     if (shooter.flashDuration > 0.3) {
       totalHitChance *= 0.25; // Blind panic-spray penalty
@@ -152,8 +212,10 @@ class CombatSystem {
 
     if (isHit) {
       // Headshot probability is determined by shooter's Aim skill (e.g. NiKo 99, b1t 97)
+      // Siper arkasında pre-aim tutan oyuncu ilk vuruşta ekstra kafadan vuruş şansı kazanır (+8%)
+      const coverHsBonus = (shooterInCover && shooter.burstCount === 1) ? 0.08 : 0;
       const hsSkillFactor = (aim / 100) * 0.30;
-      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor) : (0.12 + hsSkillFactor * 0.5));
+      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor + coverHsBonus) : (0.12 + hsSkillFactor * 0.5));
       isHeadshot = Math.random() < baseHsChance;
 
       if (isHeadshot) {
@@ -164,11 +226,19 @@ class CombatSystem {
           target.armor = Math.max(0, target.armor - 18);
         }
         damage = hsDamage;
-      } else if (target.armor > 0 && weapon.type !== 'sniper') {
-        damage = weapon.damage * 0.72;
-        target.armor = Math.max(0, target.armor - 12);
       } else {
-        damage = weapon.damage;
+        let bodyDamage = weapon.damage;
+        if (target.armor > 0 && weapon.type !== 'sniper') {
+          bodyDamage *= 0.72;
+          target.armor = Math.max(0, target.armor - 12);
+        }
+        // SİPER HASAR EMİLİMİ:
+        // Eğer hedef oyuncu siperdeyse (Goose, Car, Platform, Back Site, Ramp), kafa dışındaki gövde mermileri
+        // kutu/engel kenarına çarpar ve %25 hasar emilimi sağlanır!
+        if (targetInCover) {
+          bodyDamage *= 0.75;
+        }
+        damage = bodyDamage;
       }
 
       damage = Math.round(damage);

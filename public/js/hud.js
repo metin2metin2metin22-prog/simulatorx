@@ -259,6 +259,9 @@ class HUDManager {
       else if (p.state === 'planting') stateTag = '<span class="state-badge planting">💣 KURUYOR</span>';
       else if (p.state === 'defusing') stateTag = '<span class="state-badge defusing">⚡ ÇÖZÜYOR</span>';
       else if (p.state === 'engaging') stateTag = '<span class="state-badge combat">💥 ÇATIŞMA</span>';
+      else if (p.isRetrievingBomb) stateTag = '<span class="state-badge bomb">🏃 BOMBADA</span>';
+      else if (p.state === 'holding') stateTag = '<span class="state-badge holding">🛡️ SİPERDE</span>';
+      else if (p.team === 't' && p.state === 'moving') stateTag = '<span class="state-badge rushing">⚔️ HÜCUMDA</span>';
 
       return `
         <div class="player-mini-card ${p.alive ? '' : 'dead'} ${p.team}">
