@@ -217,6 +217,7 @@ class CombatSystem {
       } else {
         p.targetEnemyId = null;
         p.burstCount = 0;
+        p.isCrouching = false;
         this.checkSmokeSpam(match, p, dt, now);
       }
     });
@@ -336,13 +337,19 @@ class CombatSystem {
     // Vurulan arkadaşını intikam hedefi olarak vuran oyuncu ekstra isabet alır (+12%)
     const tradeBonus = (shooter.tradeTargetId === target.id) ? 0.12 : 0;
 
+    // 6. PRO CROUCH SPRAY: In rifle bursts (burstCount >= 2), bot crouches to stabilize recoil (+12% accuracy bonus)
+    if (weapon.type === 'rifle' && shooter.burstCount >= 2 && !shooter.isCrouching && Math.random() < 0.45) {
+      shooter.isCrouching = true;
+    }
+    const crouchBonus = shooter.isCrouching ? 0.12 : 0;
+
     // Crosshair alignment check: If shooter's angle has not settled onto target yet (<0.15 rad ~8 deg), apply flick penalty
     const angleToTarget = Math.atan2(target.y - shooter.y, target.x - shooter.x);
     const aimSettlingDiff = Math.abs(this.collision.normalizeAngle(shooter.angle - angleToTarget));
     const flickPenalty = aimSettlingDiff > 0.18 ? -0.22 : 0;
 
     let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy)
-      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + flickPenalty;
+      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + crouchBonus + flickPenalty;
 
     if (shooter.flashDuration > 0.3) {
       totalHitChance *= 0.25; // Blind panic-spray penalty
@@ -356,9 +363,10 @@ class CombatSystem {
       // Headshot probability is determined by shooter's Aim skill (e.g. NiKo 99, b1t 97)
       // Siper arkasında pre-aim tutan oyuncu ilk vuruşta ekstra kafadan vuruş şansı kazanır (+8%)
       const coverHsBonus = (shooterInCover && shooter.burstCount === 1) ? 0.08 : 0;
+      const crouchTargetHsPenalty = target.isCrouching ? -0.06 : 0;
       const hsSkillFactor = (aim / 100) * 0.30;
-      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor + coverHsBonus) : (0.12 + hsSkillFactor * 0.5));
-      isHeadshot = Math.random() < baseHsChance;
+      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor + coverHsBonus + crouchTargetHsPenalty) : (0.12 + hsSkillFactor * 0.5 + crouchTargetHsPenalty));
+      isHeadshot = Math.random() < Math.max(0.04, baseHsChance);
 
       if (isHeadshot) {
         let hsDamage = weapon.damage * weapon.hsMult;
@@ -382,6 +390,14 @@ class CombatSystem {
         }
         damage = bodyDamage;
       }
+
+      // PRO REALISTIC WEAPON DISTANCE DAMAGE FALLOFF:
+      // In CS:GO, pistols suffer heavy falloff at long distances (e.g. Long A), while rifles retain punch
+      const distRatio = Math.min(1.0, dist / (weapon.maxRange || 600));
+      const rangeFalloff = weapon.type === 'pistol' 
+        ? Math.max(0.48, 1.0 - distRatio * 0.42)
+        : Math.max(0.78, 1.0 - distRatio * 0.14);
+      damage = Math.round(damage * rangeFalloff);
 
       damage = Math.round(damage);
       target.hp = Math.max(0, target.hp - damage);

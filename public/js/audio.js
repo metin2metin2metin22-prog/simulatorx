@@ -318,6 +318,59 @@ class SoundEngine {
     osc.stop(now + 0.16);
   }
 
+  playFootstep() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(95, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.05);
+
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+    const noise = this.createNoiseBuffer(0.04);
+    const noiseNode = this.ctx.createBufferSource();
+    noiseNode.buffer = noise;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, now);
+    const nGain = this.ctx.createGain();
+    nGain.gain.setValueAtTime(0.05, now);
+    nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    noiseNode.connect(filter);
+    filter.connect(nGain);
+    nGain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.05);
+    noiseNode.start(now);
+  }
+
+  playReload() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const playClick = (time, freq) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0.18, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(time);
+      osc.stop(time + 0.04);
+    };
+    playClick(now, 1400); // Mag release
+    playClick(now + 0.35, 1850); // Mag insert
+    playClick(now + 0.52, 2200); // Bolt rack
+  }
+
   playDefuseStart() {
     if (!this.enabled || !this.ctx) return;
     const now = this.ctx.currentTime;

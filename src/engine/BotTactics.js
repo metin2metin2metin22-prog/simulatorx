@@ -235,13 +235,30 @@ class BotTactics {
               isDropped: true
             });
 
-            // Reposition CTs to guard the dropped bomb
-            const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
-            aliveCTs.forEach(mate => {
-              if (!mate.targetEnemyId) {
-                const d = Math.hypot(mate.x - match.bomb.x, mate.y - match.bomb.y);
-                if (d > 160) {
-                  match.setPlayerPath(mate, bombNode);
+            // CS:GO HIGH-IQ PERIMETER AMBUSH (CTs NEVER stand directly on the dropped bomb!)
+            // CTs take crossfire positions surrounding the dropped bomb (100-240 units away)
+            const nearbyNodes = Object.entries(match.mapData.nodes)
+              .map(([k, node]) => ({ key: k, dist: Math.hypot(node.x - match.bomb.x, node.y - match.bomb.y), node }))
+              .filter(item => item.dist >= 80 && item.dist <= 260)
+              .sort((a, b) => a.dist - b.dist);
+
+            aliveCTs.forEach((mate, idx) => {
+              if (mate.targetEnemyId) return;
+              const dToBomb = Math.hypot(mate.x - match.bomb.x, mate.y - match.bomb.y);
+              
+              if (dToBomb <= 180) {
+                // Already in perimeter! Take cover, hold position, and aim crosshairs at the dropped bomb
+                mate.path = [];
+                mate.pathIndex = 0;
+                mate.holdTimer = 22.0;
+                mate.state = 'holding';
+                mate.targetAngle = Math.atan2(match.bomb.y - mate.y, match.bomb.x - mate.x);
+                mate.angle = mate.targetAngle;
+              } else if (nearbyNodes.length > 0) {
+                // Navigate into a designated crossfire ambush node, NOT the bomb itself
+                const targetAmbushKey = nearbyNodes[idx % nearbyNodes.length].key;
+                if (!mate.path || mate.path.length === 0 || mate.path[mate.path.length - 1] !== targetAmbushKey) {
+                  match.setPlayerPath(mate, targetAmbushKey);
                 }
               }
             });
@@ -608,20 +625,122 @@ class BotTactics {
   }
 
   checkClutchSituation(match) {
-    if (match.clutchAnnounced || match.phase !== 'live') return;
+    this.updateClutchAndSaveTactics(match, 0.033);
+  }
+
+  updateClutchAndSaveTactics(match, dt) {
+    if (match.phase !== 'live') return;
     const aliveCTs = Object.values(match.players).filter(p => p.team === 'ct' && p.alive);
     const aliveTs = Object.values(match.players).filter(p => p.team === 't' && p.alive);
 
-    if (aliveCTs.length === 1 && aliveTs.length >= 2) {
-      match.clutchAnnounced = true;
-      const clutcher = aliveCTs[0];
-      match.addRadioMessage('ct', clutcher.name, `[CLUTCH] 1v${aliveTs.length} durumunda tek kaldım, sakin oynuyorum!`);
-      match.events.push({ type: 'clutch', team: 'ct', player: clutcher.name, count: aliveTs.length });
-    } else if (aliveTs.length === 1 && aliveCTs.length >= 2) {
-      match.clutchAnnounced = true;
-      const clutcher = aliveTs[0];
-      match.addRadioMessage('t', clutcher.name, `[CLUTCH] 1v${aliveCTs.length} durumunda tek kaldım, site'a sızıyorum!`);
-      match.events.push({ type: 'clutch', team: 't', player: clutcher.name, count: aliveCTs.length });
+    // 1. Announce clutch if 1 player faces multiple enemies
+    if (!match.clutchAnnounced) {
+      if (aliveCTs.length === 1 && aliveTs.length >= 2) {
+        match.clutchAnnounced = true;
+        const clutcher = aliveCTs[0];
+        match.addRadioMessage('ct', clutcher.name, `[CLUTCH] 1v${aliveTs.length} durumunda tek kaldım, sakin oynuyorum!`);
+        match.events.push({ type: 'clutch', team: 'ct', player: clutcher.name, count: aliveTs.length });
+      } else if (aliveTs.length === 1 && aliveCTs.length >= 2) {
+        match.clutchAnnounced = true;
+        const clutcher = aliveTs[0];
+        match.addRadioMessage('t', clutcher.name, `[CLUTCH] 1v${aliveCTs.length} durumunda tek kaldım, site'a sızıyorum!`);
+        match.events.push({ type: 'clutch', team: 't', player: clutcher.name, count: aliveCTs.length });
+      }
+    }
+
+    const expensiveWeapons = ['awp', 'ak47', 'm4a1', 'm4a4'];
+
+    // 2. CS:GO SAVE LOGIC (Strictly restricted to 1v4 or 1v5 with an expensive weapon):
+    // CT Save Check: 1 CT vs 4-5 Ts, bomb planted or timer < 25s
+    if (aliveCTs.length === 1 && aliveTs.length >= 4) {
+      const loneCT = aliveCTs[0];
+      const hasExpensive = expensiveWeapons.includes(loneCT.weapon);
+      const impossibleOdds = match.bomb.planted || (match.timer < 25 && aliveTs.length >= 4);
+
+      if (hasExpensive && impossibleOdds) {
+        loneCT.isSaving = true;
+        if (!loneCT.saveAnnounced) {
+          loneCT.saveAnnounced = true;
+          match.addRadioMessage('ct', loneCT.name, `[SAVE] 1v${aliveTs.length} durumunda kaldım! Elimdeki ${loneCT.weapon.toUpperCase()}'ı sonraki raunt için koruyorum, saklanıyorum!`);
+        }
+        const ctHides = ['ct_spawn', 'b_back_site', 'long_pit'];
+        const chosenHide = ctHides[0];
+        const dHide = Math.hypot(loneCT.x - match.mapData.nodes[chosenHide].x, loneCT.y - match.mapData.nodes[chosenHide].y);
+        if (dHide > 45 && (!loneCT.path || loneCT.pathIndex >= loneCT.path.length)) {
+          match.setPlayerPath(loneCT, chosenHide);
+        }
+        return;
+      }
+    }
+
+    // T Save Check: 1 T vs 4-5 CTs, bomb not carried and timer < 25s
+    if (aliveTs.length === 1 && aliveCTs.length >= 4 && !match.bomb.planted) {
+      const loneT = aliveTs[0];
+      const hasExpensive = expensiveWeapons.includes(loneT.weapon);
+      if (hasExpensive && match.timer < 25 && !loneT.hasBomb) {
+        loneT.isSaving = true;
+        if (!loneT.saveAnnounced) {
+          loneT.saveAnnounced = true;
+          match.addRadioMessage('t', loneT.name, `[SAVE] 1v${aliveCTs.length} durumunda kaldım! Elimdeki ${loneT.weapon.toUpperCase()}'ı sonraki raunt için koruyorum, saklanıyorum!`);
+        }
+        const tHides = ['t_spawn', 't_plat', 'suicide'];
+        const chosenHide = tHides[0];
+        const dHide = Math.hypot(loneT.x - match.mapData.nodes[chosenHide].x, loneT.y - match.mapData.nodes[chosenHide].y);
+        if (dHide > 45 && (!loneT.path || loneT.pathIndex >= loneT.path.length)) {
+          match.setPlayerPath(loneT, chosenHide);
+        }
+        return;
+      }
+    }
+
+    // 3. WINNABLE ROUNDS ACTIVE HUNT & OBJECTIVE LOGIC (Never Idle / "Oynamayı salmak yok!"):
+    // Any situation that is NOT an extreme 1v4/1v5 save MUST actively contest, hunt and fight!
+    
+    // A. CT Hunt in numbers advantage (e.g. 2v1, 3v1, 2v2) or 1v1:
+    if (!match.bomb.planted && aliveTs.length <= 2 && aliveCTs.length >= 1) {
+      aliveCTs.forEach(ct => {
+        if (ct.targetEnemyId || ct.isSaving) return;
+
+        // If CT finished their path and is idling or holding for too long:
+        if (ct.state === 'idle' || (ct.state === 'holding' && ct.holdTimer <= 2.0)) {
+          if (match.bomb.dropped) {
+            const dToBomb = Math.hypot(ct.x - match.bomb.x, ct.y - match.bomb.y);
+            if (dToBomb > 180) {
+              const bombNode = getClosestNode(match.bomb.x, match.bomb.y, match.mapData.nodes, match.collision);
+              match.setPlayerPath(ct, bombNode);
+            }
+          } else {
+            // Coordinate an active sweep towards last known sound alert or common choke
+            let huntNode = 'top_mid';
+            if (ct.soundAlert && (Date.now() - ct.soundAlert.time < 12000)) {
+              huntNode = getClosestNode(ct.soundAlert.x, ct.soundAlert.y, match.mapData.nodes, match.collision);
+            } else {
+              const sweepNodes = ['mid_doors', 'upper_tunnels', 'long_doors', 'catwalk'];
+              huntNode = sweepNodes[ct.slot % sweepNodes.length];
+            }
+            match.setPlayerPath(ct, huntNode);
+            ct.holdTimer = 0;
+            ct.state = 'moving';
+          }
+        }
+      });
+    }
+
+    // B. T Active Push in numbers advantage (2v1, 1v1) or clutch:
+    if (!match.bomb.planted && aliveTs.length >= 1) {
+      aliveTs.forEach(t => {
+        if (t.targetEnemyId || t.isSaving || t.isRetrievingBomb) return;
+        if (t.state === 'idle' || (t.state === 'holding' && t.holdTimer <= 2.0)) {
+          const targetNode = match.tTargetSite === 'B' ? 'b_site' : 'a_site';
+          const sitePos = match.mapData.sites[match.tTargetSite];
+          const dSite = Math.hypot(t.x - sitePos.x, t.y - sitePos.y);
+          if (dSite > sitePos.radius + 15) {
+            match.setPlayerPath(t, targetNode);
+            t.holdTimer = 0;
+            t.state = 'moving';
+          }
+        }
+      });
     }
   }
 }

@@ -20,11 +20,23 @@ class BombManager {
           match.bomb.x = t.x;
           match.bomb.y = t.y;
           match.events.push({ type: 'bomb_pickup', playerId: t.id });
+
+          // HIGH-IQ OPPOSITE SITE ROTATION:
+          // CTs committed to the dropped bomb location. Once Ts grab it under smoke,
+          // the T IGL immediately calls a fast rotation to the OPPOSITE (now empty) site!
+          const oldSite = match.tTargetSite || 'B';
+          match.tTargetSite = (oldSite === 'A' ? 'B' : 'A');
           const targetNode = match.tTargetSite === 'B' ? 'b_site' : 'a_site';
-          match.addRadioMessage('t', 'electronic (IGL)', `Bombayı aldık! ${match.tTargetSite} Site'a topluca hücum ediyoruz!`);
+
+          match.addRadioMessage('t', 'electronic (IGL)', `Bombayı duman altından aldık! CT'ler buraya yığıldı, diğer site bomboş! Hızlıca ${match.tTargetSite} Site'a koşuyoruz!`);
+          
           aliveTs.forEach(mate => {
             mate.isRetrievingBomb = false;
-            if (!mate.targetEnemyId) match.setPlayerPath(mate, targetNode);
+            mate.holdTimer = 0;
+            if (!mate.targetEnemyId) {
+              match.setPlayerPath(mate, targetNode);
+              mate.sprintTimer = 4.0; // Sprint rotation boost
+            }
           });
           break;
         }
@@ -41,6 +53,27 @@ class BombManager {
         const distA = Math.hypot(carrier.x - match.mapData.sites.A.x, carrier.y - match.mapData.sites.A.y);
         const distB = Math.hypot(carrier.x - match.mapData.sites.B.x, carrier.y - match.mapData.sites.B.y);
         const onSite = distA <= match.mapData.sites.A.radius + 15 ? 'A' : (distB <= match.mapData.sites.B.radius + 15 ? 'B' : null);
+
+        // Safe default planting coordinates behind cover (A Site behind box, B Site behind big box)
+        const DEFAULT_PLANT_SPOTS = {
+          A: { x: 825, y: 165 },
+          B: { x: 215, y: 125 }
+        };
+
+        if (onSite) {
+          const defSpot = DEFAULT_PLANT_SPOTS[onSite];
+          const distToDefSpot = Math.hypot(carrier.x - defSpot.x, carrier.y - defSpot.y);
+          if (distToDefSpot > 28 && !carrier.targetEnemyId && carrier.state !== 'planting') {
+            const angleToSpot = Math.atan2(defSpot.y - carrier.y, defSpot.x - carrier.x);
+            const step = 80 * dt;
+            const nx = carrier.x + Math.cos(angleToSpot) * step;
+            const ny = carrier.y + Math.sin(angleToSpot) * step;
+            if (match.isWalkable(nx, ny)) {
+              carrier.x = nx;
+              carrier.y = ny;
+            }
+          }
+        }
 
         const canPlant = onSite && (!carrier.targetEnemyId || (carrier.state === 'planting' && match.bomb.plantProgress >= 0.5));
 

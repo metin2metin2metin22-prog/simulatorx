@@ -491,17 +491,20 @@ class PureCoachMatch {
         p.path = expandWaypoints(asg.path, this.mapData.nodes);
         p.pathIndex = 0;
         p.holdTimer = 0;
+        p.state = 'moving';
       }
     });
 
-    // Ensure the designated bomb carrier always marches straight into the bombsite
+    // Bomb Carrier Strategy Assignment:
+    // Carrier stays grouped with the team behind the entry fragger (slot 0) along the strategy's primary assault path,
+    // NEVER taking a solo shortest-path BFS suicide charge through Mid!
     const carrier = this.players[this.bomb.carrierId];
     if (carrier) {
-      const targetNode = this.tTargetSite === 'B' ? 'b_site' : 'a_site';
-      if (!carrier.path || carrier.path.length === 0 || carrier.path[carrier.path.length - 1] !== targetNode) {
-        const startNode = (carrier.path && carrier.path.length > 0) ? carrier.path[0] : getClosestNode(carrier.x, carrier.y, this.mapData.nodes, this.collision);
-        carrier.path = findPath(startNode, targetNode, this.mapData.nodes);
+      const mainAsg = tStrat.assignments.find(a => a.slot === carrier.slot) || tStrat.assignments[1] || tStrat.assignments[0];
+      if (mainAsg && mainAsg.path) {
+        carrier.path = expandWaypoints(mainAsg.path, this.mapData.nodes);
         carrier.pathIndex = 0;
+        carrier.holdTimer = 0;
         carrier.state = 'moving';
       }
     }
@@ -656,8 +659,8 @@ class PureCoachMatch {
     // Retake & Post-Plant Tactics
     this.tactics.updateRetakeAndPostPlantTactics(this, dt);
 
-    // Check Clutch moments
-    this.tactics.checkClutchSituation(this);
+    // Check Clutch & Dynamic Hunt / Save moments
+    this.tactics.updateClutchAndSaveTactics(this, dt);
 
     // Check Alive Counts & Instant Round Termination (NO UNNECESSARY WAITING!)
     const ctAlive = Object.values(this.players).filter(p => p.team === 'ct' && p.alive).length;
@@ -724,17 +727,33 @@ class PureCoachMatch {
   }
 
   applyTeammateSeparation(p, dt) {
+    p.queueSlowdown = 1.0;
     const teammates = Object.values(this.players).filter(other => other.team === p.team && other.id !== p.id && other.alive);
     for (const other of teammates) {
       const dx = p.x - other.x;
       const dy = p.y - other.y;
       const d = Math.hypot(dx, dy);
-      if (d > 0.01 && d < 26) {
-        const pushForce = (26 - d) * 16 * dt;
+      if (d > 0.01 && d < 28) {
+        // If moving in corridor along path: check if teammate is ahead towards target waypoint
+        if (p.path && p.pathIndex < p.path.length && other.path) {
+          const targetKey = p.path[p.pathIndex];
+          const node = this.mapData.nodes[targetKey];
+          if (node) {
+            const myDistToNode = Math.hypot(node.x - p.x, node.y - p.y);
+            const otherDistToNode = Math.hypot(node.x - other.x, node.y - other.y);
+            // If teammate is ahead closer to node, trailing bot yields speed and queues cleanly behind
+            if (otherDistToNode < myDistToNode) {
+              p.queueSlowdown = Math.min(p.queueSlowdown, 0.65);
+            }
+          }
+        }
+
+        // Gentle separation push ONLY if not pushing into walls
+        const pushForce = Math.min(18, (28 - d) * 12 * dt);
         const angle = Math.atan2(dy, dx);
         const nx = p.x + Math.cos(angle) * pushForce;
         const ny = p.y + Math.sin(angle) * pushForce;
-        if (this.isWalkable(nx, ny)) {
+        if (this.isWalkable(nx, ny) && !this.collision.isLineBlockedByWall(p.x, p.y, nx, ny)) {
           p.x = nx;
           p.y = ny;
         } else if (this.isWalkable(nx, p.y)) {
@@ -822,30 +841,37 @@ class PureCoachMatch {
       }
       this.tactics.tacticalBotUtility(this, p, targetNodeKey);
     } else {
+      // PRO MOVEMENT VECTOR DECOUPLING:
+      // Movement is guided 100% by the waypoint path (moveAngle).
+      // Head/crosshair facing (p.targetAngle) tracks sounds/aim independently!
+      // This completely ELIMINATES bots turning into walls when they hear a footstep or gunshot.
+      const moveAngle = Math.atan2(dy, dx);
+
       if (!hasFreshSoundAlert) {
-        p.targetAngle = Math.atan2(dy, dx);
+        p.targetAngle = moveAngle;
       }
       p.angle = p.targetAngle;
 
-      let baseSpeed = 75; // Pro realistic movement speed for 1:30+ min round duration
+      let baseSpeed = 75; // Pro realistic movement speed
       if (p.weapon === 'awp') baseSpeed = 62;
       else if (p.weapon === 'usp' || p.weapon === 'glock' || p.weapon === 'deagle') baseSpeed = 82;
       if (p.sprintTimer > 0) baseSpeed = 95;
 
-      // PRO FLASHDOWN RETREAT: Fully blind bots back up away from danger instead of waddling forward into bullets
+      // Apply corridor queuing slowdown
+      if (p.queueSlowdown && p.queueSlowdown < 1.0) {
+        baseSpeed *= p.queueSlowdown;
+      }
+
+      // Flashdown retreat
       if (p.flashDuration > 1.0) {
         baseSpeed = 35;
-        if (p.pathIndex > 0) {
-          p.targetAngle = this.collision.normalizeAngle(p.angle + Math.PI);
-        }
       } else if (p.flashDuration > 0.4) {
         baseSpeed *= 0.45;
       }
 
-      // PRO FOOTSTEP AUDIO ENGINE:
-      // Running players emit footsteps every 0.38s audible within 340 units!
+      // Footstep generation
       p.footstepTimer = (p.footstepTimer || 0) + dt;
-      if (baseSpeed >= 65 && p.footstepTimer >= 0.38) {
+      if (baseSpeed >= 60 && p.footstepTimer >= 0.38) {
         p.footstepTimer = 0;
         const now = Date.now();
         Object.values(this.players).forEach(other => {
@@ -861,36 +887,55 @@ class PureCoachMatch {
         this.events.push({ type: 'footstep', x: p.x, y: p.y, team: p.team });
       }
 
-      const nextX = p.x + Math.cos(p.angle) * baseSpeed * dt;
-      const nextY = p.y + Math.sin(p.angle) * baseSpeed * dt;
+      const stepDist = baseSpeed * dt;
+      const nextX = p.x + Math.cos(moveAngle) * stepDist;
+      const nextY = p.y + Math.sin(moveAngle) * stepDist;
 
-      // STRICT PHYSICAL BARRIER: Bots CANNOT enter black areas!
+      // STRICT PHYSICAL BARRIER with Intelligent Corner Deflection:
       if (this.isWalkable(nextX, nextY)) {
         p.x = nextX;
         p.y = nextY;
       } else {
-        // Wall sliding along corridor
+        // Wall sliding along corridor axis
         if (this.isWalkable(nextX, p.y)) {
           p.x = nextX;
         } else if (this.isWalkable(p.x, nextY)) {
           p.y = nextY;
         } else {
-          // Advance to next waypoint if corner obstructs
-          if (p.pathIndex < p.path.length - 1) {
-            p.pathIndex++;
+          // Attempt angle deflections (+35 deg, -35 deg, +60 deg, -60 deg)
+          let deflected = false;
+          for (const angleOffset of [0.6, -0.6, 1.0, -1.0]) {
+            const defAngle = moveAngle + angleOffset;
+            const defX = p.x + Math.cos(defAngle) * stepDist;
+            const defY = p.y + Math.sin(defAngle) * stepDist;
+            if (this.isWalkable(defX, defY)) {
+              p.x = defX;
+              p.y = defY;
+              deflected = true;
+              break;
+            }
           }
         }
       }
 
-      // Anti-stuck watchdog: detects if player hasn't moved more than 2px while trying to move
+      // Pro Anti-Stuck Re-Path Watchdog:
       if (p.lastPosX !== undefined) {
         const moved = Math.hypot(p.x - p.lastPosX, p.y - p.lastPosY);
-        if (moved < 1.0) {
+        if (moved < 1.2) {
           p.stuckTimer = (p.stuckTimer || 0) + dt;
-          if (p.stuckTimer > 1.2) {
+          if (p.stuckTimer > 1.0) {
             p.stuckTimer = 0;
-            if (p.pathIndex < p.path.length - 1) {
-              p.pathIndex++;
+            // Clean dynamic re-pathing to destination from current closest node
+            const startNode = getClosestNode(p.x, p.y, this.mapData.nodes, this.collision);
+            const finalNode = p.path[p.path.length - 1];
+            if (startNode && finalNode && startNode !== finalNode) {
+              p.path = findPath(startNode, finalNode, this.mapData.nodes);
+              p.pathIndex = 0;
+            } else if (p.pathIndex < p.path.length - 1) {
+              const nextNode = this.mapData.nodes[p.path[p.pathIndex + 1]];
+              if (nextNode && !this.collision.isLineBlockedByWall(p.x, p.y, nextNode.x, nextNode.y)) {
+                p.pathIndex++;
+              }
             }
           }
         } else {
@@ -948,6 +993,10 @@ class PureCoachMatch {
       this.overtimeAnnounced = true;
       this.addRadioMessage('ct', 'HAKEM', 'UZATMALAR BAŞLADI (OVERTIME)! İlk 16 puana ulaşan kazanır.');
       this.events.push({ type: 'overtime_start' });
+      // Authentic CS overtime starting budget ($10,000 each)
+      Object.values(this.players).forEach(p => {
+        p.money = 10000;
+      });
     }
 
     const winTarget = (this.score.ct >= 12 && this.score.t >= 12) ? 16 : 13;

@@ -470,15 +470,16 @@ body.theme-cs {
 .kf-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(10, 14, 22, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 3px 8px;
-  border-radius: 4px;
+  gap: 5px;
+  background: rgba(18, 22, 30, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-left: 2px solid rgba(255, 255, 255, 0.22);
+  padding: 2px 7px;
+  border-radius: 2px;
   font-family: 'Chakra Petch', 'Segoe UI', Arial, sans-serif;
   font-size: 11px;
   font-weight: 700;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   animation: kf-slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transition: opacity 0.35s ease, transform 0.35s ease;
@@ -487,7 +488,7 @@ body.theme-cs {
 
 .kf-item.kf-hs {
   border-right: 2px solid #e74c3c;
-  background: rgba(16, 12, 18, 0.92);
+  background: rgba(22, 18, 26, 0.92);
 }
 
 .kf-item.kf-fade-out {
@@ -507,13 +508,13 @@ body.theme-cs {
 }
 
 .kf-killer.ct, .kf-victim.ct, .kf-assister.ct {
-  color: #4da6ff;
-  text-shadow: 0 0 6px rgba(77, 166, 255, 0.4);
+  color: #79b9e1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .kf-killer.t, .kf-victim.t, .kf-assister.t {
-  color: #ff9f43;
-  text-shadow: 0 0 6px rgba(255, 159, 67, 0.4);
+  color: #edd438;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .kf-plus {
@@ -530,7 +531,7 @@ body.theme-cs {
 .kf-weapon-icon {
   height: 14px;
   width: auto;
-  max-width: 52px;
+  max-width: 50px;
   object-fit: contain;
   display: inline-block;
   vertical-align: middle;
@@ -543,6 +544,8 @@ body.theme-cs {
   object-fit: contain;
   display: inline-block;
   vertical-align: middle;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+}
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
 }
 

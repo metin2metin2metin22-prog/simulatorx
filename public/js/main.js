@@ -91,6 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (radar && radar.addFootstep) {
           radar.addFootstep(evt.x, evt.y, evt.team);
         }
+        if (window.soundEngine && window.soundEngine.playFootstep) {
+          window.soundEngine.playFootstep();
+        }
+        break;
+      case 'reload_start':
+        if (window.soundEngine && window.soundEngine.playReload) {
+          window.soundEngine.playReload();
+        }
         break;
       case 'kill':
         hud.addKillfeedItem(evt);
