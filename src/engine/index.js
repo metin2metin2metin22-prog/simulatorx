@@ -8,6 +8,7 @@ const { BotTactics } = require('./BotTactics');
 const { BombManager } = require('./BombManager');
 const { EconomySystem } = require('./EconomySystem');
 const { MovementSystem, PRE_AIM_DIRECTIONS } = require('./MovementSystem');
+const { LeagueManager } = require('./LeagueManager');
 
 module.exports = {
   PureCoachMatch,
@@ -17,5 +18,6 @@ module.exports = {
   BombManager,
   EconomySystem,
   MovementSystem,
+  LeagueManager,
   PRE_AIM_DIRECTIONS
 };

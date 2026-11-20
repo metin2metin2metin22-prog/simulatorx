@@ -11,7 +11,67 @@ function registerSocketHandlers(io, match) {
       rosters: match.currentRosters || ROSTERS,
       playerPool: PRO_PLAYER_POOL,
       perks: PERK_DEFINITIONS,
-      presets: ROSTER_PRESETS
+      presets: ROSTER_PRESETS,
+      league: match.league ? match.league.getLeagueData() : null,
+      userClub: match.league ? match.league.userClub : null
+    });
+
+    // LEAGUE: PLAY NEXT MATCH
+    socket.on('play_league_match', () => {
+      const loaded = match.loadLeagueMatch();
+      if (loaded) {
+        io.emit('chat_message', {
+          sender: 'LİG HAKEMİ',
+          text: `🏆 ${match.matchInfo.weekName.toUpperCase()} BAŞLADI: ${match.matchInfo.userClub.name} vs ${match.matchInfo.opponent.name}!`
+        });
+      }
+    });
+
+    // LEAGUE: QUICK SIMULATE MATCH
+    socket.on('quick_sim_league_match', () => {
+      if (!match.league) return;
+      const nextMatch = match.league.getUserNextMatch();
+      if (!nextMatch) return;
+      const userTeam = match.league.getTeamById(match.league.userClub.id);
+      const opponentTeam = nextMatch.opponent;
+      const sim = match.league.simulateBotMatch(userTeam, opponentTeam);
+      
+      const homeScore = nextMatch.isHome ? sim.homeScore : sim.awayScore;
+      const awayScore = nextMatch.isHome ? sim.awayScore : sim.homeScore;
+      match.league.advanceWeekWithUserResult(homeScore, awayScore);
+      io.emit('league_data', match.league.getLeagueData());
+      io.emit('chat_message', {
+        sender: 'LİG HAKEMİ',
+        text: `⚡ ${nextMatch.weekName} Simüle Edildi: ${userTeam.name} ${homeScore} : ${awayScore} ${opponentTeam.name}`
+      });
+    });
+
+    // LEAGUE: UPDATE USER CLUB
+    socket.on('update_user_club', (clubData) => {
+      if (!match.league) return;
+      match.league.updateUserClub(clubData);
+      if (clubData.roster && match.matchInfo && match.matchInfo.isLeagueMatch) {
+        if (match.userSide === 'ct') match.currentRosters.ct = JSON.parse(JSON.stringify(clubData.roster));
+        else match.currentRosters.t = JSON.parse(JSON.stringify(clubData.roster));
+        match.setTeamRoster(match.userSide, clubData.roster);
+      }
+      io.emit('league_data', match.league.getLeagueData());
+      io.emit('chat_message', {
+        sender: 'KULÜP BAŞKANI',
+        text: `👔 Kulüp ve kadro güncellendi: ${match.league.userClub.name}`
+      });
+    });
+
+    // LEAGUE: RESET SEASON
+    socket.on('reset_league_season', () => {
+      if (!match.league) return;
+      match.league.resetSeason();
+      match.loadLeagueMatch();
+      io.emit('league_data', match.league.getLeagueData());
+      io.emit('chat_message', {
+        sender: 'LİG BAŞKANI',
+        text: `🏆 YENİ SEZON BAŞLADI! Tüm puanlar sıfırlandı, 1. Hafta maçları hazır.`
+      });
     });
 
     // START MATCH

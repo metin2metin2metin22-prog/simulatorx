@@ -1,19 +1,25 @@
-// SimulatorX - Esports Team Owner / Squad Manager & Transfer Market Controller
-// Allows users to customize rosters, swap players, inspect skill cards, and apply lineups.
+// SimulatorX - Single Club Owner & Squad Manager Controller
+// Allows user to manage their single esports club, customize first 5 roster, scout prospects, and trade players.
 
 class RosterManager {
   constructor() {
     this.socket = null;
-    this.rosters = { ct: [], t: [] };
+    this.userClub = {
+      id: 'user_club',
+      name: 'Anadolu Wolves',
+      icon: '🐺',
+      budget: 50000,
+      roster: []
+    };
+    this.draftRoster = [];
     this.playerPool = [];
     this.perks = {};
     this.presets = {};
-    this.selectedTeam = 'ct';
     this.selectedSlot = 0;
-    this.draftRosters = { ct: [], t: [] };
     this.filterRole = 'all';
     this.searchQuery = '';
     this.customPlayers = [];
+    this.currentProspect = null;
 
     this.modal = null;
     this.slotsContainer = null;
@@ -35,10 +41,13 @@ class RosterManager {
 
     // Open Modal Buttons
     const btnOpenRadar = document.getElementById('btnOpenRosterManager');
-    if (btnOpenRadar) btnOpenRadar.addEventListener('click', () => this.openModal(this.selectedTeam));
+    if (btnOpenRadar) btnOpenRadar.addEventListener('click', () => this.openModal());
 
     const btnOpenSide = document.getElementById('btnOpenRosterManagerSide');
-    if (btnOpenSide) btnOpenSide.addEventListener('click', () => this.openModal(this.selectedTeam));
+    if (btnOpenSide) btnOpenSide.addEventListener('click', () => this.openModal());
+
+    const btnOpenLeft = document.getElementById('btnOpenRosterManagerLeft');
+    if (btnOpenLeft) btnOpenLeft.addEventListener('click', () => this.openModal());
 
     // Close Modal Button
     const btnClose = document.getElementById('btnCloseRosterManager');
@@ -46,12 +55,6 @@ class RosterManager {
 
     const btnCancel = document.getElementById('btnCancelRoster');
     if (btnCancel) btnCancel.addEventListener('click', () => this.closeModal());
-
-    // Team Switcher Tabs
-    const btnTeamCT = document.getElementById('rmBtnTeamCT');
-    const btnTeamT = document.getElementById('rmBtnTeamT');
-    if (btnTeamCT) btnTeamCT.addEventListener('click', () => this.setTeam('ct'));
-    if (btnTeamT) btnTeamT.addEventListener('click', () => this.setTeam('t'));
 
     // Preset Selection
     const btnApplyPreset = document.getElementById('btnApplyPreset');
@@ -133,9 +136,10 @@ class RosterManager {
 
   bindSocketEvents() {
     this.socket.on('init_data', (data) => {
-      if (data.rosters) {
-        this.rosters = JSON.parse(JSON.stringify(data.rosters));
-        this.draftRosters = JSON.parse(JSON.stringify(data.rosters));
+      if (data.userClub) {
+        this.userClub = JSON.parse(JSON.stringify(data.userClub));
+        this.draftRoster = JSON.parse(JSON.stringify(this.userClub.roster || []));
+        this.updateSideClubUI();
       }
       if (data.playerPool) {
         this.playerPool = [...data.playerPool];
@@ -148,38 +152,39 @@ class RosterManager {
       }
     });
 
-    this.socket.on('roster_updated', ({ team, roster }) => {
-      if (team && roster) {
-        this.rosters[team] = JSON.parse(JSON.stringify(roster));
-        this.draftRosters[team] = JSON.parse(JSON.stringify(roster));
-        if (this.modal && this.modal.style.display === 'flex') {
-          this.renderAll();
-        }
+    this.socket.on('league_data', (data) => {
+      if (data && data.userClub) {
+        this.userClub = JSON.parse(JSON.stringify(data.userClub));
+        this.updateSideClubUI();
       }
     });
   }
 
-  openModal(team = 'ct') {
+  updateSideClubUI() {
+    const sideName = document.getElementById('sideClubName');
+    const sideIcon = document.getElementById('sideClubIcon');
+    const badgeIcon = document.getElementById('rmClubIconBadge');
+    const budgetVal = document.getElementById('rmClubBudgetValue');
+    const nameInput = document.getElementById('rmClubNameInput');
+
+    if (sideName && this.userClub.name) sideName.innerText = this.userClub.name;
+    if (sideIcon && this.userClub.icon) sideIcon.innerText = this.userClub.icon;
+    if (badgeIcon && this.userClub.icon) badgeIcon.innerText = this.userClub.icon;
+    if (nameInput && this.userClub.name) nameInput.value = this.userClub.name;
+    if (budgetVal) budgetVal.innerText = `$${(this.userClub.budget || 50000).toLocaleString()}`;
+  }
+
+  openModal() {
     if (!this.modal) return;
-    this.selectedTeam = team;
     this.selectedSlot = 0;
-    this.draftRosters = JSON.parse(JSON.stringify(this.rosters));
+    this.draftRoster = JSON.parse(JSON.stringify(this.userClub.roster || []));
+    this.updateSideClubUI();
     this.modal.style.display = 'flex';
     this.renderAll();
   }
 
   closeModal() {
     if (this.modal) this.modal.style.display = 'none';
-  }
-
-  setTeam(team) {
-    this.selectedTeam = team;
-    const btnCT = document.getElementById('rmBtnTeamCT');
-    const btnT = document.getElementById('rmBtnTeamT');
-    if (btnCT) btnCT.classList.toggle('active', team === 'ct');
-    if (btnT) btnT.classList.toggle('active', team === 't');
-    this.selectedSlot = 0;
-    this.renderAll();
   }
 
   selectSlot(idx) {
@@ -196,7 +201,7 @@ class RosterManager {
 
   renderSquadSummary() {
     if (!this.squadSummary) return;
-    const squad = this.draftRosters[this.selectedTeam] || [];
+    const squad = this.draftRoster || [];
     if (squad.length === 0) return;
 
     const len = squad.length;
@@ -208,10 +213,8 @@ class RosterManager {
     const avgClutch = Math.round(squad.reduce((s, p) => s + (p.skills?.clutch || 92), 0) / len);
     const avgUtility = Math.round(squad.reduce((s, p) => s + (p.skills?.utility || 90), 0) / len);
 
-    const teamTitle = this.selectedTeam === 'ct' ? '🛡️ COUNTER-TERRORISTS' : '💣 TERRORISTS';
-
     this.squadSummary.innerHTML = `
-      <div class="rm-sum-team-title">${teamTitle} SİNERJİ & GÜÇ ÖZETİ</div>
+      <div class="rm-sum-team-title">${this.userClub.icon} ${this.userClub.name.toUpperCase()} SİNERJİ & KADRO GÜCÜ</div>
       <div class="rm-sum-metrics">
         <div class="rm-metric-chip rating">
           <span class="m-label">TAKIM RATING</span>
@@ -247,7 +250,7 @@ class RosterManager {
 
   renderSquadSlots() {
     if (!this.slotsContainer) return;
-    const squad = this.draftRosters[this.selectedTeam] || [];
+    const squad = this.draftRoster || [];
     const SLOT_TITLES = [
       'SLOT 1 • KESKİN NİŞANCI (AWP)',
       'SLOT 2 • GİRİŞ FRAGGER (ENTRY)',
@@ -262,13 +265,13 @@ class RosterManager {
       const skills = p.skills || { aim: 92, reflex: 92, headshot: 90, gamesense: 92, clutch: 92, utility: 90 };
 
       return `
-        <div class="rm-slot-card ${isFocused ? 'focused' : ''} ${this.selectedTeam}" data-slot="${idx}">
+        <div class="rm-slot-card ${isFocused ? 'focused' : ''} user" data-slot="${idx}">
           <div class="rm-slot-top-bar">
             <span class="rm-slot-title">${SLOT_TITLES[idx] || `SLOT ${idx + 1}`}</span>
             <span class="rm-slot-tier ${p.tier || 'S'}">${p.tier || 'S'}</span>
           </div>
           <div class="rm-slot-main">
-            <div class="rm-slot-avatar ${this.selectedTeam}">
+            <div class="rm-slot-avatar user">
               ${p.name.slice(0, 2).toUpperCase()}
             </div>
             <div class="rm-slot-info">
@@ -331,7 +334,7 @@ class RosterManager {
     if (!this.poolGrid) return;
 
     const fullCatalog = [...this.playerPool, ...this.customPlayers];
-    const currentLineup = this.draftRosters[this.selectedTeam] || [];
+    const currentLineup = this.draftRoster || [];
     const lineupIds = new Set(currentLineup.map(p => p.id || p.name));
 
     let filtered = fullCatalog.filter(p => {
@@ -368,7 +371,7 @@ class RosterManager {
       return `
         <div class="rm-pool-card ${inLineup ? 'in-lineup' : ''}" data-player-id="${p.id || p.name}">
           <div class="rm-pc-header">
-            <span class="rm-pc-avatar ${this.selectedTeam}">${p.name.slice(0, 2).toUpperCase()}</span>
+            <span class="rm-pc-avatar user">${p.name.slice(0, 2).toUpperCase()}</span>
             <div class="rm-pc-title-col">
               <div class="rm-pc-name">${p.name} <span class="rm-pc-tier ${p.tier || 'S'}">${p.tier || 'S'}</span></div>
               <div class="rm-pc-sub">${p.teamName || 'Pro'} • ${p.role || 'Rifler'}</div>
@@ -416,17 +419,16 @@ class RosterManager {
   }
 
   assignPlayerToSlot(player, slotIndex) {
-    if (!this.draftRosters[this.selectedTeam]) return;
+    if (!this.draftRoster) return;
 
     // Check if player is already in another slot -> swap!
-    const existingIndex = this.draftRosters[this.selectedTeam].findIndex(p => (p.id || p.name) === (player.id || player.name));
+    const existingIndex = this.draftRoster.findIndex(p => (p.id || p.name) === (player.id || player.name));
     if (existingIndex !== -1 && existingIndex !== slotIndex) {
-      // Swap the two slots cleanly
-      const temp = this.draftRosters[this.selectedTeam][slotIndex];
-      this.draftRosters[this.selectedTeam][slotIndex] = JSON.parse(JSON.stringify(player));
-      this.draftRosters[this.selectedTeam][existingIndex] = temp;
+      const temp = this.draftRoster[slotIndex];
+      this.draftRoster[slotIndex] = JSON.parse(JSON.stringify(player));
+      this.draftRoster[existingIndex] = temp;
     } else {
-      this.draftRosters[this.selectedTeam][slotIndex] = JSON.parse(JSON.stringify(player));
+      this.draftRoster[slotIndex] = JSON.parse(JSON.stringify(player));
     }
 
     // Auto-advance to next slot
@@ -440,7 +442,7 @@ class RosterManager {
 
     const squad = preset.playerIds.map(id => this.playerPool.find(p => p.id === id)).filter(Boolean);
     if (squad.length === 5) {
-      this.draftRosters[this.selectedTeam] = JSON.parse(JSON.stringify(squad));
+      this.draftRoster = JSON.parse(JSON.stringify(squad));
       this.selectedSlot = 0;
       this.renderAll();
     }
@@ -455,12 +457,12 @@ class RosterManager {
 
     const role = document.getElementById('cpRole')?.value || 'Entry Fragger';
     const perk = document.getElementById('cpPerk')?.value || 'onetap_god';
-    const aim = parseInt(document.getElementById('cpAim')?.value || 95, 10);
-    const reflex = parseInt(document.getElementById('cpReflex')?.value || 95, 10);
-    const headshot = parseInt(document.getElementById('cpHs')?.value || 96, 10);
-    const gamesense = parseInt(document.getElementById('cpGs')?.value || 94, 10);
-    const clutch = parseInt(document.getElementById('cpClutch')?.value || 93, 10);
-    const utility = parseInt(document.getElementById('cpUtility')?.value || 90, 10);
+    const aim = parseInt(document.getElementById('cpAim')?.value || 60, 10);
+    const reflex = parseInt(document.getElementById('cpReflex')?.value || 60, 10);
+    const headshot = parseInt(document.getElementById('cpHs')?.value || 55, 10);
+    const gamesense = parseInt(document.getElementById('cpGs')?.value || 55, 10);
+    const clutch = parseInt(document.getElementById('cpClutch')?.value || 50, 10);
+    const utility = parseInt(document.getElementById('cpUtility')?.value || 50, 10);
 
     const avgSkill = (aim + reflex + headshot + gamesense + clutch) / 5;
     const rating = (0.70 + (avgSkill - 45) * 0.012).toFixed(2);
@@ -472,7 +474,7 @@ class RosterManager {
     const customP = {
       id: `custom_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
       name,
-      teamName: 'Kulüp Yıldızı',
+      teamName: this.userClub.name,
       country: 'TR',
       role,
       tag: 'Özel Kart',
@@ -489,7 +491,7 @@ class RosterManager {
         utility,
         aggression: 75
       },
-      desc: 'Kulüp sahibi tarafından bizzat transfer edilip kadroya kazandırılan oyuncu.'
+      desc: 'Kulüp sahibi tarafından kulübe kazandırılan özel yetenek.'
     };
 
     this.customPlayers.unshift(customP);
@@ -499,86 +501,56 @@ class RosterManager {
     this.assignPlayerToSlot(customP, this.selectedSlot);
     this.renderMarketPool();
 
-    // Reset input
+    // Reset Form
     document.getElementById('cpName').value = '';
-    alert(`⭐ ${name} başarıyla oluşturuldu ve Slot ${this.selectedSlot === 0 ? 5 : this.selectedSlot}'e yerleştirildi!`);
+    const customForm = document.getElementById('rmCustomForm');
+    const btnToggleCustom = document.getElementById('btnToggleCustomPlayer');
+    if (customForm) customForm.style.display = 'none';
+    if (btnToggleCustom) btnToggleCustom.innerText = '+ Özel Oyuncu Kartı Oluştur';
   }
 
-  generateProspect() {
-    const turkishFirst = ['Barış', 'Kaan', 'Doruk', 'Yusuf', 'Alper', 'Deniz', 'Mert', 'Emir', 'Umut', 'Arda', 'Kerem', 'Burak'];
-    const globalFirst = ['Luka', 'Milan', 'Jonas', 'Maksim', 'Nils', 'Sven', 'Alex', 'Mateo', 'Erik', 'Oliver'];
-    const nickTags = ['phantom', 'storm', 'deagle', 'flick', 'recoil', 'zen', 'rush', 'aim', 'focus', 'frost', 'pulse', 'spark', 'shadow', 'blaze'];
-    const countries = ['TR', 'DK', 'UA', 'SE', 'BA', 'RU', 'FR', 'PL', 'FI'];
-    const roles = ['Entry Fragger', 'AWPer', 'Lurker', 'Site Anchor', 'In-Game Leader (IGL)'];
-    const perks = ['raw_talent', 'aggressive_entry', 'flick_king', 'ice_clutch', 'rookie_nervous'];
+  openScoutProspect() {
+    const container = document.getElementById('rmScoutCard');
+    if (!container) return;
 
-    const isTR = Math.random() < 0.6;
-    const firstName = isTR 
-      ? turkishFirst[Math.floor(Math.random() * turkishFirst.length)] 
-      : globalFirst[Math.floor(Math.random() * globalFirst.length)];
-    const nick = nickTags[Math.floor(Math.random() * nickTags.length)];
-    const country = isTR ? 'TR' : countries[Math.floor(Math.random() * countries.length)];
-    const role = roles[Math.floor(Math.random() * roles.length)];
-    const perk = perks[Math.floor(Math.random() * perks.length)];
-    const age = 16 + Math.floor(Math.random() * 4); // 16 - 19
-
-    // Base stats around 60-80 with role specialization
-    let aim = 60 + Math.floor(Math.random() * 20);
-    let reflex = 62 + Math.floor(Math.random() * 20);
-    let headshot = 58 + Math.floor(Math.random() * 20);
-    let gamesense = 55 + Math.floor(Math.random() * 20);
-    let clutch = 52 + Math.floor(Math.random() * 20);
-    let utility = 50 + Math.floor(Math.random() * 20);
-    let aggression = 60 + Math.floor(Math.random() * 30);
-
-    if (role === 'AWPer') {
-      aim += 6;
-      reflex += 8;
-      headshot -= 4;
-    } else if (role === 'Entry Fragger') {
-      reflex += 6;
-      headshot += 6;
-      aggression = Math.min(95, aggression + 15);
-    } else if (role === 'Site Anchor') {
-      gamesense += 8;
-      clutch += 6;
-    } else if (role === 'In-Game Leader (IGL)') {
-      gamesense += 10;
-      utility += 10;
-      aim -= 4;
-    }
-
-    aim = Math.max(45, Math.min(88, aim));
-    reflex = Math.max(48, Math.min(92, reflex));
-    headshot = Math.max(45, Math.min(86, headshot));
-    gamesense = Math.max(45, Math.min(86, gamesense));
-    clutch = Math.max(45, Math.min(85, clutch));
-    utility = Math.max(40, Math.min(85, utility));
-
-    const avg = (aim + reflex + headshot + gamesense + clutch) / 5;
-    const rating = (0.75 + (avg - 50) * 0.011).toFixed(2);
-    const price = 12000 + Math.floor((avg - 50) * 600);
-
-    const reports = [
-      `🎯 ${age} yaşında Faceit Seviye 10 liginde parladı. Muazzam bir refleks ve mekanik potansiyele sahip. Takım antrenmanlarıyla süperstara dönüşebilir!`,
-      `🔥 Gençler Ligi elemelerinde tek başına 1.34 reyting tutturdu. Agresif açılardan korkmuyor, yüksek özgüvenle oynuyor.`,
-      `💎 Akademi turnuvalarının en çok dikkat çeken elmaslarından biri. Reaksiyon süresi şimdiden Tier-1 profesyonelleriyle yarışıyor.`,
-      `🧠 Yaşına göre olağanüstü sakin ve zeki bir karar verme mekanizması var. Clutch turlarında baskıyı çok iyi kaldırıyor.`
+    const PROSPECT_NAMES = [
+      'Arda "ardx" Yılmaz', 'Kerem "krm" Demir', 'Efe "v0rtex" Kaya', 'Mert "blade" Çelik',
+      'Emir "hyper" Şahin', 'Baran "ghost" Öztürk', 'Lukas "lucas" Novak', 'Mateo "pulse" Silva'
     ];
-    const reportText = reports[Math.floor(Math.random() * reports.length)];
+    const COUNTRIES = ['TR', 'TR', 'TR', 'DE', 'SE', 'DK', 'UA', 'PL'];
+    const ROLES = ['Entry Fragger', 'AWPer', 'Lurker', 'Site Anchor', 'In-Game Leader (IGL)'];
+    const PERKS = ['raw_talent', 'rookie_nervous', 'onetap_god', 'flick_king', 'ice_clutch'];
 
-    return {
-      id: `scout_${firstName.toLowerCase()}_${nick}_${Date.now()}`,
-      name: `${firstName} (${nick})`,
-      teamName: 'Kulüp Akademisi',
-      country,
-      age,
-      role,
-      tag: 'Genç Yetenek',
-      rating: Number(rating),
+    const rndIdx = Math.floor(Math.random() * PROSPECT_NAMES.length);
+    const chosenName = PROSPECT_NAMES[rndIdx];
+    const chosenCountry = COUNTRIES[rndIdx];
+    const chosenRole = ROLES[Math.floor(Math.random() * ROLES.length)];
+    const chosenPerk = PERKS[Math.floor(Math.random() * PERKS.length)];
+
+    // Raw rookie skills: 45 to 75
+    const baseSkill = 48 + Math.floor(Math.random() * 26);
+    const aim = Math.min(85, baseSkill + Math.floor(Math.random() * 12) - 4);
+    const reflex = Math.min(85, baseSkill + Math.floor(Math.random() * 12) - 4);
+    const headshot = Math.min(85, baseSkill + Math.floor(Math.random() * 10) - 5);
+    const gamesense = Math.min(85, baseSkill + Math.floor(Math.random() * 8) - 4);
+    const clutch = Math.min(85, baseSkill + Math.floor(Math.random() * 12) - 6);
+    const utility = Math.min(85, baseSkill + Math.floor(Math.random() * 8) - 4);
+
+    const avgSkill = (aim + reflex + headshot + gamesense + clutch) / 5;
+    const rating = (0.75 + (avgSkill - 50) * 0.012).toFixed(2);
+    const price = Math.round(1500 + Math.pow(avgSkill / 10, 3) * 35);
+
+    const prospect = {
+      id: `prospect_${Date.now()}`,
+      name: chosenName,
+      country: chosenCountry,
+      age: 16 + Math.floor(Math.random() * 4),
+      role: chosenRole,
       tier: 'Genç Yetenek',
+      tag: 'Scout Keşfi',
+      rating: Number(rating),
       price,
-      perk,
+      perk: chosenPerk,
       skills: {
         aim,
         reflex,
@@ -586,18 +558,12 @@ class RosterManager {
         gamesense,
         clutch,
         utility,
-        aggression
+        aggression: 70
       },
-      desc: reportText
+      desc: 'Scout ekibinin yerel turnuvalarda keşfettiği yüksek potansiyelli genç yetenek.'
     };
-  }
 
-  openScoutProspect() {
-    const prospect = this.generateProspect();
     this.currentProspect = prospect;
-    const container = document.getElementById('rmScoutCard');
-    if (!container) return;
-
     const perkDef = this.perks[prospect.perk] || { name: prospect.perk, icon: '⭐', desc: '' };
 
     container.innerHTML = `
@@ -648,30 +614,31 @@ class RosterManager {
     if (!prospect) return;
     this.customPlayers.unshift(prospect);
     this.playerPool.unshift(prospect);
-
-    // Assign to selected slot
     this.assignPlayerToSlot(prospect, this.selectedSlot);
     this.renderMarketPool();
   }
 
   saveAndApply() {
-    const team = this.selectedTeam;
-    const rosterToSave = this.draftRosters[team];
-
-    if (!rosterToSave || rosterToSave.length < 5) {
+    if (!this.draftRoster || this.draftRoster.length < 5) {
       alert('Kadronuzda 5 oyuncu bulunmalıdır!');
       return;
     }
 
+    const nameInput = document.getElementById('rmClubNameInput');
+    if (nameInput && nameInput.value.trim()) {
+      this.userClub.name = nameInput.value.trim();
+    }
+
+    this.userClub.roster = JSON.parse(JSON.stringify(this.draftRoster));
+
     // Emit to server
-    this.socket.emit('update_team_roster', {
-      team,
-      roster: rosterToSave
+    this.socket.emit('update_user_club', {
+      name: this.userClub.name,
+      icon: this.userClub.icon,
+      roster: this.userClub.roster
     });
 
-    // Update local cache
-    this.rosters[team] = JSON.parse(JSON.stringify(rosterToSave));
-
+    this.updateSideClubUI();
     this.closeModal();
   }
 }

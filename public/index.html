@@ -28,7 +28,7 @@
     <!-- Match Center Scoreboard -->
     <div class="match-center-board">
       <div class="team-badge ct-badge">
-        <span class="team-name">CT</span>
+        <span class="team-name" id="nameCT">CT</span>
         <span class="team-score" id="scoreCT">0</span>
       </div>
 
@@ -40,7 +40,7 @@
 
       <div class="team-badge t-badge">
         <span class="team-score" id="scoreT">0</span>
-        <span class="team-name">T</span>
+        <span class="team-name" id="nameT">T</span>
       </div>
     </div>
 
@@ -61,22 +61,24 @@
   <main class="sim-container">
     <!-- LEFT PANEL: COACH DESK (TIMEOUT ONLY) -->
     <aside class="panel side-panel left-panel">
-      <!-- 1. SELECT TEAM TO COACH -->
+      <!-- 1. KULÜBÜMÜZ & LİG MERKEZİ -->
       <section class="panel-section coach-select-section">
-        <h3 class="section-title">TAKIM KOÇLUĞU SEÇİMİ</h3>
-        <div class="team-select-buttons">
-          <button class="btn btn-team btn-ct" id="btnCoachCT">
-            <span>🛡️ CT TAKIMI KOÇU OL</span>
-          </button>
-          <button class="btn btn-team btn-t" id="btnCoachT">
-            <span>💣 T TAKIMI KOÇU OL</span>
-          </button>
-          <button class="btn btn-team btn-spec" id="btnCoachSpec">
-            <span>👁️ GÖZLEMCİ / İZLEYİCİ</span>
-          </button>
+        <h3 class="section-title">🐺 KULÜBÜMÜZ & LİG MERKEZİ</h3>
+        <div style="background: rgba(0, 210, 255, 0.08); border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <strong style="color:#00d2ff; font-family:'Chakra Petch', sans-serif; font-size:14px;" id="sidebarClubName">🐺 Anadolu Wolves</strong>
+            <span style="font-size:9px; background:#2ecc71; color:#041208; font-weight:bold; padding:1px 6px; border-radius:3px;">KULÜP SAHİBİ</span>
+          </div>
+          <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;" id="leagueQuickStatus">
+            🏆 Lig: <strong>1. Hafta Açılış Maçı</strong>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+            <button class="btn btn-ctrl" id="btnOpenLeagueModalSide" style="background:linear-gradient(135deg, #f39c12, #d35400); color:#fff; font-weight:bold; font-size:11px; padding:6px; border-radius:4px;">🏆 Lig & Fikstür</button>
+            <button class="btn btn-ctrl" id="btnOpenRosterManagerLeft" style="background:#00d2ff; color:#0b1018; font-weight:bold; font-size:11px; padding:6px; border-radius:4px;">👔 Kadro Kur</button>
+          </div>
         </div>
         <div class="current-role-badge">
-          Aktif Rol: <strong id="activeCoachRole">İzleyici</strong>
+          Aktif Rol: <strong id="activeCoachRole">Kulüp Sahibi & Koç</strong>
         </div>
       </section>
 
@@ -160,7 +162,8 @@
 
         <!-- RADAR FOOTER CONTROLS -->
         <div class="radar-footer-controls">
-          <button class="btn btn-ctrl btn-manage-roster" id="btnOpenRosterManager" style="background: linear-gradient(135deg, #1f4068, #162447); border-color: #00d2ff; color: #fff; font-weight: bold;">👔 Kadro Kur & Transfer</button>
+          <button class="btn btn-ctrl btn-league" id="btnOpenLeagueModal" style="background: linear-gradient(135deg, #f39c12, #d35400); border-color: #f1c40f; color: #fff; font-weight: bold;">🏆 Espor Ligi & Fikstür</button>
+          <button class="btn btn-ctrl btn-manage-roster" id="btnOpenRosterManager" style="background: linear-gradient(135deg, #1f4068, #162447); border-color: #00d2ff; color: #fff; font-weight: bold;">🐺 Kulübüm & Kadro</button>
           <button class="btn btn-ctrl" id="btnToggleScoreboard">TAB (Skor Tablosu)</button>
           <button class="btn btn-ctrl" id="btnTogglePlayerCards">🃏 Oyuncu Kartları (10)</button>
           <button class="btn btn-ctrl" id="btnSoundToggle">🔊 Ses: Açık</button>
@@ -298,24 +301,92 @@
     </div>
   </div>
 
+  <!-- ESPORTS LEAGUE & FIXTURES MODAL -->
+  <div class="cards-modal league-modal" id="leagueModal" style="display:none;">
+    <div class="cards-modal-card league-modal-card">
+      <div class="cards-modal-header">
+        <div>
+          <h2 class="cards-modal-title">🏆 PRO ESPOR LİGİ - SEZON 1</h2>
+          <p class="cards-modal-subtitle">
+            8 Takımlı Tek Devreli Profesyonel CS:GO Ligi. Her hafta scheduled rakibinizle MR12 formatında karşılaşırsınız.
+          </p>
+        </div>
+        <button class="close-btn" id="btnCloseLeagueModal">✕</button>
+      </div>
+
+      <!-- NEXT MATCH HERO CARD -->
+      <div class="league-hero-card" id="leagueHeroNextMatch">
+        <!-- Rendered by LeagueUI -->
+      </div>
+
+      <!-- LEAGUE TABS ROW -->
+      <div class="league-tabs-row">
+        <div style="display:flex; gap:10px;">
+          <button class="league-tab-btn active" id="tabLeagueStandings">📊 PUAN DURUMU</button>
+          <button class="league-tab-btn" id="tabLeagueFixtures">📅 FİKSTÜR & MAÇLAR</button>
+        </div>
+        <button class="btn-reset-season" id="btnResetSeason">🔄 Sezonu Sıfırla</button>
+      </div>
+
+      <!-- VIEW 1: STANDINGS TABLE -->
+      <div class="league-view" id="viewLeagueStandings">
+        <div class="league-table-wrap">
+          <table class="league-table">
+            <thead>
+              <tr>
+                <th style="width:40px;">SIRA</th>
+                <th>TAKIM</th>
+                <th style="width:45px;">O</th>
+                <th style="width:45px;">G</th>
+                <th style="width:45px;">M</th>
+                <th style="width:85px;">RAUND</th>
+                <th style="width:55px;">AV</th>
+                <th style="width:55px;">PUAN</th>
+              </tr>
+            </thead>
+            <tbody id="leagueStandingsBody">
+              <!-- Rendered by LeagueUI -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="league-legend-bar">
+          <div class="leg-item"><span class="leg-dot leader"></span> 1. Şampiyon ($100,000 Ödül)</div>
+          <div class="leg-item"><span class="leg-dot podium"></span> 2.-3. Podyum ($50,000 Ödül)</div>
+          <div class="leg-item"><span class="leg-dot user"></span> Bizim Kulübümüz</div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: FIXTURES & RESULTS -->
+      <div class="league-view" id="viewLeagueFixtures" style="display:none;">
+        <div class="league-fixtures-grid" id="leagueFixturesContainer">
+          <!-- Rendered by LeagueUI -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SQUAD BUILDER & TRANSFER MARKET MODAL -->
   <div class="cards-modal roster-manager-modal" id="rosterManagerModal" style="display:none;">
     <div class="cards-modal-card rm-modal-card">
       <div class="cards-modal-header">
         <div>
-          <h2 class="cards-modal-title">👔 TAKIM SAHİBİ SİMÜLATÖRÜ: KADRO YÖNETİMİ & TRANSFER PAZARI</h2>
+          <h2 class="cards-modal-title">👔 KULÜP YÖNETİMİ & TRANSFER PAZARI</h2>
           <p class="cards-modal-subtitle">
-            Oyuncu kartlarındaki özellikler (Aim, Reaksiyon, HS, Oyun Zekası, Clutch ve İmzalı Pasifler) maç içi vuruş olasılıklarını ve taktikleri doğrudan belirler.
+            Kulübünüzün ilk 5 kadrosunu oluşturun. Oyuncuların kart özellikleri ve imzalı pasifleri ligdeki maçları doğrudan etkiler.
           </p>
         </div>
         <button class="close-btn" id="btnCloseRosterManager">✕</button>
       </div>
 
-      <!-- TEAM SELECTOR & PRESETS ROW -->
+      <!-- CLUB INFO & PRESETS ROW -->
       <div class="rm-toolbar">
-        <div class="rm-team-tabs">
-          <button class="rm-team-btn active ct" id="rmBtnTeamCT">🛡️ CT KADROSU</button>
-          <button class="rm-team-btn t" id="rmBtnTeamT">💣 T KADROSU</button>
+        <div class="rm-club-info-group">
+          <div class="rm-club-avatar" id="rmClubIconBadge">🐺</div>
+          <div class="rm-club-name-wrap">
+            <input type="text" id="rmClubNameInput" class="rm-input rm-club-input" value="Anadolu Wolves" placeholder="Kulüp Adı" maxlength="24" />
+            <div class="rm-club-sub">Kulüp Kasası: <strong id="rmClubBudgetValue" class="rm-budget-badge">$50,000</strong></div>
+          </div>
         </div>
         <div class="rm-presets-row">
           <label for="rmPresetSelect" class="rm-label">⚡ Hazır Kadro Yükle:</label>
@@ -486,6 +557,7 @@
   <script src="js/audio.js"></script>
   <script src="js/radar.js"></script>
   <script src="js/hud.js"></script>
+  <script src="js/leagueUI.js"></script>
   <script src="js/rosterManager.js"></script>
   <script src="js/main.js"></script>
 </body>

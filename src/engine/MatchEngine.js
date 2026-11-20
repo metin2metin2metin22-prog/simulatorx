@@ -11,6 +11,7 @@ const { BotTactics } = require('./BotTactics');
 const { BombManager } = require('./BombManager');
 const { EconomySystem } = require('./EconomySystem');
 const { MovementSystem } = require('./MovementSystem');
+const { LeagueManager } = require('./LeagueManager');
 
 class PureCoachMatch {
   constructor(io) {
@@ -45,12 +46,6 @@ class PureCoachMatch {
       ct: 'standard_212'
     };
 
-    // Manager / Club Owner Custom Squads & Rosters
-    this.currentRosters = {
-      ct: JSON.parse(JSON.stringify(DEFAULT_ROSTERS.ct)),
-      t: JSON.parse(JSON.stringify(DEFAULT_ROSTERS.t))
-    };
-
     // Subsystems
     const mapPngPath = path.join(__dirname, '../../public/assets/de_dust2.png');
     this.collision = new CollisionSystem(mapPngPath);
@@ -59,6 +54,31 @@ class PureCoachMatch {
     this.bombManager = new BombManager(this.tactics);
     this.economy = new EconomySystem();
     this.movement = new MovementSystem(this.collision, this.mapData);
+    this.league = new LeagueManager();
+
+    // League Match Pairing: Set user club vs scheduled bot team
+    this.matchInfo = null;
+    this.userSide = 'ct';
+    const nextMatch = this.league.getUserNextMatch();
+    if (nextMatch) {
+      this.currentRosters = {
+        ct: JSON.parse(JSON.stringify(nextMatch.userClub.roster)),
+        t: JSON.parse(JSON.stringify(nextMatch.opponent.roster))
+      };
+      this.matchInfo = {
+        isLeagueMatch: true,
+        week: nextMatch.week,
+        weekName: nextMatch.weekName,
+        userClub: nextMatch.userClub,
+        opponent: nextMatch.opponent,
+        userSide: 'ct'
+      };
+    } else {
+      this.currentRosters = {
+        ct: JSON.parse(JSON.stringify(DEFAULT_ROSTERS.ct)),
+        t: JSON.parse(JSON.stringify(DEFAULT_ROSTERS.t))
+      };
+    }
 
     // C4 Bomb State
     this.bomb = {
@@ -297,7 +317,53 @@ class PureCoachMatch {
     this.assignStrategyPaths();
   }
 
+  loadLeagueMatch() {
+    if (!this.league) return false;
+    const nextMatch = this.league.getUserNextMatch();
+    if (!nextMatch) return false;
+
+    const userIsHome = nextMatch.isHome;
+    const userRoster = this.league.userClub.roster;
+    const opponentRoster = nextMatch.opponent.roster;
+
+    if (userIsHome) {
+      this.currentRosters.ct = JSON.parse(JSON.stringify(userRoster));
+      this.currentRosters.t = JSON.parse(JSON.stringify(opponentRoster));
+      this.userSide = 'ct';
+    } else {
+      this.currentRosters.t = JSON.parse(JSON.stringify(userRoster));
+      this.currentRosters.ct = JSON.parse(JSON.stringify(opponentRoster));
+      this.userSide = 't';
+    }
+
+    this.matchInfo = {
+      isLeagueMatch: true,
+      week: nextMatch.week,
+      weekName: nextMatch.weekName,
+      userClub: nextMatch.userClub,
+      opponent: nextMatch.opponent,
+      userSide: this.userSide,
+      isHome: userIsHome
+    };
+
+    this.round = 1;
+    this.score = { ct: 0, t: 0 };
+    this.lossStreak = { ct: 0, t: 0 };
+    this.isPaused = false;
+    this.killfeed = [];
+    this.events = [];
+    this.coaches.ct.timeoutsLeft = 2;
+    this.coaches.t.timeoutsLeft = 2;
+    this.initPlayers();
+    this.startRound();
+    this.broadcastState();
+    return true;
+  }
+
   startMatch() {
+    if (this.league && this.league.getUserNextMatch()) {
+      return this.loadLeagueMatch();
+    }
     this.round = 1;
     this.score = { ct: 0, t: 0 };
     this.isPaused = false;
@@ -788,7 +854,27 @@ class PureCoachMatch {
 
     if (matchWinner) {
       this.phase = 'match_over';
-      this.events.push({ type: 'match_over', winner: matchWinner });
+      // Teams swap sides at round 13, so user's final team side is opposite to starting userSide
+      const currentOppositeSide = this.userSide === 'ct' ? 't' : 'ct';
+      const userScore = this.score[currentOppositeSide];
+      const opponentScore = this.score[this.userSide];
+      const userClubWon = userScore > opponentScore;
+
+      if (this.matchInfo && this.matchInfo.isLeagueMatch && this.league) {
+        const homeScore = this.matchInfo.isHome ? userScore : opponentScore;
+        const awayScore = this.matchInfo.isHome ? opponentScore : userScore;
+        this.league.advanceWeekWithUserResult(homeScore, awayScore);
+        if (this.io) {
+          this.io.emit('league_data', this.league.getLeagueData());
+        }
+      }
+
+      this.events.push({
+        type: 'match_over',
+        winner: matchWinner,
+        userClubWon,
+        leagueMatch: Boolean(this.matchInfo?.isLeagueMatch)
+      });
       return;
     }
 
@@ -826,6 +912,8 @@ class PureCoachMatch {
       currentRosters: this.currentRosters,
       activeStrategies: this.activeStrategies,
       timeoutState: this.timeoutState,
+      matchInfo: this.matchInfo,
+      league: this.league ? this.league.getLeagueData() : null,
       bomb: {
         planted: this.bomb.planted,
         dropped: this.bomb.dropped,

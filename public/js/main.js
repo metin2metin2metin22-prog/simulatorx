@@ -9,6 +9,17 @@ document.addEventListener('DOMContentLoaded', () => {
   rosterManager.init(socket);
   window.rosterManager = rosterManager;
 
+  const leagueUI = new LeagueUI();
+  leagueUI.init(socket);
+  window.leagueUI = leagueUI;
+
+  const btnOpenLeagueSide = document.getElementById('btnOpenLeagueModalSide');
+  if (btnOpenLeagueSide) {
+    btnOpenLeagueSide.addEventListener('click', () => {
+      leagueUI.openModal();
+    });
+  }
+
   let localTeam = null; // 'ct', 't', or null
   let coachName = 'Koç';
   let currentGameState = null;
@@ -187,38 +198,56 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.emit('restart_match');
   });
 
-  // 4. BECOME COACH
-  document.getElementById('btnCoachCT').addEventListener('click', () => {
-    initAudio();
-    localTeam = 'ct';
-    coachName = prompt("CT Takımı Koçu İsminiz:", "B1ad3") || "B1ad3";
-    socket.emit('join_coach', { team: 'ct', coachName });
-    document.getElementById('activeCoachRole').innerText = `CT Koçu (${coachName})`;
-  });
+  // 4. BECOME COACH (Optional fallback if buttons exist)
+  const btnCoachCT = document.getElementById('btnCoachCT');
+  if (btnCoachCT) {
+    btnCoachCT.addEventListener('click', () => {
+      initAudio();
+      localTeam = 'ct';
+      coachName = prompt("CT Takımı Koçu İsminiz:", "B1ad3") || "B1ad3";
+      socket.emit('join_coach', { team: 'ct', coachName });
+      const el = document.getElementById('activeCoachRole');
+      if (el) el.innerText = `CT Koçu (${coachName})`;
+    });
+  }
 
-  document.getElementById('btnCoachT').addEventListener('click', () => {
-    initAudio();
-    localTeam = 't';
-    coachName = prompt("T Takımı Koçu İsminiz:", "zonic") || "zonic";
-    socket.emit('join_coach', { team: 't', coachName });
-    document.getElementById('activeCoachRole').innerText = `T Koçu (${coachName})`;
-  });
+  const btnCoachT = document.getElementById('btnCoachT');
+  if (btnCoachT) {
+    btnCoachT.addEventListener('click', () => {
+      initAudio();
+      localTeam = 't';
+      coachName = prompt("T Takımı Koçu İsminiz:", "zonic") || "zonic";
+      socket.emit('join_coach', { team: 't', coachName });
+      const el = document.getElementById('activeCoachRole');
+      if (el) el.innerText = `T Koçu (${coachName})`;
+    });
+  }
 
-  document.getElementById('btnCoachSpec').addEventListener('click', () => {
-    initAudio();
-    localTeam = null;
-    document.getElementById('activeCoachRole').innerText = 'İzleyici';
-  });
+  const btnCoachSpec = document.getElementById('btnCoachSpec');
+  if (btnCoachSpec) {
+    btnCoachSpec.addEventListener('click', () => {
+      initAudio();
+      localTeam = null;
+      const el = document.getElementById('activeCoachRole');
+      if (el) el.innerText = 'İzleyici';
+    });
+  }
 
   // 5. THE ONLY IN-GAME INTERVENTION: TACTICAL TIMEOUT (MOLA AL)
-  document.getElementById('btnCallTimeout').addEventListener('click', () => {
-    initAudio();
-    if (!localTeam) {
-      alert("Lütfen önce bir takımın koçu olun (CT veya T)!");
-      return;
-    }
-    socket.emit('call_timeout', { team: localTeam });
-  });
+  const btnTimeout = document.getElementById('btnCallTimeout');
+  if (btnTimeout) {
+    btnTimeout.addEventListener('click', () => {
+      initAudio();
+      let userTeam = localTeam;
+      if (currentGameState && currentGameState.matchInfo) {
+        const isSwapped = currentGameState.round >= 13;
+        userTeam = isSwapped 
+          ? (currentGameState.matchInfo.userSide === 'ct' ? 't' : 'ct')
+          : currentGameState.matchInfo.userSide;
+      }
+      socket.emit('call_timeout', { team: userTeam || 'ct' });
+    });
+  }
 
   // 6. SCOREBOARD MODAL (TAB)
   const scoreboardModal = document.getElementById('scoreboardModal');
