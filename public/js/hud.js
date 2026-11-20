@@ -293,11 +293,11 @@ class HUDManager {
               <span class="sp-val">${skills.reflex}</span>
             </div>
             <div class="skill-pill">
-              <span class="sp-lbl">🧠 ZEKA</span>
-              <span class="sp-val">${skills.gamesense}</span>
+              <span class="sp-lbl">💀 HS%</span>
+              <span class="sp-val">${skills.headshot || skills.aim}</span>
             </div>
             <div class="skill-pill">
-              <span class="sp-lbl">🏆 CLUTCH</span>
+              <span class="sp-lbl">🏆 CLU</span>
               <span class="sp-val">${skills.clutch}</span>
             </div>
           </div>

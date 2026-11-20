@@ -203,9 +203,24 @@ class CombatSystem {
         if (p.targetEnemyId !== bestTarget.id) {
           p.targetEnemyId = bestTarget.id;
 
-          // Pure Skill-Based Reaction Time:
+          // Card Skill-Driven Reaction Time:
           const reflex = (p.skills && p.skills.reflex) || 94;
-          let baseReaction = 0.27 - (reflex / 100) * 0.14 + (Math.random() * 0.02);
+          let baseReaction = 0.28 - (reflex / 100) * 0.15 + (Math.random() * 0.02);
+
+          // Card Signature Perks:
+          if (p.perk === 'flick_king' && (p.weapon === 'awp')) {
+            baseReaction *= 0.70; // 30% faster AWP sniper reaction!
+          } else if (p.perk === 'aggressive_entry') {
+            baseReaction *= 0.82; // Faster aggressive peek reaction!
+          }
+
+          // Team Mastermind Perk: If team has an active IGL with tactical_mastermind:
+          const hasMastermind = Object.values(match.players).some(mate =>
+            mate.team === p.team && mate.alive && mate.perk === 'tactical_mastermind'
+          );
+          if (hasMastermind) {
+            baseReaction *= 0.92;
+          }
 
           const isHoldingAngle = (p.state === 'holding' || this.isCoverPosition(p.x, p.y, match));
           if (isHoldingAngle) {
@@ -213,10 +228,10 @@ class CombatSystem {
           }
 
           if (p.tradeTargetId === bestTarget.id) {
-            baseReaction = 0.08;
+            baseReaction = 0.07;
           }
 
-          p.reactionTimer = Math.max(0.08, baseReaction);
+          p.reactionTimer = Math.max(0.04, baseReaction);
         }
 
         if (p.reactionTimer > 0) {
@@ -318,19 +333,40 @@ class CombatSystem {
 
     const distFactor = Math.max(0.4, 1.0 - (dist / weapon.maxRange) * 0.45);
 
-    // Skill-based modifiers:
+    // Card Skill-Driven Combat Modifiers:
     const aim = (shooter.skills && shooter.skills.aim) || 94;
     const gamesense = (shooter.skills && shooter.skills.gamesense) || 94;
     const clutch = (shooter.skills && shooter.skills.clutch) || 94;
+    const headshotSkill = (shooter.skills && (shooter.skills.headshot || shooter.skills.aim)) || 90;
+    const aggression = (shooter.skills && shooter.skills.aggression) || 75;
 
-    const aimBonus = (aim - 90) * 0.015;
-    const gamesenseBonus = (gamesense - 90) * 0.008;
+    const aimBonus = (aim - 90) * 0.016;
+    const gamesenseBonus = (gamesense - 90) * 0.010;
 
     // Check for 1vX clutch situation
     const aliveAllies = Object.values(match.players).filter(p => p.team === shooter.team && p.alive).length;
     const aliveEnemies = Object.values(match.players).filter(p => p.team !== shooter.team && p.alive).length;
     const isClutching = (aliveAllies === 1 && aliveEnemies >= 1);
-    const clutchBonus = isClutching ? ((clutch - 90) * 0.012) : 0;
+    const clutchBonus = isClutching ? ((clutch - 85) * 0.018) : 0;
+
+    // Card Signature Perks:
+    let perkAccuracyBonus = 0;
+    let perkHsBonus = 0;
+
+    if (shooter.perk === 'onetap_god' && shooter.burstCount === 1) {
+      perkHsBonus += 0.22; // Massive 1-tap headshot advantage
+      perkAccuracyBonus += 0.09;
+    }
+    if (shooter.perk === 'ice_clutch' && isClutching) {
+      perkAccuracyBonus += 0.22; // Ice in veins clutch mastery
+      perkHsBonus += 0.16;
+    }
+    if (shooter.perk === 'flick_king' && weapon.type === 'sniper') {
+      perkAccuracyBonus += 0.15; // Godly sniper flick accuracy
+    }
+    if (shooter.perk === 'smoke_criminal' && shooter.smokeExitTimer > 0) {
+      perkAccuracyBonus += 0.20; // Eliminates smoke push disadvantage
+    }
 
     const movingPenalty = shooter.state === 'moving' 
       ? (weapon.type === 'sniper' ? -0.55 : (weapon.type === 'pistol' ? -0.06 : -0.25)) 
@@ -392,7 +428,7 @@ class CombatSystem {
     const flickPenalty = aimSettlingDiff > 0.18 ? -0.22 : 0;
 
     let totalHitChance = (weapon.accuracy * distFactor * burstAccuracy)
-      + aimBonus + gamesenseBonus + clutchBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + crouchBonus + smokeExitShooterPenalty + smokeExitTargetBonus + flickPenalty;
+      + aimBonus + gamesenseBonus + clutchBonus + perkAccuracyBonus + movingPenalty + holdBonus + tGroupBonus + crossfirePenalty + coverDefensePenalty + tradeBonus + stationaryTargetBonus + crouchBonus + smokeExitShooterPenalty + smokeExitTargetBonus + flickPenalty;
 
     if (shooter.flashDuration > 0.3) {
       totalHitChance *= 0.25; // Blind panic-spray penalty
@@ -403,12 +439,12 @@ class CombatSystem {
     let damage = 0;
 
     if (isHit) {
-      // Headshot probability is determined by shooter's Aim skill (e.g. NiKo 99, b1t 97)
+      // Headshot probability is determined by shooter's Headshot & Aim card skills (e.g. b1t 100, NiKo 99, donk 98)
       // Siper arkasında pre-aim tutan oyuncu ilk vuruşta ekstra kafadan vuruş şansı kazanır (+8%)
       const coverHsBonus = (shooterInCover && shooter.burstCount === 1) ? 0.08 : 0;
       const crouchTargetHsPenalty = target.isCrouching ? -0.06 : 0;
-      const hsSkillFactor = (aim / 100) * 0.30;
-      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.25 + hsSkillFactor + coverHsBonus + crouchTargetHsPenalty + deagleOneTapHsBonus) : (0.12 + hsSkillFactor * 0.5 + crouchTargetHsPenalty));
+      const hsSkillFactor = (headshotSkill / 100) * 0.36;
+      const baseHsChance = weapon.name === 'AWP' ? 0.12 : (shooter.burstCount === 1 ? (0.20 + hsSkillFactor + coverHsBonus + crouchTargetHsPenalty + deagleOneTapHsBonus + perkHsBonus) : (0.10 + hsSkillFactor * 0.45 + crouchTargetHsPenalty));
       isHeadshot = Math.random() < Math.max(0.04, baseHsChance);
 
       if (isHeadshot) {
@@ -432,6 +468,10 @@ class CombatSystem {
         // kutu/engel kenarına çarpar ve %25 hasar emilimi sağlanır!
         if (targetInCover) {
           bodyDamage *= 0.75;
+        }
+        // Iron Anchor Perk: +20% extra damage reduction when holding site in cover!
+        if (target.perk === 'iron_anchor' && targetInCover) {
+          bodyDamage *= 0.80;
         }
         damage = bodyDamage;
       }

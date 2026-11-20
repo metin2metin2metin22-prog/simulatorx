@@ -2,7 +2,7 @@
 const path = require('path');
 const { DUST2_DATA } = require('../../public/js/mapData');
 const { WEAPONS } = require('../config/weapons');
-const { ROSTERS } = require('../config/rosters');
+const { ROSTERS, DEFAULT_ROSTERS, PRO_PLAYER_POOL, PERK_DEFINITIONS, ROSTER_PRESETS, calculateTeamStats } = require('../config/rosters');
 const { T_STRATS, CT_STRATS, DEFAULT_COACHES } = require('../config/constants');
 const { findPath, getClosestNode, expandWaypoints } = require('../navigation/pathfinding');
 const { CollisionSystem } = require('./CollisionSystem');
@@ -41,6 +41,12 @@ class PureCoachMatch {
     this.activeStrategies = {
       t: 'rush_b',
       ct: 'standard_212'
+    };
+
+    // Manager / Club Owner Custom Squads & Rosters
+    this.currentRosters = {
+      ct: JSON.parse(JSON.stringify(DEFAULT_ROSTERS.ct)),
+      t: JSON.parse(JSON.stringify(DEFAULT_ROSTERS.t))
     };
 
     // Subsystems
@@ -133,6 +139,49 @@ class PureCoachMatch {
     this.events.push({ type: 'radio_message', ...msg });
   }
 
+  setTeamRoster(team, newRoster) {
+    if (!newRoster || !Array.isArray(newRoster) || newRoster.length < 5) return this.currentRosters[team];
+    this.currentRosters[team] = newRoster.slice(0, 5).map(p => ({
+      id: p.id || Math.random().toString(36).substr(2, 9),
+      name: p.name,
+      role: p.role,
+      tag: p.tag || p.role,
+      desc: p.desc || '',
+      rating: Number(p.rating) || 1.15,
+      tier: p.tier || 'S',
+      perk: p.perk || 'onetap_god',
+      skills: {
+        aim: p.skills?.aim || 94,
+        reflex: p.skills?.reflex || 94,
+        headshot: p.skills?.headshot || p.skills?.aim || 90,
+        gamesense: p.skills?.gamesense || 94,
+        clutch: p.skills?.clutch || 94,
+        utility: p.skills?.utility || 90,
+        aggression: p.skills?.aggression || 75
+      }
+    }));
+
+    // Immediately propagate to live player objects
+    for (let i = 0; i < 5; i++) {
+      const pId = `${team}_${i}`;
+      const player = this.players[pId];
+      const pro = this.currentRosters[team][i];
+      if (player && pro) {
+        player.name = pro.name;
+        player.role = pro.role;
+        player.tag = pro.tag;
+        player.desc = pro.desc;
+        player.rating = pro.rating;
+        player.tier = pro.tier;
+        player.perk = pro.perk;
+        player.skills = { ...pro.skills };
+      }
+    }
+
+    this.events.push({ type: 'roster_changed', team });
+    return this.currentRosters[team];
+  }
+
   initPlayers() {
     this.players = {};
 
@@ -140,7 +189,7 @@ class PureCoachMatch {
     for (let i = 0; i < 5; i++) {
       const pId = `ct_${i}`;
       const spawn = this.mapData.spawns.CT[i];
-      const pro = ROSTERS.ct[i];
+      const pro = (this.currentRosters.ct && this.currentRosters.ct[i]) || DEFAULT_ROSTERS.ct[i];
       this.players[pId] = {
         id: pId,
         slot: i,
@@ -149,6 +198,8 @@ class PureCoachMatch {
         tag: pro.tag,
         desc: pro.desc,
         rating: pro.rating,
+        tier: pro.tier || 'S',
+        perk: pro.perk || 'onetap_god',
         skills: { ...pro.skills },
         team: 'ct',
         x: spawn.x,
@@ -190,7 +241,7 @@ class PureCoachMatch {
     for (let i = 0; i < 5; i++) {
       const pId = `t_${i}`;
       const spawn = this.mapData.spawns.T[i];
-      const pro = ROSTERS.t[i];
+      const pro = (this.currentRosters.t && this.currentRosters.t[i]) || DEFAULT_ROSTERS.t[i];
       this.players[pId] = {
         id: pId,
         slot: i,
@@ -199,6 +250,8 @@ class PureCoachMatch {
         tag: pro.tag,
         desc: pro.desc,
         rating: pro.rating,
+        tier: pro.tier || 'S',
+        perk: pro.perk || 'onetap_god',
         skills: { ...pro.skills },
         team: 't',
         x: spawn.x,
@@ -1224,6 +1277,7 @@ class PureCoachMatch {
       isPaused: this.isPaused,
       score: this.score,
       coaches: this.coaches,
+      currentRosters: this.currentRosters,
       activeStrategies: this.activeStrategies,
       timeoutState: this.timeoutState,
       bomb: {

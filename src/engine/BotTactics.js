@@ -806,18 +806,21 @@ class BotTactics {
           const angleDiff = Math.abs(this.collision.normalizeAngle(p.angle - angleToFlash));
           const isFacingFlash = (angleDiff < Math.PI / 2);
           const isTeammate = thrower && thrower.team === p.team;
+          const throwerUtility = (thrower && thrower.skills && thrower.skills.utility) || 90;
+          const utilityMult = isTeammate ? 1.0 : (throwerUtility / 90);
 
           if (isFacingFlash) {
-            const rawDuration = Math.min(3.5, 4.0 * (1 - dist / 260));
+            const rawDuration = Math.min(4.2, 4.0 * (1 - dist / 260) * utilityMult);
             p.flashDuration = isTeammate ? Math.min(1.2, rawDuration * 0.45) : rawDuration;
           } else {
-            p.flashDuration = isTeammate ? 0.2 : 0.8;
+            p.flashDuration = isTeammate ? 0.2 : 0.8 * utilityMult;
           }
         }
       });
     } else if (g.type === 'he') {
       match.events.push({ type: 'he_pop', x: g.x, y: g.y });
       const thrower = match.players[g.throwerId];
+      const throwerUtility = (thrower && thrower.skills && thrower.skills.utility) || 90;
 
       Object.values(match.players).forEach(p => {
         if (!p.alive) return;
@@ -825,7 +828,7 @@ class BotTactics {
         if (dist < 180) {
           if (this.collision.isLineBlockedByWall(p.x, p.y, g.x, g.y)) return;
           const dmgRatio = 1 - (dist / 180);
-          let blastDamage = Math.round(55 * dmgRatio);
+          let blastDamage = Math.round(58 * dmgRatio * (throwerUtility / 90));
           if (p.armor > 0) blastDamage = Math.round(blastDamage * 0.65);
           p.hp = Math.max(0, p.hp - blastDamage);
           if (thrower) thrower.damage += blastDamage;

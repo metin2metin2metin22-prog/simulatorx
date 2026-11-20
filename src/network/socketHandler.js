@@ -1,6 +1,6 @@
 // SimulatorX - Socket.io Real-Time Networking & Event Dispatcher
 const { WEAPONS } = require('../config/weapons');
-const { ROSTERS } = require('../config/rosters');
+const { ROSTERS, DEFAULT_ROSTERS, PRO_PLAYER_POOL, PERK_DEFINITIONS, ROSTER_PRESETS, calculateTeamStats } = require('../config/rosters');
 
 function registerSocketHandlers(io, match) {
   io.on('connection', (socket) => {
@@ -8,7 +8,10 @@ function registerSocketHandlers(io, match) {
       mapData: match.mapData,
       weapons: WEAPONS,
       strats: match.mapData.strategies,
-      rosters: ROSTERS
+      rosters: match.currentRosters || ROSTERS,
+      playerPool: PRO_PLAYER_POOL,
+      perks: PERK_DEFINITIONS,
+      presets: ROSTER_PRESETS
     });
 
     // START MATCH
@@ -58,6 +61,34 @@ function registerSocketHandlers(io, match) {
           };
           io.emit('timeout_called', { team, coach: match.coaches[team].name });
           io.emit('chat_message', { sender: 'HAKEM', text: `${team.toUpperCase()} Takımı Koçu Taktiksel Mola aldı! (25s)` });
+        }
+      }
+    });
+
+    // MANAGER / CLUB OWNER: UPDATE TEAM ROSTER
+    socket.on('update_team_roster', ({ team, roster }) => {
+      if (team === 'ct' || team === 't') {
+        const updated = match.setTeamRoster(team, roster);
+        io.emit('roster_updated', { team, roster: updated });
+        io.emit('chat_message', {
+          sender: 'KULÜP BAŞKANI',
+          text: `${team.toUpperCase()} Takım Kadrosu güncellendi! Yeni transferler oyuna dahil oldu.`
+        });
+      }
+    });
+
+    // MANAGER: LOAD ROSTER PRESET
+    socket.on('load_roster_preset', ({ team, presetKey }) => {
+      const preset = ROSTER_PRESETS[presetKey];
+      if (preset && (team === 'ct' || team === 't')) {
+        const squad = preset.playerIds.map(id => PRO_PLAYER_POOL.find(p => p.id === id)).filter(Boolean);
+        if (squad.length === 5) {
+          const updated = match.setTeamRoster(team, squad);
+          io.emit('roster_updated', { team, roster: updated });
+          io.emit('chat_message', {
+            sender: 'KULÜP BAŞKANI',
+            text: `${team.toUpperCase()} Takımı "${preset.name}" kadrosuna geçirildi!`
+          });
         }
       }
     });

@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('radarCanvas');
   const radar = new RadarRenderer(canvas);
   const hud = new HUDManager();
+  const rosterManager = new RosterManager();
+  rosterManager.init(socket);
+  window.rosterManager = rosterManager;
 
   let localTeam = null; // 'ct', 't', or null
   let coachName = 'Koç';

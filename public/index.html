@@ -160,6 +160,7 @@
 
         <!-- RADAR FOOTER CONTROLS -->
         <div class="radar-footer-controls">
+          <button class="btn btn-ctrl btn-manage-roster" id="btnOpenRosterManager" style="background: linear-gradient(135deg, #1f4068, #162447); border-color: #00d2ff; color: #fff; font-weight: bold;">👔 Kadro Kur & Transfer</button>
           <button class="btn btn-ctrl" id="btnToggleScoreboard">TAB (Skor Tablosu)</button>
           <button class="btn btn-ctrl" id="btnTogglePlayerCards">🃏 Oyuncu Kartları (10)</button>
           <button class="btn btn-ctrl" id="btnSoundToggle">🔊 Ses: Açık</button>
@@ -179,7 +180,10 @@
       <section class="panel-section roster-section">
         <div class="roster-header-row">
           <h3 class="section-title" style="margin-bottom:0;">OYUNCU KARTLARI</h3>
-          <button class="btn-cards-all" id="btnOpenCardsModal">🃏 Tüm Kartlar</button>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-cards-all" id="btnOpenRosterManagerSide" style="background:#00d2ff; color:#0b1018; font-weight:bold;">👔 Kadro Yönet</button>
+            <button class="btn-cards-all" id="btnOpenCardsModal">🃏 Kartlar</button>
+          </div>
         </div>
         <div class="roster-tabs">
           <button class="r-tab-btn active" id="btnTabCT">🛡️ CT KADROSU</button>
@@ -294,6 +298,149 @@
     </div>
   </div>
 
+  <!-- SQUAD BUILDER & TRANSFER MARKET MODAL -->
+  <div class="cards-modal roster-manager-modal" id="rosterManagerModal" style="display:none;">
+    <div class="cards-modal-card rm-modal-card">
+      <div class="cards-modal-header">
+        <div>
+          <h2 class="cards-modal-title">👔 TAKIM SAHİBİ SİMÜLATÖRÜ: KADRO YÖNETİMİ & TRANSFER PAZARI</h2>
+          <p class="cards-modal-subtitle">
+            Oyuncu kartlarındaki özellikler (Aim, Reaksiyon, HS, Oyun Zekası, Clutch ve İmzalı Pasifler) maç içi vuruş olasılıklarını ve taktikleri doğrudan belirler.
+          </p>
+        </div>
+        <button class="close-btn" id="btnCloseRosterManager">✕</button>
+      </div>
+
+      <!-- TEAM SELECTOR & PRESETS ROW -->
+      <div class="rm-toolbar">
+        <div class="rm-team-tabs">
+          <button class="rm-team-btn active ct" id="rmBtnTeamCT">🛡️ CT KADROSU</button>
+          <button class="rm-team-btn t" id="rmBtnTeamT">💣 T KADROSU</button>
+        </div>
+        <div class="rm-presets-row">
+          <label for="rmPresetSelect" class="rm-label">⚡ Hazır Kadro Yükle:</label>
+          <select id="rmPresetSelect" class="rm-select">
+            <option value="">-- Şablon Seçiniz --</option>
+            <option value="all_stars">⭐ CS:GO All-Star Dream Team</option>
+            <option value="faze_clan">🛡️ FaZe Clan Major Champions</option>
+            <option value="vitality_gold">🐝 Team Vitality Golden Era</option>
+            <option value="spirit_titans">🐉 Team Spirit Major Titans</option>
+            <option value="navi_dynasty">🇺🇦 Natus Vincere Dynasty</option>
+          </select>
+          <button class="btn btn-sm btn-preset-apply" id="btnApplyPreset">Yükle</button>
+        </div>
+      </div>
+
+      <!-- ACTIVE SQUAD STATS SUMMARY BAR -->
+      <div class="rm-squad-summary" id="rmSquadSummary">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- MAIN SPLIT: ACTIVE 5-MAN SQUAD ON LEFT, PLAYER POOL / MARKET ON RIGHT -->
+      <div class="rm-body-grid">
+        <!-- LEFT: ACTIVE 5-MAN LINEUP -->
+        <div class="rm-squad-column">
+          <div class="rm-column-header">
+            <span>📋 AKTİF İLK 5 KADROSU (SAHADAKİ OYUNCULAR)</span>
+            <small>Slotlara tıklayarak pazardan oyuncu yerleştirin</small>
+          </div>
+          <div class="rm-slots-container" id="rmSlotsContainer">
+            <!-- 5 Slot cards injected via JS -->
+          </div>
+        </div>
+
+        <!-- RIGHT: TRANSFER MARKET & PLAYER POOL -->
+        <div class="rm-market-column">
+          <div class="rm-column-header rm-market-header">
+            <span>🛒 OYUNCU PAZARI & HAVUZ</span>
+            <div class="rm-search-box">
+              <input type="text" id="rmPlayerSearch" placeholder="Oyuncu ara (s1mple, NiKo...)" class="rm-search-input" />
+            </div>
+          </div>
+
+          <!-- ROLE FILTERS -->
+          <div class="rm-role-filters" id="rmRoleFilters">
+            <button class="rm-filter-btn active" data-role="all">Tümü</button>
+            <button class="rm-filter-btn" data-role="AWPer">AWPer</button>
+            <button class="rm-filter-btn" data-role="Entry Fragger">Entry Fragger</button>
+            <button class="rm-filter-btn" data-role="Lurker">Lurker</button>
+            <button class="rm-filter-btn" data-role="Site Anchor">Site Anchor</button>
+            <button class="rm-filter-btn" data-role="In-Game Leader (IGL)">IGL</button>
+          </div>
+
+          <!-- PLAYER CARDS GRID -->
+          <div class="rm-pool-grid" id="rmPoolGrid">
+            <!-- Market cards injected via JS -->
+          </div>
+
+          <!-- CUSTOM PLAYER CREATOR TOGGLE -->
+          <div class="rm-custom-section">
+            <button class="btn btn-custom-toggle" id="btnToggleCustomPlayer">+ Özel Oyuncu Kartı Oluştur</button>
+            <div class="rm-custom-form" id="rmCustomForm" style="display:none;">
+              <div class="rm-form-row">
+                <input type="text" id="cpName" placeholder="Oyuncu Adı (Örn: Xantares)" class="rm-input" />
+                <select id="cpRole" class="rm-select">
+                  <option value="Entry Fragger">Entry Fragger</option>
+                  <option value="AWPer">AWPer</option>
+                  <option value="Lurker">Lurker</option>
+                  <option value="Site Anchor">Site Anchor</option>
+                  <option value="In-Game Leader (IGL)">IGL</option>
+                </select>
+                <select id="cpPerk" class="rm-select">
+                  <option value="onetap_god">🎯 One-Tap Makinesi</option>
+                  <option value="flick_king">⚡ Flick Kralı</option>
+                  <option value="ice_clutch">❄️ Buz Adam (Clutch)</option>
+                  <option value="smoke_criminal">🌫️ Duman Hayaleti</option>
+                  <option value="iron_anchor">🛡️ Çelik Kale (Anchor)</option>
+                  <option value="tactical_mastermind">🧠 Taktik Dehası (IGL)</option>
+                  <option value="aggressive_entry">🔥 Vahşi Girişçi</option>
+                </select>
+              </div>
+              <div class="rm-sliders-grid">
+                <div class="slider-group">
+                  <label>Aim: <span id="valCpAim">95</span></label>
+                  <input type="range" id="cpAim" min="70" max="99" value="95" />
+                </div>
+                <div class="slider-group">
+                  <label>Reflex: <span id="valCpReflex">95</span></label>
+                  <input type="range" id="cpReflex" min="70" max="100" value="95" />
+                </div>
+                <div class="slider-group">
+                  <label>Headshot: <span id="valCpHs">96</span></label>
+                  <input type="range" id="cpHs" min="70" max="100" value="96" />
+                </div>
+                <div class="slider-group">
+                  <label>Game Sense: <span id="valCpGs">94</span></label>
+                  <input type="range" id="cpGs" min="70" max="100" value="94" />
+                </div>
+                <div class="slider-group">
+                  <label>Clutch: <span id="valCpClutch">93</span></label>
+                  <input type="range" id="cpClutch" min="70" max="100" value="93" />
+                </div>
+                <div class="slider-group">
+                  <label>Utility: <span id="valCpUtility">90</span></label>
+                  <input type="range" id="cpUtility" min="70" max="100" value="90" />
+                </div>
+              </div>
+              <button class="btn btn-create-player" id="btnCreateCustomPlayer">⭐ Kartı Oluştur & Havuza Ekle</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER ACTIONS -->
+      <div class="rm-modal-footer">
+        <div class="rm-footer-info">
+          <span>💡 İpucu: Kadro değişiklikleri kaydedildiğinde maç motorundaki tüm canlı olasılıklar anında güncellenir.</span>
+        </div>
+        <div class="rm-footer-btns">
+          <button class="btn btn-secondary" id="btnCancelRoster">İptal</button>
+          <button class="btn btn-primary btn-save-roster" id="btnSaveRoster">💾 Kadroyu Kaydet ve Canlı Maça Uygula</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ROUND END MVP BANNER -->
   <div class="round-end-overlay" id="roundEndOverlay" style="display:none;">
     <div class="round-end-card" id="roundEndCard">
@@ -330,6 +477,7 @@
   <script src="js/audio.js"></script>
   <script src="js/radar.js"></script>
   <script src="js/hud.js"></script>
+  <script src="js/rosterManager.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
